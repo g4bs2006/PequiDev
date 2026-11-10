@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files: só o modelo .env.example vai para o repositório
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -43,6 +44,3 @@ next-env.d.ts
 # python (scripts de imagem)
 .venv/
 __pycache__/
-
-.vercel
-.env*
