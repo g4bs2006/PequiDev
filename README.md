@@ -20,7 +20,7 @@ O site abre em http://localhost:3000.
 | `npm run start` | Serve a versão de produção já gerada    |
 | `npm run lint`  | Confere o código com o ESLint           |
 
-Em produção, defina `NEXT_PUBLIC_SITE_URL` com o endereço do site (por exemplo `https://pequidev.com.br`). É ele que entra nos links de compartilhamento.
+Na Vercel o endereço do site é detectado sozinho. Quando houver domínio próprio, defina `NEXT_PUBLIC_SITE_URL` (por exemplo `https://pequidev.com.br`): é ele que entra nos links de compartilhamento.
 
 ## Como o código está organizado
 

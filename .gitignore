@@ -43,3 +43,6 @@ next-env.d.ts
 # python (scripts de imagem)
 .venv/
 __pycache__/
+
+.vercel
+.env*
