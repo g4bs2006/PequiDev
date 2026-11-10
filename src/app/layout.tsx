@@ -15,7 +15,12 @@ export const metadata: Metadata = {
   },
   description: site.description,
   authors: [{ name: site.author.name, url: site.author.github }],
-  alternates: { canonical: "/" },
+  alternates: {
+    canonical: "/",
+    types: {
+      "application/rss+xml": [{ url: "/feed.xml", title: "PequiDev, posts" }],
+    },
+  },
   openGraph: {
     type: "website",
     locale: "pt_BR",

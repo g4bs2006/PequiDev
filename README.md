@@ -48,7 +48,7 @@ supabase/migrations/   Histórico do banco: tabelas e regras de acesso
 public/pequi/          Recortes do Pequi e a folha de sprites, já prontos para a web
 referencias/           Imagens originais do Pequi e as fontes do sprite (sprite-ia/)
 scripts/               Scripts que geram os recortes, o sprite e a imagem de compartilhamento
-docs/                  Guias e planos: o Pequi, animações, como escrever um post, o painel, modo sonho
+docs/                  Guias e planos: o Pequi, animações, como escrever um post, o painel, o Sol, modo sonho
 ```
 
 Regras da casa:
