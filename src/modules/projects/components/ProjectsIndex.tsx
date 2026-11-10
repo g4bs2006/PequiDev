@@ -55,7 +55,10 @@ export async function ProjectsIndex() {
   return (
     <>
       <header>
-        <h1 className="font-display text-5xl font-bold tracking-tighter md:text-7xl">
+        <h1
+          data-plataforma
+          className="inline-block font-display text-5xl font-bold tracking-tighter md:text-7xl"
+        >
           {projectsPageCopy.title}
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-pretty text-ink-soft md:text-xl">

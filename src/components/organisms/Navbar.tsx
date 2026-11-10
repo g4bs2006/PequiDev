@@ -11,7 +11,7 @@ import { site } from "@/lib/site";
  */
 export function Navbar() {
   return (
-    <header data-plataforma className="absolute inset-x-0 top-0 z-30 h-(--nav-h)">
+    <header data-plataforma="base" className="absolute inset-x-0 top-0 z-30 h-(--nav-h)">
       <nav
         aria-label="Principal"
         className="mx-auto flex h-full max-w-[84rem] items-center justify-between gap-2 px-4 md:px-10"

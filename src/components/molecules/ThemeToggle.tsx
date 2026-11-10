@@ -16,6 +16,7 @@ export function ThemeToggle() {
         toggleTheme({ x: box.left + box.width / 2, y: box.top + box.height / 2 });
       }}
       aria-label="Alternar entre tema claro e escuro"
+      data-pequi-patada
       title="Alternar tema"
       className="aperta grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-surface text-xl text-ink shadow-soft"
     >

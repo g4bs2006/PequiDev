@@ -1,6 +1,7 @@
 import geometry from "./data/dormindo.json";
 
-export { DreamMode } from "./components/DreamMode";
+export { DreamDock } from "./components/DreamDock";
+export { DreamTrigger } from "./components/DreamTrigger";
 export { MemeCard } from "./components/MemeCard";
 export { PequiDock } from "./components/PequiDock";
 export { PequiNap } from "./components/PequiNap";

@@ -11,6 +11,12 @@ export type AvisoDoSite = {
   tema: { tema: "light" | "dark" };
   /** Alguém copiou um bloco de código de um post. */
   "codigo-copiado": { linguagem: string | null };
+  /**
+   * Alguém pediu para entrar no modo sonho. `origem` é o ponto da página
+   * (coordenadas do documento) onde o Pequi do sonho aparece; sem ela, ele cai
+   * do alto da tela.
+   */
+  "sonho-entrar": { origem: { x: number; y: number } | null };
 };
 
 export type TipoDeAviso = keyof AvisoDoSite;

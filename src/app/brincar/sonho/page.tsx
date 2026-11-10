@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { PageTransition } from "@/components/motion/PageTransition";
 import { About, FeaturedProjects, LatestPosts } from "@/modules/home";
-import { DreamMode } from "@/modules/pequi";
+import { DreamTrigger } from "@/modules/pequi";
 
 export const metadata: Metadata = {
   title: "Modo sonho",
@@ -34,7 +34,16 @@ export default function SonhoPage() {
             </p>
           </header>
 
-          <DreamMode />
+          <div className="my-10 rounded-card bg-surface p-6 shadow-soft md:p-8">
+            <DreamTrigger className="aperta inline-flex h-12 items-center justify-center rounded-full bg-accent px-6 font-display font-bold text-on-accent shadow-button">
+              Entrar no sonho
+            </DreamTrigger>
+            <p className="mt-4 max-w-2xl text-ink-soft">
+              Use as setas ou WASD para andar, espaço para pular, seta para baixo
+              para atravessar uma plataforma, X ou J para dar uma patada, Enter
+              para abrir um item e Esc para sair.
+            </p>
+          </div>
         </section>
 
         <FeaturedProjects />

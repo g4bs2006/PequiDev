@@ -4,7 +4,7 @@ import { Navbar } from "@/components/organisms/Navbar";
 import { fontVariables } from "@/lib/fonts";
 import { site } from "@/lib/site";
 import { themeScript } from "@/lib/theme";
-import { PequiDock } from "@/modules/pequi";
+import { DreamDock, PequiDock } from "@/modules/pequi";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -61,6 +61,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </main>
         <Footer />
         <PequiDock />
+        <DreamDock />
       </body>
     </html>
   );

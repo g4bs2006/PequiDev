@@ -11,7 +11,10 @@ export async function BlogIndex() {
   return (
     <div className="mx-auto w-full max-w-[84rem] px-5 pt-[calc(var(--nav-h)+2rem)] pb-24 md:px-10 md:pt-[calc(var(--nav-h)+3.5rem)]">
       <header>
-        <h1 className="font-display text-5xl font-bold tracking-tighter md:text-7xl">
+        <h1
+          data-plataforma
+          className="inline-block font-display text-5xl font-bold tracking-tighter md:text-7xl"
+        >
           {blogCopy.title}
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-pretty text-ink-soft md:text-xl">

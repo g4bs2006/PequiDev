@@ -12,6 +12,8 @@ const PLATFORM_REFRESH_MS = 500;
 
 const BODY_LEFT = 15;
 const BODY_RIGHT = 75;
+const PAW_REACH = 28;
+const PAW_HIT_FRAME = 2;
 
 const WALK_SPEED = 260;
 const GROUND_ACCELERATION = 2_400;
@@ -38,7 +40,10 @@ const CONTROL_CODES = new Set([
   "KeyD",
   "KeyS",
   "KeyW",
+  "KeyX",
+  "KeyJ",
   "Space",
+  "Enter",
   "Escape",
 ]);
 
@@ -46,6 +51,20 @@ const LEFT_CODES = ["ArrowLeft", "KeyA"];
 const RIGHT_CODES = ["ArrowRight", "KeyD"];
 const DOWN_CODES = ["ArrowDown", "KeyS"];
 const JUMP_CODES = ["ArrowUp", "KeyW", "Space"];
+const PAW_CODES = ["KeyX", "KeyJ"];
+
+export type DreamAction =
+  | "esquerda"
+  | "direita"
+  | "pular"
+  | "descer"
+  | "patada"
+  | "abrir";
+
+export type DreamOrigin = {
+  x: number;
+  y: number;
+};
 
 type Platform = {
   element: HTMLElement | null;
@@ -62,9 +81,16 @@ type Visual = {
   frame: number;
 };
 
+type OpenTarget = {
+  href: string;
+  name: string;
+};
+
 export type DreamEngine = {
-  start: () => void;
+  start: (origem?: DreamOrigin | null) => void;
   stop: () => void;
+  respawn: () => void;
+  setAction: (action: DreamAction, pressed: boolean) => void;
 };
 
 function approaches(value: number, target: number, amount: number) {
@@ -73,10 +99,20 @@ function approaches(value: number, target: number, amount: number) {
   return target;
 }
 
+function shortText(value: string) {
+  const clean = value.replace(/\s+/g, " ").trim();
+  if (clean.length <= 40) return clean;
+  return `${clean.slice(0, 39).trimEnd()}…`;
+}
+
 /** Motor do sonho. O React cuida só de criar e remover sua camada. */
 export function createDreamEngine(
   canvas: HTMLCanvasElement,
-  options: { onExit: () => void },
+  options: {
+    onExit: () => void;
+    onOpen: (href: string) => void;
+    onHint: (hint: string | null) => void;
+  },
 ): DreamEngine {
   const context = canvas.getContext("2d");
   const sprite = new Image();
@@ -112,19 +148,23 @@ export function createDreamEngine(
   let idleTime = 0;
   let gameTime = 0;
   let landingAge: number | null = null;
+  let pawTime: number | null = null;
+  let pawHit = false;
+  let currentHint: string | null = null;
 
   const pressed = new Set<string>();
+  const actions = new Set<DreamAction>();
 
   sprite.decoding = "async";
   sprite.src = SPRITE_URL;
 
   const hasAny = (codes: string[]) => codes.some((code) => pressed.has(code));
-  const isJumpHeld = () => hasAny(JUMP_CODES);
-  const isDownHeld = () => hasAny(DOWN_CODES);
+  const isJumpHeld = () => hasAny(JUMP_CODES) || actions.has("pular");
+  const isDownHeld = () => hasAny(DOWN_CODES) || actions.has("descer");
 
   function inputAxis() {
-    const left = hasAny(LEFT_CODES) ? 1 : 0;
-    const right = hasAny(RIGHT_CODES) ? 1 : 0;
+    const left = hasAny(LEFT_CODES) || actions.has("esquerda") ? 1 : 0;
+    const right = hasAny(RIGHT_CODES) || actions.has("direita") ? 1 : 0;
     return right - left;
   }
 
@@ -166,7 +206,10 @@ export function createDreamEngine(
           element,
           left: rect.left + window.scrollX,
           right: rect.right + window.scrollX,
-          top: rect.top + window.scrollY,
+          // data-plataforma="base": o chão é a borda de baixo (o menu do topo,
+          // onde ele anda ao lado dos botões); nos outros, a borda de cima.
+          top:
+            (element.dataset.plataforma === "base" ? rect.bottom : rect.top) + window.scrollY,
           ground: false,
         },
       ];
@@ -200,7 +243,9 @@ export function createDreamEngine(
 
   function platformFor(current: Support) {
     if (current === null) return null;
-    if (current === "ground") return platforms.find((platform) => platform.ground) ?? null;
+    if (current === "ground") {
+      return platforms.find((platform) => platform.ground) ?? null;
+    }
     return platforms.find((platform) => platform.element === current) ?? null;
   }
 
@@ -218,8 +263,102 @@ export function createDreamEngine(
     idleTime = 0;
   }
 
+  function publishHint(next: string | null) {
+    if (next === currentHint) return;
+    currentHint = next;
+    options.onHint(next);
+  }
+
+  function openTarget(): OpenTarget | null {
+    if (!(support instanceof HTMLElement)) return null;
+
+    const link = support.matches("a[href]")
+      ? (support as HTMLAnchorElement)
+      : support.querySelector<HTMLAnchorElement>("a[href]");
+
+    if (!link) return null;
+
+    const href = link.getAttribute("href")?.trim() ?? "";
+    // Só páginas do site; âncoras (como a setinha "rolar" do hero) não contam.
+    if (!href.startsWith("/") || href.startsWith("//") || href.includes("#")) return null;
+
+    const heading = support.querySelector<HTMLElement>("h1, h2, h3");
+    const name = shortText(heading?.textContent ?? link.textContent ?? "") || "link";
+
+    return { href, name };
+  }
+
+  function updateHint() {
+    const target = openTarget();
+    publishHint(target ? `Enter: abrir ${target.name}` : null);
+  }
+
+  function tryOpen() {
+    const target = openTarget();
+    if (target) options.onOpen(target.href);
+  }
+
+  function targetIsVisible(target: HTMLElement, rect: DOMRect) {
+    if (rect.width <= 0 || rect.height <= 0 || target.getClientRects().length === 0) {
+      return false;
+    }
+
+    if (
+      rect.right <= 0 ||
+      rect.bottom <= 0 ||
+      rect.left >= window.innerWidth ||
+      rect.top >= window.innerHeight
+    ) {
+      return false;
+    }
+
+    const style = window.getComputedStyle(target);
+    return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+  }
+
+  function hitPawTarget() {
+    const bodyFront = facing > 0 ? x + BODY_RIGHT : x + BODY_LEFT;
+    const reachLeft = facing > 0 ? bodyFront : bodyFront - PAW_REACH;
+    const reachRight = facing > 0 ? bodyFront + PAW_REACH : bodyFront;
+    const reachTop = y + CELL_H / 2 - 10;
+    const reachBottom = y + CELL_H / 2 + 10;
+
+    const targets = document.querySelectorAll<HTMLElement>("[data-pequi-patada]");
+
+    for (const target of targets) {
+      const rect = target.getBoundingClientRect();
+      if (!targetIsVisible(target, rect)) continue;
+
+      const left = rect.left + window.scrollX;
+      const right = rect.right + window.scrollX;
+      const top = rect.top + window.scrollY;
+      const bottom = rect.bottom + window.scrollY;
+      const reached =
+        right >= reachLeft &&
+        left <= reachRight &&
+        bottom >= reachTop &&
+        top <= reachBottom;
+
+      if (reached) {
+        target.click();
+        return;
+      }
+    }
+  }
+
+  function startPaw() {
+    if (support === null || pawTime !== null) return;
+
+    pawTime = 0;
+    pawHit = false;
+    velocityX = 0;
+    idleTime = 0;
+  }
+
   function clearInput() {
     pressed.clear();
+    actions.clear();
+    jumpBuffer = 0;
     jumpCutRequested = false;
   }
 
@@ -244,6 +383,9 @@ export function createDreamEngine(
     if (JUMP_CODES.includes(event.code) && !wasPressed) {
       jumpBuffer = JUMP_BUFFER_TIME;
     }
+
+    if (PAW_CODES.includes(event.code) && !wasPressed) startPaw();
+    if (event.code === "Enter" && !wasPressed) tryOpen();
   }
 
   function onKeyUp(event: KeyboardEvent) {
@@ -320,7 +462,14 @@ export function createDreamEngine(
       velocityY = 0;
     }
 
-    if (currentPlatform && isDownHeld() && !currentPlatform.ground) {
+    if (pawTime !== null && !currentPlatform) {
+      pawTime = null;
+      pawHit = false;
+    }
+
+    const patting = pawTime !== null;
+
+    if (currentPlatform && !patting && isDownHeld() && !currentPlatform.ground) {
       dropThrough = currentPlatform.element;
       support = null;
       currentPlatform = null;
@@ -333,8 +482,10 @@ export function createDreamEngine(
     if (currentPlatform) coyoteTime = COYOTE_TIME;
     else coyoteTime = Math.max(0, coyoteTime - delta);
 
-    const axis = inputAxis();
-    if (axis !== 0) {
+    const axis = patting ? 0 : inputAxis();
+    if (patting) {
+      velocityX = 0;
+    } else if (axis !== 0) {
       facing = axis > 0 ? 1 : -1;
       const acceleration = currentPlatform ? GROUND_ACCELERATION : AIR_ACCELERATION;
       velocityX = approaches(velocityX, axis * WALK_SPEED, acceleration * delta);
@@ -361,7 +512,7 @@ export function createDreamEngine(
       currentPlatform = null;
     }
 
-    if (jumpBuffer > 0 && coyoteTime > 0 && !isDownHeld()) {
+    if (!patting && jumpBuffer > 0 && coyoteTime > 0 && !isDownHeld()) {
       support = null;
       currentPlatform = null;
       velocityY = -JUMP_SPEED;
@@ -396,9 +547,28 @@ export function createDreamEngine(
       else y = nextY;
     }
 
+    if (pawTime !== null) {
+      pawTime += delta;
+      const meta = animation("patada");
+      const frame = Math.min(meta.quadros - 1, Math.floor(pawTime * meta.fps));
+
+      if (!pawHit && frame >= PAW_HIT_FRAME) {
+        pawHit = true;
+        hitPawTarget();
+      }
+
+      if (pawTime >= meta.quadros / meta.fps) {
+        pawTime = null;
+        pawHit = false;
+      }
+    }
+
     const resting = support !== null && axis === 0 && Math.abs(velocityX) < 1;
-    if (resting) idleTime += delta;
+    if (patting || pawTime !== null) idleTime = 0;
+    else if (resting) idleTime += delta;
     else idleTime = 0;
+
+    updateHint();
   }
 
   function visual(): Visual {
@@ -406,6 +576,14 @@ export function createDreamEngine(
       if (velocityY < -220) return { name: "pulo", frame: 1 };
       if (velocityY < 100) return { name: "pulo", frame: 2 };
       return { name: "pulo", frame: 3 };
+    }
+
+    if (pawTime !== null) {
+      const meta = animation("patada");
+      return {
+        name: "patada",
+        frame: Math.min(meta.quadros - 1, Math.floor(pawTime * meta.fps)),
+      };
     }
 
     if (landingAge !== null) {
@@ -554,7 +732,36 @@ export function createDreamEngine(
     frameRequest = window.requestAnimationFrame(loop);
   }
 
-  function start() {
+  function resetState() {
+    velocityX = 0;
+    velocityY = 0;
+    support = null;
+    dropThrough = null;
+    coyoteTime = 0;
+    jumpBuffer = 0;
+    jumpCutRequested = false;
+    idleTime = 0;
+    gameTime = 0;
+    landingAge = null;
+    pawTime = null;
+    pawHit = false;
+    clearInput();
+    publishHint(null);
+  }
+
+  function respawn() {
+    if (!active) return;
+
+    readPlatforms();
+    resetState();
+    facing = 1;
+    x = window.scrollX + window.innerWidth / 2 - CELL_W / 2;
+    // Reaparece no alto da tela e cai na primeira plataforma: na maioria das
+    // páginas, o menu, de onde ele desce para o conteúdo (S/↓).
+    y = window.scrollY + 8 - CELL_H;
+  }
+
+  function start(origem?: DreamOrigin | null) {
     if (started || !context) return;
 
     started = true;
@@ -564,18 +771,22 @@ export function createDreamEngine(
 
     resizeCanvas();
     readPlatforms();
+    resetState();
+    facing = 1;
 
-    x = window.scrollX + window.innerWidth / 2 - CELL_W / 2;
-    y = window.scrollY + Math.max(CELL_H + 24, window.innerHeight * 0.28) - CELL_H;
-    velocityX = 0;
-    velocityY = 0;
-    support = null;
-    dropThrough = null;
-    coyoteTime = 0;
-    jumpBuffer = 0;
-    idleTime = 0;
-    gameTime = 0;
-    landingAge = null;
+    if (origem) {
+      const feetCenter = (BODY_LEFT + BODY_RIGHT) / 2;
+      const minX = -BODY_LEFT;
+      const maxX = Math.max(minX, worldWidth - BODY_RIGHT);
+      x = Math.min(maxX, Math.max(minX, origem.x - feetCenter));
+      y = origem.y - CELL_H;
+    } else {
+      x = window.scrollX + window.innerWidth / 2 - CELL_W / 2;
+      y =
+        window.scrollY +
+        Math.max(CELL_H + 24, window.innerHeight * 0.28) -
+        CELL_H;
+    }
 
     window.addEventListener("keydown", onKeyDown, true);
     window.addEventListener("keyup", onKeyUp, true);
@@ -594,14 +805,37 @@ export function createDreamEngine(
     if (!paused) frameRequest = window.requestAnimationFrame(loop);
   }
 
+  function setAction(action: DreamAction, isPressed: boolean) {
+    if (!active) return;
+
+    const wasPressed = actions.has(action);
+
+    if (isPressed) {
+      actions.add(action);
+      idleTime = 0;
+
+      if (!wasPressed && action === "pular") jumpBuffer = JUMP_BUFFER_TIME;
+      if (!wasPressed && action === "patada") startPaw();
+      if (!wasPressed && action === "abrir") tryOpen();
+      return;
+    }
+
+    actions.delete(action);
+    if (action === "pular" && wasPressed && !isJumpHeld()) {
+      jumpCutRequested = true;
+    }
+  }
+
   function stop() {
     if (!started) return;
 
+    started = false;
     active = false;
     paused = false;
     window.cancelAnimationFrame(frameRequest);
     window.clearInterval(refreshTimer);
     clearInput();
+    publishHint(null);
 
     window.removeEventListener("keydown", onKeyDown, true);
     window.removeEventListener("keyup", onKeyUp, true);
@@ -614,5 +848,5 @@ export function createDreamEngine(
     if (context) context.clearRect(0, 0, window.innerWidth, window.innerHeight);
   }
 
-  return { start, stop };
+  return { start, stop, respawn, setAction };
 }

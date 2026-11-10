@@ -33,8 +33,8 @@ abre o sonho.
 | --- | --- | --- |
 | 0. Sprite | Folha de sprites e prévia em `/brincar` | **Feita**, falta o Gabriel revisar os pontos abaixo |
 | 1. Motor | Em `/brincar/sonho`: o Pequi andando e pulando sobre as seções da home, pelo teclado | **Feita** (escrita pelo Sol), falta o Gabriel ajustar o controle |
-| 2. Interações | Abrir card com Enter, dormir quando ninguém mexe, patada no botão de tema, botões de toque no celular, aviso para leitor de tela | A fazer. Depende de `/projetos/[slug]` e `/blog/[slug]` existirem. |
-| 3. Home | Clicar no Pequi dormindo abre o sonho, com transição de entrada e saída | A fazer |
+| 2. Interações | Enter abre o card, patada em botões, toque no celular, aviso para leitor de tela | **Feita** (escrita pelo Sol) |
+| 3. Home | Clicar no Pequi dormindo abre o sonho, que continua entre as páginas | **Feita** (escrita pelo Sol) |
 
 ### Pontos para revisar no sprite
 
@@ -172,8 +172,35 @@ entrar.
   sem suavizar, com menos movimento pedido).
 - **Leve:** o motor só é baixado ao clicar em "Entrar no sonho".
 
-## Próximo passo: interações (etapa 2)
+## Interações e o site inteiro (etapas 2 e 3)
 
-Abrir o card com Enter quando o Pequi estiver em cima dele, dormir quando
-ninguém mexe (já feito no motor), patada no botão de tema, botões de toque no
-celular e aviso para leitor de tela.
+O sonho não mora mais numa página: um anfitrião no layout (`DreamHost`, via
+`DreamDock`) ouve o aviso `sonho-entrar` (`src/lib/eventos.ts`) e cuida do
+canvas, do painel e dos controles de toque. Qualquer botão pode pedir o sonho
+com o `DreamTrigger`, que manda junto o ponto onde o Pequi aparece.
+
+| Onde se entra | Como |
+| --- | --- |
+| Hero da home | Clicar no Pequi dormindo (área do corpo, com o balão "entrar no sonho do Pequi"); o Pequi de pixel sai de cima dele |
+| `/brincar/sonho` | Botão "Entrar no sonho" |
+
+- **Abrir:** em cima de uma plataforma com link para outra página do site, a
+  dica "Enter: abrir <nome>" aparece no painel; Enter (ou "Abrir", no toque)
+  navega com a transição de avançar. Links de âncora e externos não contam.
+- **O sonho continua entre as páginas:** ao trocar de página, o Pequi
+  reaparece no alto e cai no menu.
+- **Patada:** X ou J. Se a pata alcança um elemento com `data-pequi-patada`
+  (hoje, o botão de tema), ele é clicado.
+- **Plataformas:** `data-plataforma` usa a borda de cima;
+  `data-plataforma="base"` usa a de baixo (o menu do topo, onde ele anda ao
+  lado dos botões). Os títulos de `/blog` e `/projetos` também são
+  plataformas.
+- **Toque:** em telas de toque aparecem botões grandes (◀ ▶, pular, patada,
+  abrir).
+- **Leitor de tela:** anúncio ao ligar e desligar, e a dica de abrir num
+  `aria-live`. O foco vai para "Sair do sonho" e volta para onde estava.
+
+## O que ainda dá para fazer
+
+- Afinar o controle jogando (constantes no topo do `engine.ts`).
+- Mais alvos de patada e mais coisas para abrir.
