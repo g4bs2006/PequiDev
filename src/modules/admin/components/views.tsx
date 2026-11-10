@@ -9,12 +9,14 @@ import { type Post, PostArticle } from "@/modules/blog";
 import { apagarPost, apagarProjeto } from "../actions";
 import { getAdminStatus, requireAdmin } from "../auth";
 import {
+  getAboutForEdit,
   getPostForEdit,
   getProjectForEdit,
   listCategoryOptions,
   listPosts,
   listProjects,
 } from "../data";
+import { AboutForm } from "./AboutForm";
 import { AdminShell, AdminTitle, adminContainer, StatusBadge } from "./AdminShell";
 import { DeleteButton } from "./DeleteButton";
 import { LoginForm } from "./LoginForm";
@@ -217,6 +219,20 @@ export async function ProjectEditView({ id, created }: { id: string; created: bo
         }
       />
       <ProjectForm project={project} categories={categories} notice={created ? "Projeto criado." : undefined} />
+    </AdminShell>
+  );
+}
+
+// --- Sobre ------------------------------------------------------------------
+
+export async function AboutEditView() {
+  const { email } = await requireAdmin();
+  const about = await getAboutForEdit();
+
+  return (
+    <AdminShell email={email} current="sobre">
+      <AdminTitle title="O humano por trás" />
+      <AboutForm about={about} />
     </AdminShell>
   );
 }

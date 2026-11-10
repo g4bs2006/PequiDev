@@ -39,6 +39,13 @@ construído, em Markdown), os links (repositório só se for público; vídeo em
 legenda (na ordem da página, com "Subir" e "Descer"), o destaque na home (a
 home mostra até quatro) e a ordem.
 
+## O humano por trás
+
+`/admin/sobre` edita a seção "O humano por trás" da home: a apresentação, a
+trajetória (vazia, o bloco não aparece), a ficha ao lado (rótulo e valor, na
+ordem) e as tecnologias, separadas por vírgula. Fica na tabela `sobre` (uma
+linha só, migração `sobre_editavel`); salvar atualiza a home na hora.
+
 ## Imagens
 
 Toda imagem enviada pelo painel vai para o bucket público `imagens` do

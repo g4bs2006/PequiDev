@@ -1,4 +1,5 @@
 export {
+  AboutEditView,
   LoginView,
   PostEditView,
   PostNewView,

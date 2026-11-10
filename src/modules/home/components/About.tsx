@@ -4,6 +4,7 @@ import { StackChip } from "@/components/atoms/StackChip";
 import { site } from "@/lib/site";
 
 import { aboutCopy } from "../content";
+import { getAbout } from "../queries";
 
 const rowClass =
   "grid gap-x-6 gap-y-1 border-t border-on-band/20 py-4 sm:grid-cols-[8.5rem_minmax(0,1fr)]";
@@ -13,7 +14,13 @@ const labelClass = "font-mono text-sm sm:pt-0.5";
  * Seção O humano por trás: um cartão na cor Céu, que fecha a página com a
  * mesma cor da faixa do topo. À esquerda o texto, à direita a ficha.
  */
-export function About() {
+export async function About() {
+  const about = await getAbout();
+  const trajectoryParagraphs = about.trajectory
+    .split(/\r?\n+/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
   return (
     <section
       id="sobre"
@@ -28,15 +35,17 @@ export function About() {
           >
             {aboutCopy.title}
           </h2>
-          <p className="mt-5 max-w-xl text-lg text-pretty">{aboutCopy.intro}</p>
-          <p className="mt-5 max-w-xl rounded-2xl border-2 border-dashed border-on-band/35 px-4 py-3 font-mono text-sm">
-            {aboutCopy.trajectoryPlaceholder}
-          </p>
+          <p className="mt-5 max-w-xl text-lg text-pretty">{about.intro}</p>
+          {trajectoryParagraphs.map((paragraph, index) => (
+            <p key={index} className="mt-5 max-w-xl text-lg text-pretty">
+              {paragraph}
+            </p>
+          ))}
         </div>
 
         <dl className="self-end border-b border-on-band/20">
-          {aboutCopy.facts.map((fact) => (
-            <div key={fact.label} className={rowClass}>
+          {about.facts.map((fact, index) => (
+            <div key={`${fact.label}-${index}`} className={rowClass}>
               <dt className={labelClass}>{fact.label}</dt>
               <dd className="font-display text-xl font-bold">{fact.value}</dd>
             </div>
@@ -46,7 +55,7 @@ export function About() {
             <dt className={labelClass}>{aboutCopy.technologiesLabel}</dt>
             <dd>
               <ul className="flex flex-wrap gap-2">
-                {aboutCopy.technologies.map((tech, index) => (
+                {about.technologies.map((tech, index) => (
                   <li key={index}>
                     <StackChip>{tech}</StackChip>
                   </li>

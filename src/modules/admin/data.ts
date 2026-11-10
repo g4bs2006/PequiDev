@@ -49,6 +49,14 @@ export type ProjectRow = {
   updatedAt: string;
 };
 
+export type AboutRow = {
+  intro: string;
+  trajectory: string;
+  facts: { label: string; value: string }[];
+  technologies: string[];
+  updatedAt: string;
+};
+
 export type CategoryOption = { id: string; label: string };
 
 const brasiliaDate = new Intl.DateTimeFormat("en-CA", {
@@ -167,4 +175,47 @@ export async function listCategoryOptions(): Promise<CategoryOption[]> {
       .filter((row) => row.parent_id === root.id)
       .map((child) => ({ id: child.id, label: `— ${child.name}` })),
   ]);
+}
+
+function toAboutFacts(value: unknown): AboutRow["facts"] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+
+    const fact = item as Record<string, unknown>;
+    const label = typeof fact.rotulo === "string" ? fact.rotulo.trim() : "";
+    const factValue = typeof fact.valor === "string" ? fact.valor.trim() : "";
+
+    return label && factValue ? [{ label, value: factValue }] : [];
+  });
+}
+
+/** Conteúdo da seção sobre para edição no painel. */
+export async function getAboutForEdit(): Promise<AboutRow> {
+  const supabase = await createSessionClient();
+  const { data, error } = await supabase
+    .from("sobre")
+    .select("intro, trajetoria, fatos, tecnologias, updated_at")
+    .maybeSingle();
+
+  if (error) throw new Error(`Não foi possível carregar a seção sobre: ${error.message}`);
+
+  if (!data) {
+    return {
+      intro: "",
+      trajectory: "",
+      facts: [],
+      technologies: [],
+      updatedAt: "",
+    };
+  }
+
+  return {
+    intro: data.intro,
+    trajectory: data.trajetoria,
+    facts: toAboutFacts(data.fatos),
+    technologies: data.tecnologias,
+    updatedAt: data.updated_at,
+  };
 }

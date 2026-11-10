@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { isSlug, slugify } from "@/lib/slug";
 import { createSessionClient } from "@/lib/supabase/server";
 import { POSTS_CACHE_TAG } from "@/modules/blog";
+import { ABOUT_CACHE_TAG } from "@/modules/home";
 import { isPequiMeme } from "@/modules/pequi";
 import { PROJECTS_CACHE_TAG } from "@/modules/projects";
 
@@ -217,4 +218,52 @@ export async function apagarProjeto(id: string) {
   if (error) throw new Error(dbMessage(error, "um projeto"));
   updateTag(PROJECTS_CACHE_TAG);
   redirect("/admin/projetos");
+}
+
+// --- Sobre -----------------------------------------------------------------
+
+function parseFacts(raw: string): { label: string; value: string }[] {
+  try {
+    const list: unknown = JSON.parse(raw || "[]");
+    if (!Array.isArray(list)) return [];
+
+    return list.flatMap((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+
+      const fact = item as Record<string, unknown>;
+      const label = typeof fact.label === "string" ? fact.label.trim() : "";
+      const value = typeof fact.value === "string" ? fact.value.trim() : "";
+
+      return label && value ? [{ label, value }] : [];
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function salvarSobre(_prev: FormState, form: FormData): Promise<FormState> {
+  await assertAdmin();
+
+  const facts = parseFacts(text(form, "fatos"));
+  const technologies = text(form, "tecnologias")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const supabase = await createSessionClient();
+  const { error } = await supabase.from("sobre").upsert(
+    {
+      id: true,
+      intro: text(form, "intro"),
+      trajetoria: text(form, "trajetoria"),
+      fatos: facts.map(({ label, value }) => ({ rotulo: label, valor: value })),
+      tecnologias: technologies,
+    },
+    { onConflict: "id" },
+  );
+
+  if (error) return { erro: dbMessage(error, "a seção sobre") };
+
+  updateTag(ABOUT_CACHE_TAG);
+  return { ok: "Salvo." };
 }

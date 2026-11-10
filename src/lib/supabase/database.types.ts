@@ -207,6 +207,33 @@ export type Database = {
           },
         ]
       }
+      sobre: {
+        Row: {
+          fatos: Json
+          id: boolean
+          intro: string
+          tecnologias: string[]
+          trajetoria: string
+          updated_at: string
+        }
+        Insert: {
+          fatos?: Json
+          id?: boolean
+          intro?: string
+          tecnologias?: string[]
+          trajetoria?: string
+          updated_at?: string
+        }
+        Update: {
+          fatos?: Json
+          id?: boolean
+          intro?: string
+          tecnologias?: string[]
+          trajetoria?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           created_at: string

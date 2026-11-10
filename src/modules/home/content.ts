@@ -35,16 +35,17 @@ export const postsCopy = {
 
 export const aboutCopy = {
   title: "O humano por trás",
+  /** Reserva usada quando a linha da seção não estiver disponível no banco. */
   intro:
     "O Gabriel estuda Engenharia de Computação na UFG e trabalha com inteligência artificial e desenvolvimento fullstack. O PequiDev é onde ele publica o que constrói e o que aprende no caminho.",
-  trajectoryPlaceholder: "[TRAJETÓRIA: como o Gabriel chegou até aqui, em poucas linhas.]",
+  /** Reserva usada quando a linha da seção não estiver disponível no banco. */
   facts: [
     { label: "Curso", value: "Engenharia de Computação" },
     { label: "Universidade", value: "UFG" },
     { label: "Foco", value: "Inteligência artificial e desenvolvimento fullstack" },
   ],
   technologiesLabel: "Tecnologias",
-  /** As stacks dos repositórios do portfólio (CRM, Mensageria, Lembretes, Aniversariantes). */
+  /** Reserva usada quando a linha da seção não estiver disponível no banco. */
   technologies: [
     "TypeScript",
     "Next.js",
