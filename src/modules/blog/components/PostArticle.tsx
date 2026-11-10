@@ -5,6 +5,7 @@ import { ButtonLink } from "@/components/atoms/ButtonLink";
 import { Tag } from "@/components/atoms/Tag";
 import { navegacao } from "@/components/motion/navegacao";
 import { formatDate } from "@/lib/dates";
+import { isPequiMeme, MemeCard } from "@/modules/pequi";
 
 import { postCopy } from "../content";
 import { extractHeadings, readingMinutes } from "../headings";
@@ -76,13 +77,36 @@ function PostHeader({ post }: { post: Post }) {
   );
 }
 
-/** A página de um post: abertura, índice, texto e o fim com as tags. */
+/** A reação do Pequi ao post, escolhida no painel. Sem reação, nada aparece. */
+function PequiReaction({ post }: { post: Post }) {
+  const pose = post.reaction?.pose;
+  if (!isPequiMeme(pose)) return null;
+
+  return (
+    <aside aria-label={postCopy.reaction} className="mt-16 grid justify-items-start gap-4">
+      <p className="font-mono text-[0.8125rem] font-bold tracking-wide text-ink-soft uppercase">
+        {postCopy.reaction}
+      </p>
+      <MemeCard
+        name={pose}
+        caption={post.reaction?.caption}
+        home="reacao"
+        sizes="(min-width: 768px) 20rem, 80vw"
+        className="w-full max-w-[20rem]"
+      />
+    </aside>
+  );
+}
+
+/** A página de um post: abertura, índice, texto, a reação do Pequi e o fim com as tags. */
 export function PostArticle({ post }: { post: Post }) {
   const headings = extractHeadings(post.content);
 
   return (
     <PostLayout headings={headings} header={<PostHeader post={post} />}>
       <PostBody content={post.content} />
+
+      <PequiReaction post={post} />
 
       <footer className="mt-16 grid gap-6 border-t border-ink/15 pt-8">
         {wasUpdated(post) ? (

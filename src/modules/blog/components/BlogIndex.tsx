@@ -1,3 +1,5 @@
+import { PequiNap } from "@/modules/pequi";
+
 import { blogCopy } from "../content";
 import { getPosts } from "../queries";
 import { PostPreview } from "./PostPreview";
@@ -26,9 +28,12 @@ export async function BlogIndex() {
           ))}
         </ul>
       ) : (
-        <p className="mt-12 border-y border-ink/15 py-10 text-lg text-ink-soft md:mt-16">
-          {blogCopy.empty}
-        </p>
+        <div className="mt-4 max-w-3xl md:mt-8">
+          <PequiNap>
+            <p className="font-display text-2xl font-bold tracking-tight">{blogCopy.emptyTitle}</p>
+            <p className="mt-2 text-lg text-pretty text-ink-soft">{blogCopy.empty}</p>
+          </PequiNap>
+        </div>
       )}
     </div>
   );

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { isSlug, slugify } from "@/lib/slug";
 import { createSessionClient } from "@/lib/supabase/server";
 import { POSTS_CACHE_TAG } from "@/modules/blog";
+import { isPequiMeme } from "@/modules/pequi";
 import { PROJECTS_CACHE_TAG } from "@/modules/projects";
 
 import { getAdminStatus } from "./auth";
@@ -106,6 +107,8 @@ export async function salvarPost(_prev: FormState, form: FormData): Promise<Form
     content: String(form.get("content") ?? ""),
     cover_image_url: optional(form, "cover_url"),
     cover_image_alt: optional(form, "cover_alt"),
+    pequi_reacao: isPequiMeme(text(form, "pequi_reacao")) ? text(form, "pequi_reacao") : null,
+    pequi_legenda: optional(form, "pequi_legenda"),
     status,
     // Data escolhida ao meio-dia de Brasília; publicando sem data, vale hoje.
     published_at: date

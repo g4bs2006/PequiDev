@@ -73,6 +73,7 @@ const examplePost: Post = {
   publishedAt: "2026-11-10T12:00:00-03:00",
   updatedAt: "2026-11-10T12:00:00-03:00",
   cover: null,
+  reaction: { pose: "hang-loose", caption: null },
   tags: [
     { slug: "exemplo", name: "exemplo" },
     { slug: "pequi", name: "pequi" },

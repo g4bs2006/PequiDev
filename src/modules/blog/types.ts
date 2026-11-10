@@ -30,4 +30,6 @@ export type Post = PostSummary & {
   /** Texto em Markdown. */
   content: string;
   updatedAt: string;
+  /** Reação do Pequi no fim do post: a pose e, se houver, uma legenda própria. */
+  reaction: { pose: string; caption: string | null } | null;
 };

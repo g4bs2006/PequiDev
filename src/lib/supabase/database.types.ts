@@ -54,6 +54,8 @@ export type Database = {
           cover_image_url: string | null
           created_at: string
           id: string
+          pequi_legenda: string | null
+          pequi_reacao: string | null
           published_at: string | null
           slug: string
           status: Database["public"]["Enums"]["content_status"]
@@ -67,6 +69,8 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           id?: string
+          pequi_legenda?: string | null
+          pequi_reacao?: string | null
           published_at?: string | null
           slug: string
           status?: Database["public"]["Enums"]["content_status"]
@@ -80,6 +84,8 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           id?: string
+          pequi_legenda?: string | null
+          pequi_reacao?: string | null
           published_at?: string | null
           slug?: string
           status?: Database["public"]["Enums"]["content_status"]

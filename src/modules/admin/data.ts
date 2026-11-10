@@ -20,6 +20,9 @@ export type PostRow = {
   publishedDate: string;
   updatedAt: string;
   tags: string[];
+  /** Pose do Pequi no fim do post ("" = sem reação) e a legenda própria. */
+  reaction: string;
+  reactionCaption: string;
 };
 
 export type ProjectScreenshotRow = { url: string; alt: string; caption: string };
@@ -91,6 +94,8 @@ export async function getPostForEdit(id: string): Promise<PostRow | null> {
     publishedDate: toDateInput(data.published_at),
     updatedAt: data.updated_at,
     tags: data.post_tags.map(({ tags }) => tags.name).sort((a, b) => a.localeCompare(b, "pt-BR")),
+    reaction: data.pequi_reacao ?? "",
+    reactionCaption: data.pequi_legenda ?? "",
   };
 }
 

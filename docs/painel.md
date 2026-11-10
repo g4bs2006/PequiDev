@@ -25,6 +25,7 @@ mais antigo. Cada post tem:
 | Capa | Opcional. Enviada pelo painel ou colada como endereço, com texto alternativo |
 | Situação | Rascunho (só no painel) ou Publicado (vai para o site) |
 | Data | A que aparece no post. Publicando sem data, vale o dia de hoje |
+| Reação do Pequi | A foto que fecha o post ("O Pequi leu"), ou nenhuma. A legenda própria troca a da pose |
 
 "Ver como fica" abre a prévia do post do jeito que ele aparece no site, mesmo
 sendo rascunho. Só quem está logado no painel vê a prévia.

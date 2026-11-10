@@ -14,7 +14,8 @@ export const POSTS_CACHE_TAG = "posts";
 const SUMMARY_COLUMNS =
   "slug, title, summary, published_at, created_at, cover_image_url, cover_image_alt, post_tags(tags(slug, name))";
 
-const FULL_COLUMNS = `${SUMMARY_COLUMNS}, content, updated_at` as const;
+const FULL_COLUMNS =
+  `${SUMMARY_COLUMNS}, content, updated_at, pequi_reacao, pequi_legenda` as const;
 
 type SummaryRow = {
   slug: string;
@@ -76,5 +77,12 @@ export async function getPost(slug: string): Promise<Post | null> {
   if (error) throw new Error(`Não foi possível carregar o post "${slug}": ${error.message}`);
   if (!data) return null;
 
-  return { ...toPostSummary(data), content: data.content, updatedAt: data.updated_at };
+  return {
+    ...toPostSummary(data),
+    content: data.content,
+    updatedAt: data.updated_at,
+    reaction: data.pequi_reacao
+      ? { pose: data.pequi_reacao, caption: data.pequi_legenda }
+      : null,
+  };
 }

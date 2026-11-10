@@ -8,6 +8,7 @@ import { type FormState, salvarPost } from "../actions";
 import type { PostRow } from "../data";
 import { Field, FormMessage, inputClass, Section, StatusField, SubmitButton } from "./fields";
 import { ImageField } from "./ImageField";
+import { ReactionField } from "./ReactionField";
 
 type PostFormProps = {
   /** Sem post, o formulário cria um novo. */
@@ -120,6 +121,13 @@ export function PostForm({ post, notice }: PostFormProps) {
           defaultUrl={post?.coverUrl ?? ""}
           defaultAlt={post?.coverAlt ?? ""}
           folder="posts"
+        />
+      </Section>
+
+      <Section title="Reação do Pequi">
+        <ReactionField
+          defaultPose={post?.reaction ?? ""}
+          defaultCaption={post?.reactionCaption ?? ""}
         />
       </Section>
 

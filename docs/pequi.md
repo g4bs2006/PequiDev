@@ -146,7 +146,19 @@ A folha fica em `public/pequi/sprite/pequi.png` e os dados em
 célula, o ritmo e a repetição de cada animação. Como gerar e montar animações
 novas está em [docs/modo-sonho.md](modo-sonho.md#adicionar-uma-animação).
 
+## Momentos em foto
+
+O Pequi realista aparece parado, quando ele é a cena:
+
+| Onde | O quê |
+| --- | --- |
+| Hero da home | Dormindo, com a pata pendurada na faixa (`SleepingPequi`) |
+| Página 404 | Bravo, em foto com legenda de meme (`MemeCard`) |
+| Fim de cada post | A reação escolhida no painel (`MemeCard`) |
+| `/blog` sem nenhum post | Dormindo deitado em cima do aviso (`PequiNap`) |
+
+As poses e as regras dos memes estão em [docs/poses-do-pequi.md](poses-do-pequi.md).
+
 ## O que vem depois
 
-- Momentos em foto: 404 com o Pequi bravo e reação no fim de cada post.
 - O modo sonho, mais para frente.

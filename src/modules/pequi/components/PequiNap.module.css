@@ -1,0 +1,26 @@
+/*
+ * --w é a largura do Pequi; tudo sai dela. O corpo fica acima da borda de
+ * cima do aviso, e a pata pendurada desce até uns 18% dessa largura: o texto
+ * começa abaixo disso.
+ */
+.nap {
+  --w: min(20rem, 72vw);
+  position: relative;
+  padding-top: calc(var(--w) * var(--body) + 2.5rem);
+}
+
+.cat {
+  position: absolute;
+  top: calc(var(--w) * var(--body) + 2.5rem - var(--w) * var(--rise));
+  right: max(0.5rem, 6%);
+  z-index: 1;
+  width: var(--w);
+}
+
+.box {
+  position: relative;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--elev-soft);
+  padding: calc(var(--w) * 0.22 + 1rem) 2rem 2rem;
+}

@@ -136,6 +136,7 @@ export async function PostPreviewView({ id }: { id: string }) {
     updatedAt: row.updatedAt,
     cover: row.coverUrl ? { url: row.coverUrl, alt: row.coverAlt } : null,
     tags: row.tags.map((name) => ({ slug: slugify(name), name })),
+    reaction: row.reaction ? { pose: row.reaction, caption: row.reactionCaption || null } : null,
   };
 
   return (
