@@ -1,0 +1,12 @@
+Create a pixel art character design for a 2D platformer game, based on the orange tabby cat in the reference photos (the cat is called Pequi).
+
+Keep his identity: orange/ginger tabby with darker orange stripes, white chest, white muzzle and white paws, white-tipped striped tail, pink nose, amber eyes, a sage green bandana tied around the neck, with a small yellow drop-shaped pendant hanging from it.
+
+Draw 4 separate poses of the same cat, all in strict SIDE VIEW facing RIGHT, spread in a single row with plenty of empty space between them:
+1. standing still on four legs, tail up with a gentle curve
+2. mid-walk step
+3. sitting
+4. curled up sleeping
+
+Style: crisp retro 16-bit pixel art, chunky visible square pixels as if each cat was drawn on a 48x48 pixel grid and scaled up with nearest neighbor, limited palette of about 12 colors, dark brown 1-pixel outline (#2a2118), no anti-aliasing, no blur, no gradients, no dithering noise, cute and readable silhouette.
+Background: one solid flat pure magenta color (#FF00FF) everywhere, no floor, no shadows, no text, no labels.

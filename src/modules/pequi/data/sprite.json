@@ -1,0 +1,57 @@
+{
+  "imagem": "/pequi/sprite/pequi.png",
+  "celula": {
+    "largura": 96,
+    "altura": 64
+  },
+  "animacoes": {
+    "parado": {
+      "linha": 0,
+      "quadros": 6,
+      "fps": 4,
+      "repete": true
+    },
+    "caminhada": {
+      "linha": 1,
+      "quadros": 6,
+      "fps": 10,
+      "repete": true
+    },
+    "pulo": {
+      "linha": 2,
+      "quadros": 6,
+      "fps": 12,
+      "repete": false
+    },
+    "patada": {
+      "linha": 3,
+      "quadros": 6,
+      "fps": 12,
+      "repete": false
+    },
+    "dormir": {
+      "linha": 4,
+      "quadros": 6,
+      "fps": 4,
+      "repete": false
+    }
+  },
+  "paleta": [
+    "#fdf9e9",
+    "#ba6802",
+    "#fab43c",
+    "#291206",
+    "#88b374",
+    "#f1d0b6",
+    "#60834d",
+    "#e59112",
+    "#5d3413",
+    "#e0807b",
+    "#995404",
+    "#c09974",
+    "#f9c705",
+    "#cd7804",
+    "#e5bd9b",
+    "#a37445"
+  ]
+}

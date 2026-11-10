@@ -1,0 +1,83 @@
+/*
+ * A folha tem uma animação por linha e um quadro por coluna. O recorte é feito
+ * com background-position, ampliado por --escala sem suavizar os pixels.
+ */
+.sprite,
+.frame {
+  --w: calc(var(--cel-w) * var(--escala) * 1px);
+  --h: calc(var(--cel-h) * var(--escala) * 1px);
+  width: var(--w);
+  height: var(--h);
+  background-image: var(--folha);
+  background-repeat: no-repeat;
+  background-size: calc(var(--colunas) * var(--w)) auto;
+  background-position-y: calc(var(--linha) * var(--h) * -1);
+  image-rendering: pixelated;
+}
+
+.sprite {
+  animation: play var(--duracao) steps(var(--quadros)) infinite;
+}
+
+@keyframes play {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: calc(var(--quadros) * var(--w) * -1);
+  }
+}
+
+.frame {
+  background-position-x: calc(var(--quadro) * var(--w) * -1);
+}
+
+/* Palco do cartão: chão na base, sprite centralizado. */
+.stage {
+  display: grid;
+  place-items: end center;
+  border-bottom: 3px solid color-mix(in srgb, var(--ink) 18%, transparent);
+}
+
+.frames {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 0.75rem;
+}
+
+.frames .frame {
+  border-radius: 6px;
+  background-color: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+/* Faixa onde ele anda de um lado para o outro, virando na volta. */
+.lane {
+  container-type: inline-size;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--band);
+  padding-top: 1.5rem;
+  border-bottom: 6px solid var(--casca);
+}
+
+.walker {
+  --ida: calc(100cqw - 192px);
+  width: fit-content;
+  animation: patrol 14s linear infinite;
+}
+
+@keyframes patrol {
+  0% {
+    transform: translateX(0) scaleX(1);
+  }
+  49.99% {
+    transform: translateX(var(--ida)) scaleX(1);
+  }
+  50% {
+    transform: translateX(var(--ida)) scaleX(-1);
+  }
+  100% {
+    transform: translateX(0) scaleX(-1);
+  }
+}

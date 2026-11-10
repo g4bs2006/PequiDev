@@ -36,15 +36,16 @@ src/
     organisms/         Blocos do site inteiro: menu e rodapé
   modules/
     hero/              Primeira tela da home (textos em content.ts)
-    pequi/             O mascote: componentes e medidas dos recortes
+    pequi/             O mascote: componentes, medidas dos recortes e o sprite em pixel art
     home/              Seções da home: Projetos, Últimos posts e O humano por trás (textos e marcadores em content.ts)
     blog/              Posts: tipos, consultas e a linha de post
     projects/          Projetos e categorias: tipos, consultas e o card de projeto
   lib/                 Fontes, dados do site, datas, tema e cliente do Supabase
 supabase/migrations/   Histórico do banco: tabelas e regras de acesso
-public/pequi/          Recortes do Pequi já prontos para a web
-referencias/           Imagens originais do Pequi
-scripts/               Scripts que geram os recortes e a imagem de compartilhamento
+public/pequi/          Recortes do Pequi e a folha de sprites, já prontos para a web
+referencias/           Imagens originais do Pequi e as fontes do sprite (sprite-ia/)
+scripts/               Scripts que geram os recortes, o sprite e a imagem de compartilhamento
+docs/                  Planos e decisões de partes maiores (modo sonho)
 ```
 
 Regras da casa:
@@ -89,3 +90,13 @@ python -m venv .venv
 
 - `recortar-pequi.py` tira o fundo das fotos e grava os recortes em `public/pequi/`, as medidas em `src/modules/pequi/data/dormindo.json` e o ícone do site. Na primeira vez ele baixa um modelo de uns 180 MB para `~/.rembg`.
 - `gerar-og.py` monta a imagem que aparece quando o link é compartilhado. Só precisa do Pillow.
+
+## Modo sonho (em construção)
+
+O Pequi em pixel art que vai andar e pular por cima do site. Por enquanto só o sprite está pronto, com prévia em `/brincar` (fora do índice de busca). Para refazer a folha a partir das imagens-fonte:
+
+```bash
+python scripts/montar-sprite.py
+```
+
+O plano, as decisões, o estado de cada etapa e como gerar ou adicionar animações estão em [docs/modo-sonho.md](docs/modo-sonho.md).
