@@ -1,5 +1,6 @@
 import geometry from "./data/dormindo.json";
 
+export { PequiDock } from "./components/PequiDock";
 export { SleepingPequi } from "./components/SleepingPequi";
 export { SpritePreview } from "./components/SpritePreview";
 export { TocCompanion } from "./components/TocCompanion";

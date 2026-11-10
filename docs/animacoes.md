@@ -139,6 +139,7 @@ O Pequi tem as animações dele e não segue a escala da interface:
 | Onde | Como é feito |
 | --- | --- |
 | Dormindo no hero | CSS puro (`SleepingPequi.module.css`): respiração, rabo, pata, ronco |
+| No canto da tela | `PequiCompanion`: sprite, caminhada com a Web Animations API, rotina e reações (ver [docs/pequi.md](pequi.md)) |
 | No índice do post | `TocCompanion`: sprite, pulo com a Web Animations API, sono por tempo |
 | Prévia do sprite | `SpritePreview.module.css` |
 

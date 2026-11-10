@@ -1,0 +1,7 @@
+Using the attached pixel art cat (Pequi) as the exact character model, create a 2D game animation sprite sheet of this SAME cat: identical design, identical colors, identical pixel size and identical scale as the standing cat in the reference (orange tabby, white chest/muzzle/paws, white-tipped striped tail, sage green bandana with small yellow drop pendant, dark brown 1-pixel outline).
+
+Layout: exactly 6 frames arranged in a grid of 3 columns by 2 rows, reading order left to right then top to bottom. Each frame is centered in its own equal 512x512 area, the cat feet always resting on the same baseline near the bottom of each area. All frames strict SIDE VIEW facing RIGHT. Frames must be consistent with each other so they loop smoothly: same body size, only the moving parts change.
+
+Style: crisp retro 16-bit pixel art, chunky square pixels on a strict grid exactly like the reference, no anti-aliasing, no blur, no gradients.
+Background: one solid flat pure magenta (#FF00FF) everywhere, no floor, no shadows, no grid lines, no text, no numbers.
+Animation: a 6-frame SIT DOWN sequence: 1 standing on four legs exactly like the reference, 2 starting to lower the hindquarters, 3 hindquarters halfway down, 4 sitting with front legs straight, 5 sitting upright with the tail curling around the front paws, 6 same sitting pose with the tail tip slightly raised. Calm and relaxed.

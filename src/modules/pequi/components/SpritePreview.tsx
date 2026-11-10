@@ -10,6 +10,8 @@ const LABELS: Record<AnimationName, string> = {
   pulo: "Pulo",
   patada: "Patada",
   dormir: "Deitar e dormir",
+  sentar: "Sentar",
+  lamber: "Lamber a pata",
 };
 
 const columns = Math.max(...Object.values(sprite.animacoes).map((a) => a.quadros));
@@ -42,7 +44,7 @@ export function SpritePreview() {
   const names = Object.keys(sprite.animacoes) as AnimationName[];
 
   return (
-    <div className="grid gap-10">
+    <div className="grid gap-10" data-pequi-casa>
       <div className={styles.lane} aria-hidden="true">
         <div className={styles.walker}>
           <div className={styles.sprite} style={spriteVars("caminhada", 2)} />

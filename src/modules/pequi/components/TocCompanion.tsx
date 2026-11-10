@@ -2,12 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-import sprite from "../data/sprite.json";
-
-type AnimationName = keyof typeof sprite.animacoes;
-
-const CELL_W = sprite.celula.largura;
-const CELL_H = sprite.celula.altura;
+import { type AnimationName, animation, CELL_H, CELL_W, showFrame, SPRITE_URL } from "../sprite";
 
 /** Tempo sem rolar a página até ele deitar para dormir. */
 const SLEEP_AFTER_MS = 30_000;
@@ -20,11 +15,6 @@ const FLIGHT_MIN = 280;
 const FLIGHT_MAX = 560;
 
 type Mode = "parado" | "ocupado" | "dormir";
-
-function showFrame(cat: HTMLElement, name: AnimationName, frame: number) {
-  const row = sprite.animacoes[name].linha;
-  cat.style.backgroundPosition = `${-frame * CELL_W}px ${-row * CELL_H}px`;
-}
 
 /**
  * O "cérebro" do Pequi: em que lugar ele está e o que está fazendo. Fica fora
@@ -82,7 +72,7 @@ function createCompanion(box: HTMLElement, cat: HTMLElement) {
       return;
     }
 
-    const { quadros, fps } = sprite.animacoes.parado;
+    const { quadros, fps } = animation("parado");
     const loop = (frame: number) => {
       showFrame(cat, "parado", frame);
       later(1000 / fps, () => loop((frame + 1) % quadros));
@@ -117,7 +107,7 @@ function createCompanion(box: HTMLElement, cat: HTMLElement) {
     clearTimers();
     flight?.cancel();
 
-    const frameMs = 1000 / sprite.animacoes.pulo.fps;
+    const frameMs = 1000 / animation("pulo").fps;
     const flightMs = Math.min(FLIGHT_MAX, Math.max(FLIGHT_MIN, Math.abs(to - from) * 1.1));
     const peak = Math.min(from, to) - ARC;
     const goingDown = to > from;
@@ -156,7 +146,7 @@ function createCompanion(box: HTMLElement, cat: HTMLElement) {
       return;
     }
 
-    const { fps } = sprite.animacoes.dormir;
+    const { fps } = animation("dormir");
     sequence("dormir", [0, 1, 2, 3, 4], 1000 / fps, () => {
       const breathe = (frame: number) => {
         showFrame(cat, "dormir", frame);
@@ -258,13 +248,14 @@ export function TocCompanion({ targetY, activity, className = "" }: TocCompanion
     <div
       ref={boxRef}
       aria-hidden="true"
+      data-pequi-casa
       className={`pointer-events-none invisible absolute top-0 will-change-transform ${className}`}
       style={{ width: CELL_W, height: CELL_H }}
     >
       <div
         ref={catRef}
         className="size-full bg-no-repeat [image-rendering:pixelated]"
-        style={{ backgroundImage: `url("${sprite.imagem}")`, backgroundPosition: "0 0" }}
+        style={{ backgroundImage: `url("${SPRITE_URL}")`, backgroundPosition: "0 0" }}
       />
     </div>
   );

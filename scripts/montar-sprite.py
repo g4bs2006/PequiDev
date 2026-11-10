@@ -39,6 +39,8 @@ ANIMACOES = [
     ("pulo", 12, False, [1, 2, 3, 4, 5, 6]),
     ("patada", 12, False, [1, 2, 3, 4, 5, 6]),
     ("dormir", 4, False, [1, 2, 3, 4, 5, 6]),
+    ("sentar", 8, False, [1, 2, 3, 4, 5, 6]),
+    ("lamber", 6, False, [1, 2, 3, 4, 5, 6]),
 ]
 CORES = 16
 

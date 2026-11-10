@@ -1,3 +1,5 @@
+import { avisar } from "./eventos";
+
 export const THEME_STORAGE_KEY = "pequidev-tema";
 
 /**
@@ -8,6 +10,7 @@ export const themeScript = `(function(){try{var t=localStorage.getItem("${THEME_
 
 function applyTheme(next: "light" | "dark") {
   document.documentElement.setAttribute("data-theme", next);
+  avisar("tema", { tema: next });
   try {
     localStorage.setItem(THEME_STORAGE_KEY, next);
   } catch {

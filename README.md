@@ -37,7 +37,7 @@ src/
     motion/            Transição entre páginas, morph e tipos de navegação
   modules/
     hero/              Primeira tela da home (textos em content.ts)
-    pequi/             O mascote: componentes, medidas dos recortes e o sprite em pixel art
+    pequi/             O personagem: o Pequi do canto, o do índice, o dormindo do hero e o sprite (guia em docs/pequi.md)
     home/              Seções da home: Projetos, Últimos posts e O humano por trás (textos e marcadores em content.ts)
     blog/              Posts: tipos, consultas, a linha de post e a moldura do post com o índice lateral
     projects/          Projetos e guias: consultas, card, barra lateral de /projetos e a página de cada projeto
@@ -46,7 +46,7 @@ supabase/migrations/   Histórico do banco: tabelas e regras de acesso
 public/pequi/          Recortes do Pequi e a folha de sprites, já prontos para a web
 referencias/           Imagens originais do Pequi e as fontes do sprite (sprite-ia/)
 scripts/               Scripts que geram os recortes, o sprite e a imagem de compartilhamento
-docs/                  Guias e planos: animações, modo sonho
+docs/                  Guias e planos: o Pequi, animações, modo sonho
 ```
 
 Regras da casa:
