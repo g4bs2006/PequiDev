@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/* O tema é escolhido pelo atributo data-theme no <html> (ver src/lib/theme.ts). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------------------------------------------------------------------------
+   Tokens
+   Primeiro a paleta do Pequi, com os nomes do brief. Depois os papéis que cada
+   cor cumpre na tela. Os componentes usam só os papéis, então o tema escuro
+   troca os papéis e nada mais precisa saber disso.
+--------------------------------------------------------------------------- */
+:root {
+  --creme: #fff4dc;
+  --tinta: #2a2118;
+  --polpa: #f2a413;
+  --ceu: #7cc8bf;
+  --casca: #4e7a2e;
+  --focinho: #e8697a;
+
+  --page: var(--creme);
+  --surface: #fffaf0;
+  --ink: var(--tinta);
+  --ink-soft: #5c4a36;
+  --accent: var(--polpa);
+  --on-accent: var(--tinta);
+  --band: var(--ceu);
+  --on-band: var(--tinta);
+  --tag: var(--casca);
+  --danger: var(--focinho);
+
+  /* Cartão de código: escuro nos dois temas. */
+  --code-bg: var(--tinta);
+  --code-ink: var(--creme);
+  --code-dim: #b9a888;
+  --code-key: var(--polpa);
+  --code-str: #b5d98a;
+  --code-name: var(--ceu);
+
+  /* Sombras largas e suaves, puxadas para o marrom da Tinta. */
+  --elev-soft: 0 2px 6px rgb(92 74 54 / 0.08), 0 24px 48px -18px rgb(92 74 54 / 0.3);
+  --elev-button:
+    inset 0 1px 0 rgb(255 255 255 / 0.5), inset 0 -3px 0 rgb(42 33 24 / 0.14),
+    0 12px 22px -10px rgb(201 128 0 / 0.7);
+  --elev-hang: drop-shadow(0 10px 10px rgb(42 33 24 / 0.22));
+
+  --nav-h: 4rem;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --nav-h: 4.75rem;
+  }
+}
+
+/* Tema escuro: sugestão inicial do brief, ainda a confirmar. */
+[data-theme="dark"] {
+  --page: #1e1812;
+  --surface: #2f261c;
+  --ink: var(--creme);
+  --ink-soft: #d9c9a8;
+  --band: #2f6f69;
+  --on-band: var(--creme);
+  --tag: #9ccb66;
+
+  --code-bg: #2f261c;
+
+  --elev-soft: 0 2px 6px rgb(0 0 0 / 0.3), 0 24px 48px -18px rgb(0 0 0 / 0.65);
+  --elev-button:
+    inset 0 1px 0 rgb(255 255 255 / 0.45), inset 0 -3px 0 rgb(42 33 24 / 0.18),
+    0 12px 22px -10px rgb(0 0 0 / 0.7);
+  --elev-hang: drop-shadow(0 10px 10px rgb(0 0 0 / 0.4));
+}
+
+/* Só as cores do projeto: a paleta padrão do Tailwind fica de fora. */
+@theme {
+  --color-*: initial;
+}
+
+@theme inline {
+  --color-creme: var(--creme);
+  --color-tinta: var(--tinta);
+  --color-polpa: var(--polpa);
+  --color-ceu: var(--ceu);
+  --color-casca: var(--casca);
+  --color-focinho: var(--focinho);
+
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-band: var(--band);
+  --color-on-band: var(--on-band);
+  --color-tag: var(--tag);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "Cascadia Code", monospace;
+  --font-meme: var(--font-anton), Impact, "Arial Narrow Bold", sans-serif;
+
+  --radius-card: 28px;
+
+  --shadow-soft: var(--elev-soft);
+  --shadow-button: var(--elev-button);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    background: var(--page);
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+  }
+
+  ::selection {
+    background: var(--polpa);
+    color: var(--tinta);
+  }
+
+  /* O anel de foco usa a cor do texto: a Polpa sozinha não dá contraste no Creme. */
+  :focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-delay: 0s !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

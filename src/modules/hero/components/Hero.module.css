@@ -1,0 +1,112 @@
+/*
+  Duas faixas empilhadas, 70% e 30% da tela. Todas as medidas do Pequi saem de
+  --pequi-w, a largura dele: no celular passa um pouco das bordas, no desktop
+  ocupa boa parte da largura sem ficar mais alto do que a tela aguenta.
+*/
+.hero {
+  --hero-h: max(100svh, 640px);
+  --pequi-w: 104vw;
+  /* Espaço acima da faixa reservado para o corpo do Pequi e o "zzz". */
+  --perch: calc(var(--pequi-w) * (var(--pequi-body) + 0.06));
+  display: grid;
+  grid-template-rows: minmax(0, 7fr) minmax(0, 3fr);
+  height: var(--hero-h);
+  overflow-x: clip;
+}
+
+@media (min-width: 768px) {
+  .hero {
+    --pequi-w: min(72vw, calc(var(--hero-h) * 1.04));
+  }
+}
+
+.top {
+  min-height: 0;
+  padding-top: var(--nav-h);
+  padding-bottom: var(--perch);
+}
+
+.headline {
+  font-size: clamp(1.75rem, min(3.4vw, calc(var(--hero-h) * 0.062)), 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+
+/* Em celular baixo não sobra espaço para o cartão de código acima do Pequi. */
+@media (max-width: 767px) and (max-height: 739px) {
+  .code {
+    display: none;
+  }
+}
+
+.band {
+  position: relative;
+  background: var(--band);
+  color: var(--on-band);
+}
+
+/* Moldura do nome: corta o que passar da faixa (a perninha do Q, por exemplo). */
+.wordmarkFrame {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-items: center;
+  overflow: clip;
+}
+
+/* No celular o nome quebra em duas linhas para continuar gigante. */
+.wordmark {
+  padding-inline: 4vw;
+  font-size: min(36vw, calc(var(--hero-h) * 0.17));
+  line-height: 0.8;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.wordmark span {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .wordmark {
+    padding-inline: 0;
+    font-size: min(21.8vw, calc(var(--hero-h) * 0.37));
+    letter-spacing: -0.03em;
+    text-align: center;
+  }
+
+  .wordmark span {
+    display: inline;
+  }
+}
+
+/* O Pequi: a linha de apoio dele coincide com a borda de cima da faixa. */
+.pequi {
+  position: absolute;
+  top: calc(var(--pequi-w) * var(--pequi-rise) * -1);
+  left: 50%;
+  z-index: 1;
+  width: var(--pequi-w);
+  transform: translateX(-50%);
+}
+
+.hint {
+  animation: bob 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes bob {
+  from {
+    transform: translateY(-8%);
+  }
+  to {
+    transform: translateY(12%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hint {
+    animation: none;
+  }
+}

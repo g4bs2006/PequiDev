@@ -1,0 +1,193 @@
+/* Tudo aqui é medido em relação à largura do próprio Pequi (unidade cqw). */
+.pequi {
+  --reach: 11s;
+  position: relative;
+  width: 100%;
+  container-type: inline-size;
+  pointer-events: none;
+  user-select: none;
+}
+
+.body,
+.part {
+  position: absolute;
+}
+
+.body {
+  inset: 0;
+  animation: breathe 4.6s ease-in-out infinite;
+}
+
+/* Pata e rabo ficam na frente da faixa, então projetam sombra nela. */
+.part {
+  filter: var(--elev-hang);
+}
+
+.tail {
+  animation: sway 5.4s ease-in-out infinite;
+}
+
+.paw {
+  animation: reach var(--reach) ease-in-out infinite;
+}
+
+.target {
+  position: absolute;
+  margin-top: 1.4cqw;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  animation: dodge var(--reach) ease-in-out infinite;
+}
+
+.zzz {
+  position: absolute;
+  left: 30.5%;
+  top: 20%;
+  font-family: var(--font-anton), Impact, sans-serif;
+  font-size: 3cqw;
+  line-height: 1;
+  color: var(--ink-soft);
+}
+
+.zzz span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  animation: snore 5.4s linear infinite;
+}
+
+.zzz span:nth-child(2) {
+  animation-delay: 1.8s;
+}
+
+.zzz span:nth-child(3) {
+  animation-delay: 3.6s;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    scale: 1 1;
+  }
+  50% {
+    scale: 1.005 1.022;
+  }
+}
+
+@keyframes sway {
+  0%,
+  100% {
+    rotate: -3deg;
+  }
+  50% {
+    rotate: 4.5deg;
+  }
+}
+
+/* A pata balança de leve e, perto do fim do ciclo, estica para pegar a seta. */
+@keyframes reach {
+  0%,
+  58%,
+  100% {
+    rotate: 0deg;
+    scale: 1 1;
+  }
+  20% {
+    rotate: 1.2deg;
+  }
+  40% {
+    rotate: -1deg;
+  }
+  64% {
+    rotate: -5deg;
+    scale: 1 0.97;
+  }
+  69% {
+    rotate: 3deg;
+    scale: 1 1.07;
+  }
+  73% {
+    rotate: -2deg;
+    scale: 1 1.03;
+  }
+  77% {
+    rotate: 3.5deg;
+    scale: 1 1.08;
+  }
+  86% {
+    rotate: 0.5deg;
+    scale: 1 1;
+  }
+}
+
+/* A seta escapa nos mesmos instantes em que a pata estica. */
+@keyframes dodge {
+  0%,
+  63%,
+  100% {
+    translate: 0 0;
+  }
+  69% {
+    translate: 0 38%;
+  }
+  73% {
+    translate: 0 12%;
+  }
+  77% {
+    translate: 0 46%;
+  }
+  88% {
+    translate: 0 0;
+  }
+}
+
+@keyframes snore {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6) rotate(-10deg);
+  }
+  12% {
+    opacity: 0.85;
+  }
+  70% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(280%, -240%) scale(1.5) rotate(12deg);
+  }
+}
+
+/* Sem movimento: o Pequi fica parado e o "zzz" vira um desenho fixo. */
+@media (prefers-reduced-motion: reduce) {
+  .body,
+  .tail,
+  .paw,
+  .target {
+    animation: none;
+  }
+
+  .zzz {
+    top: 12%;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.2em;
+  }
+
+  .zzz span {
+    position: static;
+    opacity: 0.7;
+    animation: none;
+  }
+
+  .zzz span:nth-child(2) {
+    font-size: 1.3em;
+    translate: 0 -40%;
+  }
+
+  .zzz span:nth-child(3) {
+    font-size: 1.7em;
+    translate: 0 -70%;
+  }
+}
