@@ -32,7 +32,7 @@ abre o sonho.
 | Etapa | Entrega | Situação |
 | --- | --- | --- |
 | 0. Sprite | Folha de sprites e prévia em `/brincar` | **Feita**, falta o Gabriel revisar os pontos abaixo |
-| 1. Motor | Em `/brincar`: o Pequi andando e pulando sobre as seções da home, pelo teclado | A fazer |
+| 1. Motor | Em `/brincar/sonho`: o Pequi andando e pulando sobre as seções da home, pelo teclado | **Feita** (escrita pelo Sol), falta o Gabriel ajustar o controle |
 | 2. Interações | Abrir card com Enter, dormir quando ninguém mexe, patada no botão de tema, botões de toque no celular, aviso para leitor de tela | A fazer. Depende de `/projetos/[slug]` e `/blog/[slug]` existirem. |
 | 3. Home | Clicar no Pequi dormindo abre o sonho, com transição de entrada e saída | A fazer |
 
@@ -146,22 +146,34 @@ Ainda falta:
   Markdown (com ids) para montar o índice. A `PostLayout` já está pronta para isso.
 - **Patada no botão de copiar** dos blocos de código e o **meme no fim do post**.
 
-## Próximo passo: o motor (etapa 1)
+## O motor (etapa 1)
 
-O que a etapa 1 precisa entregar, em `/brincar`:
+Teste em `/brincar/sonho`, com as seções da home como fase. Escrito pelo Sol
+(ver docs/sol.md) a partir da especificação desta etapa e revisado antes de
+entrar.
 
-- As seções da home renderizadas na página, com `data-plataforma` nos cards,
-  títulos e navbar.
-- Um canvas fixo por cima da página, com `pointer-events: none`, desenhando o
-  sprite com `imageSmoothingEnabled = false`.
-- Um laço com passo fixo de 60 por segundo:
-  - gravidade e pulo de altura variável (soltar o botão corta o pulo);
-  - plataformas em que ele só pousa por cima;
-  - margem de alguns quadros para pular logo depois de sair da borda e para
-    guardar o pulo apertado pouco antes de tocar o chão.
-- As posições das plataformas lidas com `getBoundingClientRect` e relidas ao
-  rolar ou redimensionar a janela.
-- A página rolando sozinha para acompanhar o Pequi.
-- Controles: setas ou WASD, espaço para pular e Esc para sair. O jogo pausa
-  quando a aba fica escondida.
-- **Pronto quando** o controle estiver gostoso no teclado.
+| Arquivo | O que é |
+| --- | --- |
+| `src/modules/pequi/dream/engine.ts` | O motor, sem React: física, plataformas, câmera, desenho e teclado |
+| `src/modules/pequi/components/DreamMode.tsx` | O botão "Entrar no sonho", o canvas, o painel de controles, foco e avisos |
+| `src/app/brincar/sonho/page.tsx` | A página de teste |
+
+- **Plataformas:** todo elemento com `data-plataforma` (menu do topo, títulos de
+  seção, cards de projeto, linhas de post, cartão do "Sobre"). Ele só pousa
+  por cima; seta para baixo atravessa. O chão é o fim da página.
+- **Controle:** setas ou A/D andam, Espaço, W ou seta para cima pulam (soltar
+  cedo pula mais baixo), Esc sai. Tem *coyote time* e *jump buffer* de 6
+  passos.
+- **Física:** passo fixo de 1/60 s. Os números (velocidade, gravidade, pulo)
+  são constantes no topo do `engine.ts`, para afinar jogando.
+- **Pequi:** anda, pula com os quadros do sprite, senta depois de 8 s parado e
+  dorme depois de mais 10 s.
+- **Câmera:** a página rola sozinha para manter o gato no meio da tela (direto,
+  sem suavizar, com menos movimento pedido).
+- **Leve:** o motor só é baixado ao clicar em "Entrar no sonho".
+
+## Próximo passo: interações (etapa 2)
+
+Abrir o card com Enter quando o Pequi estiver em cima dele, dormir quando
+ninguém mexe (já feito no motor), patada no botão de tema, botões de toque no
+celular e aviso para leitor de tela.

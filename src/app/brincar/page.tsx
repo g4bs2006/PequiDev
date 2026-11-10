@@ -36,6 +36,14 @@ export default function BrincarPage() {
               Ver o Pequi acompanhando a leitura de um post
             </Link>
           </p>
+          <p className="mt-2 text-lg">
+            <Link
+              href="/brincar/sonho"
+              className="font-medium underline decoration-accent decoration-2 underline-offset-4 hover:decoration-4"
+            >
+              Entrar no modo sonho (teste do motor)
+            </Link>
+          </p>
         </header>
         <SpritePreview />
       </section>

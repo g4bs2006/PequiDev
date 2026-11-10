@@ -10,6 +10,7 @@ export function SectionHeading({ id, title, lead }: SectionHeadingProps) {
   return (
     <header>
       <h2
+        data-plataforma
         id={id}
         className="font-display text-4xl font-bold tracking-tight text-balance md:text-5xl"
       >

@@ -37,3 +37,4 @@ OPENAI_API_KEY=... node scripts/sol.mjs <tarefa.md> <pasta-de-rascunho> [arquivo
 | Tarefa | Resultado |
 | --- | --- |
 | Sitemap, robots e feed RSS | `src/app/sitemap.ts`, `robots.ts`, `feed.xml/route.ts` e o feed anunciado no layout; entrou sem ajustes |
+| Motor do modo sonho (etapa 1) | `engine.ts`, `DreamMode.tsx` e `/brincar/sonho`; entrou com um ajuste (tirar um `<main>` aninhado) |

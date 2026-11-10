@@ -20,7 +20,7 @@ export function About() {
       aria-labelledby="sobre-titulo"
       className="mx-auto w-full max-w-[84rem] px-5 pb-20 md:px-10 md:pb-28"
     >
-      <div className="surge grid gap-x-16 gap-y-10 rounded-card bg-band p-7 text-on-band md:p-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:p-16">
+      <div data-plataforma className="surge grid gap-x-16 gap-y-10 rounded-card bg-band p-7 text-on-band md:p-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:p-16">
         <div>
           <h2
             id="sobre-titulo"
