@@ -11,6 +11,7 @@ export const projectsCopy = {
   placeholderLead:
     "A lista de projetos ainda está sendo fechada. Os cards abaixo guardam o lugar dos destaques.",
   placeholderNote: "Em breve",
+  seeAll: "Ver todos os projetos",
 };
 
 const projectPlaceholder = {

@@ -3,7 +3,13 @@ import { cacheLife, cacheTag } from "next/cache";
 import { toCover } from "@/lib/content";
 import { createPublicClient } from "@/lib/supabase/public";
 
-import type { Project, ProjectCategory, ProjectSummary } from "./types";
+import type {
+  Project,
+  ProjectCategory,
+  ProjectGuide,
+  ProjectScreenshot,
+  ProjectSummary,
+} from "./types";
 
 /**
  * Etiqueta de cache de tudo que vem dos projetos e das categorias deles.
@@ -14,7 +20,7 @@ export const PROJECTS_CACHE_TAG = "projects";
 const SUMMARY_COLUMNS =
   "slug, name, summary, stack, cover_image_url, cover_image_alt, video_url, featured, category:project_categories(slug, name)";
 
-const FULL_COLUMNS = `${SUMMARY_COLUMNS}, problem, result, repo_url, live_url, updated_at` as const;
+const FULL_COLUMNS = `${SUMMARY_COLUMNS}, problem, result, approach, screenshots, repo_url, live_url, updated_at` as const;
 
 type SummaryRow = {
   slug: string;
@@ -39,6 +45,25 @@ function toProjectSummary(row: SummaryRow): ProjectSummary {
     category: row.category ? { slug: row.category.slug, name: row.category.name } : null,
     featured: row.featured,
   };
+}
+
+/** As telas vêm do banco como JSON livre: fica só o que tem o formato certo. */
+function toScreenshots(value: unknown): ProjectScreenshot[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const { url, alt, caption } = item as Record<string, unknown>;
+    if (typeof url !== "string" || !url) return [];
+
+    return [
+      {
+        url,
+        alt: typeof alt === "string" ? alt : "",
+        caption: typeof caption === "string" ? caption : "",
+      },
+    ];
+  });
 }
 
 /** Projetos publicados, na ordem definida no painel. */
@@ -99,6 +124,8 @@ export async function getProject(slug: string): Promise<Project | null> {
     ...toProjectSummary(data),
     problem: data.problem,
     result: data.result,
+    approach: data.approach,
+    screenshots: toScreenshots(data.screenshots),
     repoUrl: data.repo_url,
     liveUrl: data.live_url,
     updatedAt: data.updated_at,
@@ -131,4 +158,31 @@ export async function getProjectCategories(): Promise<ProjectCategory[]> {
   }
 
   return roots;
+}
+
+/** Guia que junta os projetos sem categoria. */
+const UNCATEGORIZED = { slug: "outros", name: "Outros" };
+
+/**
+ * As guias de /projetos com os projetos publicados de cada uma, na ordem do
+ * painel. É o que a barra lateral e a lista de projetos mostram.
+ */
+export async function getProjectGuides(): Promise<ProjectGuide[]> {
+  const [categories, projects] = await Promise.all([getProjectCategories(), getProjects()]);
+
+  function toGuide(category: ProjectCategory): ProjectGuide | null {
+    const guide: ProjectGuide = {
+      slug: category.slug,
+      name: category.name,
+      projects: projects.filter((project) => project.category?.slug === category.slug),
+      children: category.children.flatMap((child) => toGuide(child) ?? []),
+    };
+
+    return guide.projects.length > 0 || guide.children.length > 0 ? guide : null;
+  }
+
+  const guides = categories.flatMap((category) => toGuide(category) ?? []);
+  const loose = projects.filter((project) => !project.category);
+
+  return loose.length > 0 ? [...guides, { ...UNCATEGORIZED, projects: loose, children: [] }] : guides;
 }

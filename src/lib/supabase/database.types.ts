@@ -126,6 +126,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          approach: string
           category_id: string | null
           cover_image_alt: string | null
           cover_image_url: string | null
@@ -137,6 +138,7 @@ export type Database = {
           problem: string
           repo_url: string | null
           result: string
+          screenshots: Json
           slug: string
           sort_order: number
           stack: string[]
@@ -146,6 +148,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          approach?: string
           category_id?: string | null
           cover_image_alt?: string | null
           cover_image_url?: string | null
@@ -157,6 +160,7 @@ export type Database = {
           problem?: string
           repo_url?: string | null
           result?: string
+          screenshots?: Json
           slug: string
           sort_order?: number
           stack?: string[]
@@ -166,6 +170,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          approach?: string
           category_id?: string | null
           cover_image_alt?: string | null
           cover_image_url?: string | null
@@ -177,6 +182,7 @@ export type Database = {
           problem?: string
           repo_url?: string | null
           result?: string
+          screenshots?: Json
           slug?: string
           sort_order?: number
           stack?: string[]

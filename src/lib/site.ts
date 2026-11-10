@@ -20,9 +20,9 @@ export const site = {
     name: "Gabriel",
     github: "https://github.com/g4bs2006",
   },
-  /** Na fase 2, Projetos e Blog passam a apontar para as páginas próprias. */
+  /** Blog e Sobre ainda são seções da home. O Blog ganha página própria na fase 2. */
   nav: [
-    { label: "Projetos", href: "/#projetos" },
+    { label: "Projetos", href: "/projetos" },
     { label: "Blog", href: "/#blog" },
     { label: "Sobre", href: "/#sobre" },
   ],

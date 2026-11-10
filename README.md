@@ -32,14 +32,14 @@ src/
   app/                 Rotas, layout, estilos globais, ícone e imagem de compartilhamento
   components/
     atoms/             Peças mínimas: botão, tag, etiqueta de tecnologia, ícones
-    molecules/         Combinações pequenas: link do menu, botão de tema
+    molecules/         Combinações pequenas: link do menu, botão de tema, texto em Markdown
     organisms/         Blocos do site inteiro: menu e rodapé
   modules/
     hero/              Primeira tela da home (textos em content.ts)
     pequi/             O mascote: componentes e medidas dos recortes
     home/              Seções da home: Projetos, Últimos posts e O humano por trás (textos e marcadores em content.ts)
     blog/              Posts: tipos, consultas e a linha de post
-    projects/          Projetos e categorias: tipos, consultas e o card de projeto
+    projects/          Projetos e guias: consultas, card, barra lateral de /projetos e a página de cada projeto
   lib/                 Fontes, dados do site, datas, tema e cliente do Supabase
 supabase/migrations/   Histórico do banco: tabelas e regras de acesso
 public/pequi/          Recortes do Pequi já prontos para a web
@@ -65,6 +65,8 @@ O conteúdo mora em cinco tabelas no Supabase:
 | `post_tags`          | Quais tags cada post tem                                  |
 | `projects`           | Projetos do portfólio                                     |
 | `project_categories` | Guias e subguias da barra lateral de `/projetos`          |
+
+As imagens de projetos e posts ficam no bucket público `imagens` do Storage, em WebP: `projetos/<slug>/...` para as capas e telas de cada projeto. Só admin envia ou apaga.
 
 Quem visita o site só lê o que está com status `published`. Para escrever é preciso estar logado e constar em `private.admins`. Essas regras ficam no próprio banco (RLS), então valem mesmo para quem chamar a API direto com a chave pública.
 
