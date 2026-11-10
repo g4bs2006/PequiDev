@@ -66,7 +66,23 @@ dormindo ──(rolagem, mouse, teclado)──> acorda ──> sentado
 | Alguém clica nele, em pé | Dá uma patada | `carinho` |
 | Alguém clica nele, dormindo | Acorda e senta | `acordou` |
 | O tema troca | Patada (ele leva o crédito) | `tema` |
+| Alguém copia código de um post | Patada | `copiou` |
+| Um card passa sob o mouse | Se estiver sentado, levanta para olhar | `card`, às vezes |
+| A página troca | Pulinho no lugar | — |
+| Rolagem rápida | Corre no lugar enquanto ela dura | `correndo`, às vezes |
+| O rodapé aparece (fim da página) | Senta | `fim`, uma vez por página |
+| A página tem um post com índice | Pula para cima e some; o do índice chega caindo do alto | — |
 | Dormindo | Ronca de vez em quando | `dormindo` |
+
+"Às vezes" quer dizer com sorteio e com pelo menos 10 segundos desde a última
+fala espontânea, para ele não tagarelar.
+
+### O Pequi do índice
+
+Nos posts (no computador), quem acompanha a leitura é o Pequi do índice
+(`TocCompanion`). Ele chega caindo do alto no item ativo, pula de seção em
+seção, dorme depois de 30 segundos sem rolagem e dá uma patada quando alguém
+copia código.
 
 As falas ficam em `src/modules/pequi/falas.ts`, por situação. A cada vez ele
 sorteia uma. São curtas, em minúscula, num balão na fonte Anton.
@@ -75,7 +91,9 @@ sorteia uma. São curtas, em minúscula, num balão na fonte Anton.
 
 Constantes no topo do `PequiCompanion.tsx`: espera para entrar (1,2 s), em pé
 até sentar (4 s), intervalo das lambidas (12 a 22 s), tempo até dormir (35 s),
-duração do balão (2,6 s), ritmo da caminhada (10 ms por pixel).
+duração do balão (2,6 s), ritmo da caminhada (10 ms por pixel), intervalo entre
+falas espontâneas (10 s) e a velocidade de rolagem que faz ele correr
+(2500 px por segundo).
 
 ## Como uma parte do site conversa com ele
 
@@ -101,8 +119,14 @@ Para uma reação nova:
 
 O componente que avisa não muda mais quando a reação mudar.
 
-Para uma página ou bloco que já tem o seu próprio Pequi à vista, ponha
-`data-pequi-casa` no elemento dele. O do canto cede o lugar sozinho.
+Dois atalhos por atributo, para componentes de servidor que não rodam código
+no navegador:
+
+- `data-pequi="card"`: o bloco chama a atenção dele sob o mouse (cards de
+  projeto e linhas de post já têm).
+- `data-pequi-casa="<nome>"`: o bloco já tem o seu próprio Pequi à vista e o
+  do canto cede o lugar. Hoje: `hero`, `indice` (ele sai pulando, para o
+  índice) e `previa`.
 
 ## O sprite
 
@@ -110,8 +134,8 @@ Para uma página ou bloco que já tem o seu próprio Pequi à vista, ponha
 | --- | --- | --- |
 | `parado` | 6, em loop | Em pé, respirando |
 | `caminhada` | 6, em loop | Entrando e saindo de cena |
-| `pulo` | 6 | Pulos do Pequi do índice |
-| `patada` | 6 | Reação a carinho em pé e à troca de tema |
+| `pulo` | 6 | Pulos do Pequi do índice, pulinho na troca de página, saída para o índice |
+| `patada` | 6 | Carinho em pé, troca de tema, código copiado |
 | `dormir` | 6 | Deitar (1 a 5) e respirar dormindo (5 e 6); de trás para frente, acordar |
 | `sentar` | 6 | Sentar; o quadro 6 é o "sentado" parado |
 | `lamber` | 6 | Se lamber, sentado |
@@ -124,10 +148,5 @@ novas está em [docs/modo-sonho.md](modo-sonho.md#adicionar-uma-animação).
 
 ## O que vem depois
 
-- Mais reações: olhar para o card de projeto sob o mouse, pular junto no
-  clique, patada no botão de copiar código, sentar no rodapé no fim da página,
-  correr com rolagem rápida.
-- Nos posts, o Pequi do canto vai para o índice lateral (o Pequi do índice já
-  existe, ver `TocCompanion`).
 - Momentos em foto: 404 com o Pequi bravo e reação no fim de cada post.
 - O modo sonho, mais para frente.

@@ -18,7 +18,10 @@ export function PostPreview({ post, href, headingLevel = 3 }: PostPreviewProps) 
   const Heading = headingLevel === 2 ? "h2" : "h3";
 
   return (
-    <article className="group relative grid gap-x-10 gap-y-2 py-8 md:grid-cols-[10rem_minmax(0,1fr)]">
+    <article
+      data-pequi="card"
+      className="group relative grid gap-x-10 gap-y-2 py-8 md:grid-cols-[10rem_minmax(0,1fr)]"
+    >
       <time dateTime={post.publishedAt} className="font-mono text-sm text-ink-soft md:pt-2.5">
         {formatDate(post.publishedAt)}
       </time>

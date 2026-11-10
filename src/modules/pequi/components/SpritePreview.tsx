@@ -44,7 +44,7 @@ export function SpritePreview() {
   const names = Object.keys(sprite.animacoes) as AnimationName[];
 
   return (
-    <div className="grid gap-10" data-pequi-casa>
+    <div className="grid gap-10" data-pequi-casa="previa">
       <div className={styles.lane} aria-hidden="true">
         <div className={styles.walker}>
           <div className={styles.sprite} style={spriteVars("caminhada", 2)} />

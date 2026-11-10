@@ -54,6 +54,7 @@ export function ProjectCard({ project, href, wide = false, note, sizes, morph }:
 
   return (
     <article
+      data-pequi={href ? "card" : undefined}
       className={`group relative flex h-full flex-col overflow-hidden rounded-card bg-surface shadow-soft ${
         href ? "sobe" : ""
       } ${wide ? "lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]" : ""}`}

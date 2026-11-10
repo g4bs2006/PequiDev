@@ -28,8 +28,17 @@ const DORME_DEPOIS = 35_000;
 const FALA_MS = 2600;
 /** Depois de um carinho, o botão de esconder fica à mostra (para quem usa toque). */
 const MENU_MS = 4000;
+/** Falas espontâneas (card, rolagem) respeitam este intervalo, para ele não tagarelar. */
+const FALA_PAUSA = 10_000;
+/** Rolagem mais rápida que isto (px por segundo) faz ele correr. */
+const CORRIDA_PX_S = 2500;
+/** Seletor dos blocos que chamam a atenção dele sob o mouse. */
+const CARD = '[data-pequi="card"]';
 
-type Modo = "fora" | "andando" | "em-pe" | "sentado" | "dormindo" | "ocupado";
+type Modo = "fora" | "andando" | "em-pe" | "sentado" | "dormindo" | "ocupado" | "correndo";
+
+/** Como ele sai de cena: andando para a direita, ou pulando para cima (para o índice). */
+type Saida = "andando" | "pulando";
 
 const sorteio = ([min, max]: [number, number]) => min + Math.random() * (max - min);
 
@@ -74,6 +83,16 @@ function createCompanion({ box, cat, balloon }: Partes) {
   function hush() {
     window.clearTimeout(speechTimer);
     delete balloon.dataset.visivel;
+  }
+
+  let lastChatter = -Infinity;
+
+  /** Fala espontânea: só às vezes, e nunca duas seguidas em pouco tempo. */
+  function chatter(situacao: Situacao, chance: number) {
+    const now = performance.now();
+    if (now - lastChatter < FALA_PAUSA || Math.random() > chance) return;
+    lastChatter = now;
+    speak(situacao);
   }
 
   function armSleep() {
@@ -241,12 +260,102 @@ function createCompanion({ box, cat, balloon }: Partes) {
     walk.onfinish = inside ? arrive : gone;
   }
 
+  /** Pula para cima e some: é como ele vai para o índice do post. */
+  function jumpAway() {
+    heading = "fora";
+    walk?.cancel();
+    clearRoutine();
+    hush();
+
+    if (reduced || mode === "fora") return gone();
+
+    mode = "andando";
+    face(true);
+    player.play("pulo", { frames: [0, 1, 2] });
+    walk = box.animate(
+      [
+        { translate: "0 0", easing: "ease-out" },
+        { translate: "0 -24px", offset: 0.25, easing: "ease-in" },
+        { translate: "0 -110vh" },
+      ],
+      { duration: 700 },
+    );
+    walk.onfinish = gone;
+  }
+
   function show() {
     if (heading !== "dentro") walkTo(true);
   }
 
-  function hide() {
-    if (heading !== "fora") walkTo(false);
+  function hide(saida: Saida = "andando") {
+    if (heading === "fora") return;
+    if (saida === "pulando") jumpAway();
+    else walkTo(false);
+  }
+
+  // --- Reações ao que acontece na página ----------------------------------
+
+  /** Pulinho no lugar, quando a página troca. Volta para o que estava fazendo. */
+  function hop() {
+    if (mode !== "em-pe" && mode !== "sentado") return;
+    const wasSitting = mode === "sentado";
+    clearRoutine();
+    mode = "ocupado";
+
+    const after = () => {
+      if (!wasSitting) return stand();
+      mode = "em-pe";
+      sit();
+      armSleep();
+    };
+
+    if (reduced) return after();
+    player.play("pulo", { onEnd: after });
+    box.animate(
+      [
+        { translate: "0 0", easing: "ease-out" },
+        { translate: "0 -16px", easing: "ease-in" },
+        { translate: "0 0" },
+      ],
+      { duration: 380, delay: 80 },
+    );
+  }
+
+  /** Um card passou sob o mouse: ele se levanta para olhar. */
+  function interest() {
+    if (mode === "sentado") {
+      clearRoutine();
+      mode = "ocupado";
+      if (reduced) stand();
+      else player.play("sentar", { frames: [5, 4, 3, 2, 1, 0], fps: 12, onEnd: stand });
+      chatter("card", 0.4);
+    } else if (mode === "em-pe") {
+      stand();
+      chatter("card", 0.4);
+    }
+  }
+
+  /** Rolagem rápida: ele corre para acompanhar enquanto ela durar. */
+  function startRunning() {
+    // Corre de qualquer jeito que esteja no canto, menos dormindo ou entrando/saindo.
+    if (reduced || mode === "fora" || mode === "andando" || mode === "dormindo") return;
+    if (mode === "correndo") return;
+    clearRoutine();
+    mode = "correndo";
+    face(true);
+    player.play("caminhada", { fps: 18 });
+    chatter("correndo", 0.6);
+  }
+
+  function stopRunning() {
+    if (mode === "correndo") stand();
+  }
+
+  /** Chegou ao fim da página. */
+  function reachedEnd() {
+    if (mode !== "em-pe" && mode !== "sentado") return;
+    speak("fim");
+    if (mode === "em-pe") sit();
   }
 
   const onMotionChange = (event: MediaQueryListEvent) => {
@@ -261,6 +370,11 @@ function createCompanion({ box, cat, balloon }: Partes) {
     hide,
     pet,
     poke,
+    hop,
+    interest,
+    startRunning,
+    stopRunning,
+    reachedEnd,
     /** O tema trocou: ele leva o crédito, com uma patada. */
     themeChanged() {
       if (mode === "em-pe" || mode === "sentado") swat("tema");
@@ -330,8 +444,16 @@ export function PequiCompanion() {
 
     const decide = () => {
       window.clearTimeout(enterTimer);
-      if (hiddenRef.current || homes.size > 0) {
+      if (hiddenRef.current) {
         instance.hide();
+        return;
+      }
+      if (homes.size > 0) {
+        // Se a casa à vista é o índice de um post, ele pula para lá.
+        const toIndex = [...homes].some(
+          (home) => (home as HTMLElement).dataset.pequiCasa === "indice",
+        );
+        instance.hide(toIndex ? "pulando" : "andando");
         return;
       }
       const wait = Math.max(0, openedAt + ESPERA_AO_ABRIR - performance.now());
@@ -347,11 +469,29 @@ export function PequiCompanion() {
       decide();
     });
 
+    // O rodapé à vista é o fim da página: ele comenta uma vez por página.
+    let endSeen = false;
+    const footerWatch = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting) && !endSeen) {
+        endSeen = true;
+        instance.reachedEnd();
+      }
+    });
+    const footer = document.querySelector("body > footer, footer");
+    if (footer) footerWatch.observe(footer);
+
     // As casas mudam quando a página troca: procura de novo a cada mudança.
+    // A troca de página também ganha um pulinho.
     let scanFrame = 0;
+    let lastPath = location.pathname;
     const watched = new Set<Element>();
     const scan = () => {
       scanFrame = 0;
+      if (location.pathname !== lastPath) {
+        lastPath = location.pathname;
+        endSeen = false;
+        instance.hop();
+      }
       const current = new Set(document.querySelectorAll(CASA));
       for (const element of watched) {
         if (!current.has(element)) {
@@ -386,6 +526,32 @@ export function PequiCompanion() {
     window.addEventListener("pointermove", onActivity, { passive: true });
     window.addEventListener("keydown", onActivity);
 
+    // Rolagem rápida: mede a velocidade e para a corrida quando ela cai.
+    let lastY = window.scrollY;
+    let lastT = performance.now();
+    let runTimer = 0;
+    const onScrollSpeed = () => {
+      const now = performance.now();
+      const speed = (Math.abs(window.scrollY - lastY) / Math.max(now - lastT, 1)) * 1000;
+      lastY = window.scrollY;
+      lastT = now;
+      if (speed < CORRIDA_PX_S) return;
+      instance.startRunning();
+      window.clearTimeout(runTimer);
+      runTimer = window.setTimeout(instance.stopRunning, 300);
+    };
+    window.addEventListener("scroll", onScrollSpeed, { passive: true });
+
+    // Um card sob o mouse chama a atenção dele (uma vez por card).
+    let lastCard: Element | null = null;
+    const onPointerOver = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse") return;
+      const card = (event.target as Element | null)?.closest?.(CARD) ?? null;
+      if (card && card !== lastCard) instance.interest();
+      lastCard = card;
+    };
+    document.addEventListener("pointerover", onPointerOver);
+
     const stopListening = ouvir((aviso) => {
       if (aviso.tipo === "tema") instance.themeChanged();
       if (aviso.tipo === "codigo-copiado") instance.codeCopied();
@@ -393,12 +559,16 @@ export function PequiCompanion() {
 
     return () => {
       window.clearTimeout(enterTimer);
+      window.clearTimeout(runTimer);
       window.cancelAnimationFrame(scanFrame);
       intersection.disconnect();
+      footerWatch.disconnect();
       mutation.disconnect();
       window.removeEventListener("scroll", onActivity);
+      window.removeEventListener("scroll", onScrollSpeed);
       window.removeEventListener("pointermove", onActivity);
       window.removeEventListener("keydown", onActivity);
+      document.removeEventListener("pointerover", onPointerOver);
       stopListening();
       instance.destroy();
       companion.current = null;

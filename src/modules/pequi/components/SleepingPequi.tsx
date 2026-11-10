@@ -33,7 +33,7 @@ type SleepingPequiProps = {
 export function SleepingPequi({ sizes, pawTarget }: SleepingPequiProps) {
   return (
     <div
-      data-pequi-casa
+      data-pequi-casa="hero"
       className={styles.pequi}
       style={{ aspectRatio: `${geometry.width} / ${geometry.height}` }}
     >

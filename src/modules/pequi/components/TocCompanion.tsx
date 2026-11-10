@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { ouvir } from "@/lib/eventos";
+
 import { type AnimationName, animation, CELL_H, CELL_W, showFrame, SPRITE_URL } from "../sprite";
 
 /** Tempo sem rolar a página até ele deitar para dormir. */
@@ -13,6 +15,10 @@ const ARC = 18;
 /** Duração do voo: cresce com a distância, dentro destes limites (ms). */
 const FLIGHT_MIN = 280;
 const FLIGHT_MAX = 560;
+/** A chegada caindo do alto: de quanto acima, quanto tempo e quanto espera para começar. */
+const DROP_HEIGHT = 180;
+const DROP_MS = 420;
+const DROP_DELAY = 250;
 
 type Mode = "parado" | "ocupado" | "dormir";
 
@@ -175,13 +181,51 @@ function createCompanion(box: HTMLElement, cat: HTMLElement) {
   };
   motion.addEventListener("change", onMotionChange);
 
+  /**
+   * A chegada: ele cai do alto no item ativo, como se tivesse pulado do canto
+   * da tela para o índice (o Pequi do canto sai pulando para cima).
+   */
+  function dropIn(to: number) {
+    y = to;
+    box.style.transform = groundAt(to);
+    box.style.visibility = "visible";
+
+    if (reduced) {
+      stand();
+      armSleep();
+      return;
+    }
+
+    mode = "ocupado";
+    const frameMs = 1000 / animation("pulo").fps;
+    showFrame(cat, "pulo", 3);
+    flight = box.animate(
+      [
+        { transform: groundAt(to - DROP_HEIGHT), opacity: 0 },
+        { transform: groundAt(to - DROP_HEIGHT * 0.8), opacity: 1, offset: 0.15 },
+        { transform: groundAt(to) },
+      ],
+      { duration: DROP_MS, delay: DROP_DELAY, easing: "ease-in", fill: "backwards" },
+    );
+    later(DROP_DELAY + DROP_MS, () => showFrame(cat, "pulo", 4));
+    later(DROP_DELAY + DROP_MS + frameMs, () => showFrame(cat, "pulo", 5));
+    later(DROP_DELAY + DROP_MS + frameMs * 2, settle);
+  }
+
+  /** Patada (quando alguém copia código). Só se estiver parado à toa. */
+  function swat() {
+    if (mode !== "parado" || reduced) return;
+    mode = "ocupado";
+    clearTimers();
+    sequence("patada", [0, 1, 2, 3, 4, 5], 1000 / animation("patada").fps, settle);
+  }
+
   return {
-    /** Leva o Pequi até a linha do chão `to`. Na primeira vez, aparece direto lá. */
+    swat,
+    /** Leva o Pequi até a linha do chão `to`. Na primeira vez, ele chega caindo do alto. */
     moveTo(to: number) {
       if (y === null) {
-        place(to);
-        stand();
-        armSleep();
+        dropIn(to);
       } else if (mode === "ocupado") {
         pending = to;
       } else if (mode === "dormir") {
@@ -244,11 +288,20 @@ export function TocCompanion({ targetY, activity, className = "" }: TocCompanion
     if (activity > 0) companion.current?.poke();
   }, [activity]);
 
+  // Alguém copiou código do post: patada no ar, como o Pequi do canto faz.
+  useEffect(
+    () =>
+      ouvir((aviso) => {
+        if (aviso.tipo === "codigo-copiado") companion.current?.swat();
+      }),
+    [],
+  );
+
   return (
     <div
       ref={boxRef}
       aria-hidden="true"
-      data-pequi-casa
+      data-pequi-casa="indice"
       className={`pointer-events-none invisible absolute top-0 will-change-transform ${className}`}
       style={{ width: CELL_W, height: CELL_H }}
     >

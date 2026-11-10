@@ -16,6 +16,12 @@ export const falas = {
   dormindo: ["zzz"],
   /** Quando alguém copia um bloco de código de um post. */
   copiou: ["ctrl+c aprovado", "pode levar", "testa antes, hein", "copiado"],
+  /** Quando um card passa sob o mouse (às vezes). */
+  card: ["esse é bom", "clica, clica", "já vi esse", "hmm, interessante"],
+  /** Quando a rolagem fica rápida demais (às vezes). */
+  correndo: ["espera!", "calma aí", "tô indo, tô indo"],
+  /** Quando a página chega ao fim. */
+  fim: ["fim da linha", "acabou? lê de novo", "chegamos", "e agora?"],
 } satisfies Record<string, string[]>;
 
 export type Situacao = keyof typeof falas;
