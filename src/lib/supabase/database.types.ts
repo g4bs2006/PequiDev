@@ -227,7 +227,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      sou_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       content_status: "draft" | "published"

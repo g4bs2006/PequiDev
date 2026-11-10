@@ -40,13 +40,15 @@ src/
     pequi/             O personagem: o Pequi do canto, o do índice, o dormindo do hero e o sprite (guia em docs/pequi.md)
     home/              Seções da home: Projetos, Últimos posts e O humano por trás (textos e marcadores em content.ts)
     blog/              Posts: /blog, a página de cada post (Markdown, código colorido, índice com o Pequi) e as consultas
+    admin/             O painel em /admin: login, posts e projetos, envio de imagens (guia em docs/painel.md)
     projects/          Projetos e guias: consultas, card, barra lateral de /projetos e a página de cada projeto
-  lib/                 Fontes, dados do site, datas, tema e cliente do Supabase
+  lib/                 Fontes, dados do site, datas, tema, avisos do site e clientes do Supabase (público, sessão e navegador)
+  proxy.ts             Renova a sessão do painel a cada página do /admin
 supabase/migrations/   Histórico do banco: tabelas e regras de acesso
 public/pequi/          Recortes do Pequi e a folha de sprites, já prontos para a web
 referencias/           Imagens originais do Pequi e as fontes do sprite (sprite-ia/)
 scripts/               Scripts que geram os recortes, o sprite e a imagem de compartilhamento
-docs/                  Guias e planos: o Pequi, animações, como escrever um post, modo sonho
+docs/                  Guias e planos: o Pequi, animações, como escrever um post, o painel, modo sonho
 ```
 
 Regras da casa:
@@ -71,7 +73,7 @@ O conteúdo mora em cinco tabelas no Supabase:
 
 As imagens de projetos e posts ficam no bucket público `imagens` do Storage, em WebP: `projetos/<slug>/...` para as capas e telas de cada projeto. Só admin envia ou apaga.
 
-Quem visita o site só lê o que está com status `published`. Para escrever é preciso estar logado e constar em `private.admins`. Essas regras ficam no próprio banco (RLS), então valem mesmo para quem chamar a API direto com a chave pública.
+Quem visita o site só lê o que está com status `published`. Para escrever é preciso estar logado e constar em `private.admins`; o painel em `/admin` faz isso (ver docs/painel.md). Essas regras ficam no próprio banco (RLS), então valem mesmo para quem chamar a API direto com a chave pública.
 
 Toda mudança no banco entra como um arquivo novo em `supabase/migrations/`. Depois de mudar o esquema, gere de novo os tipos em `src/lib/supabase/database.types.ts`:
 
