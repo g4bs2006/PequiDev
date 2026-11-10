@@ -29,6 +29,9 @@ type EngineFactory = (
 const primaryButton =
   "aperta inline-flex h-12 items-center justify-center rounded-full bg-accent px-6 font-display font-bold text-on-accent shadow-button";
 
+/** No toque, os botões do painel encolhem para caber numa linha no alto. */
+const panelButton = `${primaryButton} [@media(hover:none)_and_(pointer:coarse)]:h-10 [@media(hover:none)_and_(pointer:coarse)]:px-4 [@media(hover:none)_and_(pointer:coarse)]:text-sm`;
+
 const touchButton =
   "aperta inline-flex min-h-14 min-w-14 touch-none select-none items-center justify-center rounded-full bg-accent px-5 font-display font-bold text-on-accent shadow-button";
 
@@ -64,6 +67,12 @@ function TouchButton({ action, label, children, onAction }: TouchButtonProps) {
       {children}
     </button>
   );
+}
+
+/** "Enter: abrir CRM de leads" vira "Abrir CRM de leads" no botão de toque. */
+function touchOpenLabel(hint: string) {
+  const text = hint.replace(/^Enter:\s*/, "");
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 /** Mantém o sonho vivo no layout, inclusive durante trocas de página. */
@@ -197,6 +206,11 @@ export function DreamHost() {
     engineRef.current?.setAction(action, pressed);
   }, []);
 
+  const openFromHint = useCallback(() => {
+    engineRef.current?.setAction("abrir", true);
+    engineRef.current?.setAction("abrir", false);
+  }, []);
+
   return (
     <>
       {active ? (
@@ -210,9 +224,11 @@ export function DreamHost() {
 
           <aside
             aria-label="Controles do modo sonho"
-            className="fixed bottom-5 left-5 z-50 max-w-[calc(100vw-2.5rem)] rounded-card bg-surface p-4 text-ink shadow-soft [@media(hover:none)_and_(pointer:coarse)]:bottom-44"
+            className="fixed bottom-5 left-5 z-50 max-w-[calc(100vw-2.5rem)] rounded-card bg-surface p-4 text-ink shadow-soft [@media(hover:none)_and_(pointer:coarse)]:top-3 [@media(hover:none)_and_(pointer:coarse)]:bottom-auto [@media(hover:none)_and_(pointer:coarse)]:p-2"
           >
-            <p className="mb-3 max-w-2xl font-mono text-sm text-ink-soft">
+            {/* No toque, as teclas não servem e o painel vira uma linha no alto da
+                tela, fora da faixa onde a câmera mantém o gato. */}
+            <p className="mb-3 max-w-2xl font-mono text-sm text-ink-soft [@media(hover:none)_and_(pointer:coarse)]:hidden">
               ← → ou A/D: andar · Espaço/W/↑: pular · X/J: patada · Enter:
               abrir · S/↓: descer
             </p>
@@ -220,42 +236,62 @@ export function DreamHost() {
             <p
               aria-live="polite"
               aria-atomic="true"
-              className={hint ? "mb-3 font-display font-bold text-ink" : "sr-only"}
+              className={
+                hint
+                  ? "mb-3 font-display font-bold text-ink [@media(hover:none)_and_(pointer:coarse)]:sr-only"
+                  : "sr-only"
+              }
             >
               {hint ?? ""}
             </p>
 
-            <button
-              ref={exitRef}
-              type="button"
-              onClick={leave}
-              className={primaryButton}
-            >
-              Sair do sonho (Esc)
-            </button>
+            <div className="flex flex-wrap items-center gap-3 [@media(hover:none)_and_(pointer:coarse)]:gap-2">
+              {hint ? (
+                <button
+                  type="button"
+                  onClick={openFromHint}
+                  className={`${panelButton} hidden [@media(hover:none)_and_(pointer:coarse)]:inline-flex`}
+                >
+                  {touchOpenLabel(hint)}
+                </button>
+              ) : null}
+
+              <button
+                ref={exitRef}
+                type="button"
+                onClick={leave}
+                className={panelButton}
+              >
+                Sair do sonho
+                <span className="[@media(hover:none)_and_(pointer:coarse)]:hidden">&nbsp;(Esc)</span>
+              </button>
+            </div>
           </aside>
 
+          {/* Direcional à esquerda (polegar esquerdo), pulo e patada à direita. */}
           <div
             aria-label="Controles de toque do modo sonho"
-            className="fixed inset-x-5 bottom-5 z-50 hidden flex-wrap justify-end gap-3 [@media(hover:none)_and_(pointer:coarse)]:flex"
+            className="fixed inset-x-5 bottom-5 z-50 hidden items-end justify-between gap-3 [@media(hover:none)_and_(pointer:coarse)]:flex"
           >
-            <TouchButton action="esquerda" label="Andar para a esquerda" onAction={setAction}>
-              <span aria-hidden="true">◀</span>
-            </TouchButton>
-            <TouchButton action="direita" label="Andar para a direita" onAction={setAction}>
-              <span aria-hidden="true">▶</span>
-            </TouchButton>
-            <TouchButton action="pular" label="Pular" onAction={setAction}>
-              Pular
-            </TouchButton>
-            <TouchButton action="patada" label="Dar uma patada" onAction={setAction}>
-              Patada
-            </TouchButton>
-            {hint ? (
-              <TouchButton action="abrir" label="Abrir item" onAction={setAction}>
-                Abrir
+            <div className="flex gap-3">
+              <TouchButton action="esquerda" label="Andar para a esquerda" onAction={setAction}>
+                <span aria-hidden="true">◀</span>
               </TouchButton>
-            ) : null}
+              <TouchButton action="direita" label="Andar para a direita" onAction={setAction}>
+                <span aria-hidden="true">▶</span>
+              </TouchButton>
+              <TouchButton action="descer" label="Descer da plataforma" onAction={setAction}>
+                <span aria-hidden="true">▼</span>
+              </TouchButton>
+            </div>
+            <div className="flex flex-col items-end gap-3">
+              <TouchButton action="patada" label="Dar uma patada" onAction={setAction}>
+                Patada
+              </TouchButton>
+              <TouchButton action="pular" label="Pular" onAction={setAction}>
+                Pular
+              </TouchButton>
+            </div>
           </div>
         </>
       ) : null}

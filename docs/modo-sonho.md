@@ -195,8 +195,11 @@ com o `DreamTrigger`, que manda junto o ponto onde o Pequi aparece.
   `data-plataforma="base"` usa a de baixo (o menu do topo, onde ele anda ao
   lado dos botões). Os títulos de `/blog` e `/projetos` também são
   plataformas.
-- **Toque:** em telas de toque aparecem botões grandes (◀ ▶, pular, patada,
-  abrir).
+- **Toque:** em telas de toque aparecem botões grandes. À esquerda ficam
+  ◀ ▶ ▼ (o ▼ desce da plataforma), à direita patada e pular, um em cima do
+  outro. A lista de teclas some, e o painel vira uma linha no alto da tela
+  ("Abrir <nome>", quando houver, e "Sair do sonho"), fora da faixa onde a
+  câmera mantém o gato.
 - **Leitor de tela:** anúncio ao ligar e desligar, e a dica de abrir num
   `aria-live`. O foco vai para "Sair do sonho" e volta para onde estava.
 
@@ -226,5 +229,5 @@ e ficam para a próxima.
 
 ## O que ainda dá para fazer
 
-- Melhorar os botões de toque no celular (o Gabriel achou ruins; falta saber o que incomoda).
+- Jogar no celular de verdade: o toque só foi testado num Pixel 7 emulado.
 - Mais alvos de patada e mais coisas para abrir.
