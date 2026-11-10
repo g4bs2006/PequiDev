@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/atoms/ButtonLink";
 import { GitHubIcon } from "@/components/atoms/icons";
 import { StackChip } from "@/components/atoms/StackChip";
+import { Morph, morphName } from "@/components/motion/Morph";
+import { navegacao } from "@/components/motion/navegacao";
 import { Markdown } from "@/components/molecules/Markdown";
 import { site } from "@/lib/site";
 
@@ -35,27 +37,29 @@ function ProjectMedia({ project }: { project: Project }) {
 
   return (
     <div className="mt-10 rounded-card bg-band p-3 sm:p-5 md:mt-12 md:p-8">
-      <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-surface shadow-soft">
-        {video ? (
-          <video
-            src={video}
-            poster={cover?.url}
-            controls
-            preload="metadata"
-            aria-label={`Demo em vídeo: ${project.name}`}
-            className="absolute inset-0 size-full object-cover"
-          />
-        ) : cover ? (
-          <Image
-            src={cover.url}
-            alt={cover.alt}
-            fill
-            preload
-            sizes={MEDIA_SIZES}
-            className="object-cover object-top"
-          />
-        ) : null}
-      </div>
+      <Morph name={morphName.capaDoProjeto(project.slug)}>
+        <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-surface shadow-soft">
+          {video ? (
+            <video
+              src={video}
+              poster={cover?.url}
+              controls
+              preload="metadata"
+              aria-label={`Demo em vídeo: ${project.name}`}
+              className="absolute inset-0 size-full object-cover"
+            />
+          ) : cover ? (
+            <Image
+              src={cover.url}
+              alt={cover.alt}
+              fill
+              preload
+              sizes={MEDIA_SIZES}
+              className="object-cover object-top"
+            />
+          ) : null}
+        </div>
+      </Morph>
     </div>
   );
 }
@@ -142,6 +146,7 @@ export function ProjectDetail({ project }: { project: Project }) {
         <p className="font-mono text-[0.8125rem] font-bold tracking-wide uppercase">
           <Link
             href={category ? `/projetos#${category.slug}` : "/projetos"}
+            transitionTypes={navegacao.volta}
             className="rounded-full text-tag underline-offset-4 hover:underline"
           >
             {category ? category.name : projectCopy.back}

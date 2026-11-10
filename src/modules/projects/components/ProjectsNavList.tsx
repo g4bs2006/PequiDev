@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { navegacao } from "@/components/motion/navegacao";
+
 import { projectsPageCopy } from "../content";
 
 /** O que a barra lateral precisa de cada guia: só nomes e endereços. */
@@ -16,14 +18,25 @@ type ProjectsNavListProps = {
   pathname: string | null;
 };
 
-function ItemLink({ href, pathname, children }: { href: string; pathname: string | null; children: string }) {
+function ItemLink({
+  href,
+  pathname,
+  children,
+  transitionTypes,
+}: {
+  href: string;
+  pathname: string | null;
+  children: string;
+  transitionTypes?: string[];
+}) {
   const current = pathname === href;
 
   return (
     <Link
       href={href}
+      transitionTypes={transitionTypes}
       aria-current={current ? "page" : undefined}
-      className={`block rounded-2xl px-3 py-2 leading-snug transition-colors duration-200 ${
+      className={`block rounded-2xl px-3 py-2 leading-snug tinge ${
         current ? "bg-ink/10 font-bold text-ink" : "text-ink-soft hover:bg-ink/10 hover:text-ink"
       }`}
     >
@@ -72,7 +85,7 @@ export function ProjectsNavList({ guides, pathname }: ProjectsNavListProps) {
   return (
     <ul className="grid gap-5">
       <li>
-        <ItemLink href="/projetos" pathname={pathname}>
+        <ItemLink href="/projetos" pathname={pathname} transitionTypes={navegacao.volta}>
           {projectsPageCopy.allProjects}
         </ItemLink>
       </li>

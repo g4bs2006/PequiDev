@@ -11,10 +11,13 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      onClick={toggleTheme}
+      onClick={(event) => {
+        const box = event.currentTarget.getBoundingClientRect();
+        toggleTheme({ x: box.left + box.width / 2, y: box.top + box.height / 2 });
+      }}
       aria-label="Alternar entre tema claro e escuro"
       title="Alternar tema"
-      className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-surface text-xl text-ink shadow-soft transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-px"
+      className="aperta grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-surface text-xl text-ink shadow-soft"
     >
       <MoonIcon className="dark:hidden" />
       <SunIcon className="hidden dark:block" />

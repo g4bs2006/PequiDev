@@ -1,4 +1,6 @@
 import { ButtonLink } from "@/components/atoms/ButtonLink";
+import { morphName } from "@/components/motion/Morph";
+import { navegacao } from "@/components/motion/navegacao";
 import { Tag } from "@/components/atoms/Tag";
 import { getFeaturedProjects } from "@/modules/projects";
 
@@ -15,7 +17,11 @@ export async function FeaturedProjects() {
   const hasProjects = projects.length > 0;
 
   const items: ShowcaseItem[] = hasProjects
-    ? projects.map((project) => ({ project, href: `/projetos/${project.slug}` }))
+    ? projects.map((project) => ({
+        project,
+        href: `/projetos/${project.slug}`,
+        morph: morphName.capaDoProjeto(project.slug),
+      }))
     : projectPlaceholders.map((project) => ({
         project,
         note: <Tag>{projectsCopy.placeholderNote}</Tag>,
@@ -37,7 +43,7 @@ export async function FeaturedProjects() {
       </div>
       {hasProjects ? (
         <div className="mt-10">
-          <ButtonLink href="/projetos" variant="soft">
+          <ButtonLink href="/projetos" variant="soft" transitionTypes={navegacao.avanca}>
             {projectsCopy.seeAll}
           </ButtonLink>
         </div>

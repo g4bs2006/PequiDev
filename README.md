@@ -34,6 +34,7 @@ src/
     atoms/             Peças mínimas: botão, tag, etiqueta de tecnologia, ícones
     molecules/         Combinações pequenas: link do menu, botão de tema, texto em Markdown
     organisms/         Blocos do site inteiro: menu e rodapé
+    motion/            Transição entre páginas, morph e tipos de navegação
   modules/
     hero/              Primeira tela da home (textos em content.ts)
     pequi/             O mascote: componentes, medidas dos recortes e o sprite em pixel art
@@ -45,7 +46,7 @@ supabase/migrations/   Histórico do banco: tabelas e regras de acesso
 public/pequi/          Recortes do Pequi e a folha de sprites, já prontos para a web
 referencias/           Imagens originais do Pequi e as fontes do sprite (sprite-ia/)
 scripts/               Scripts que geram os recortes, o sprite e a imagem de compartilhamento
-docs/                  Planos e decisões de partes maiores (modo sonho)
+docs/                  Guias e planos: animações, modo sonho
 ```
 
 Regras da casa:
@@ -54,6 +55,7 @@ Regras da casa:
 - Um módulo pode usar `components/` e `lib/`, nunca o contrário.
 - Componente nenhum fala com o Supabase. Cada módulo lê o banco no seu `queries.ts`, e o cliente fica em `lib/supabase/`.
 - Cores, fontes, raios e sombras são tokens definidos em `src/app/globals.css`. Nada de cor solta no componente.
+- Movimento também: durações, curvas e distâncias são tokens, e cada animação usa um dos padrões de [docs/animacoes.md](docs/animacoes.md). Toda `page.tsx` envolve o conteúdo no `PageTransition`.
 
 ## Banco de dados
 

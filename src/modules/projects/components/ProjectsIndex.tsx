@@ -1,3 +1,5 @@
+import { morphName } from "@/components/motion/Morph";
+
 import { projectsPageCopy } from "../content";
 import { getProjectGuides } from "../queries";
 import type { ProjectGuide } from "../types";
@@ -23,11 +25,12 @@ function GuideSection({ guide, nested }: { guide: ProjectGuide; nested: boolean 
       {guide.projects.length > 0 ? (
         <ul className="mt-6 grid gap-6 md:grid-cols-2">
           {guide.projects.map((project) => (
-            <li key={project.slug}>
+            <li key={project.slug} className="surge">
               <ProjectCard
                 project={project}
                 href={`/projetos/${project.slug}`}
                 sizes={CARD_SIZES}
+                morph={morphName.capaDoProjeto(project.slug)}
               />
             </li>
           ))}

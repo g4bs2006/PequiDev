@@ -7,10 +7,12 @@ type ButtonLinkProps = {
   variant?: "primary" | "soft";
   children: ReactNode;
   className?: string;
+  /** Tipo da troca de página, de src/components/motion/navegacao.ts. */
+  transitionTypes?: string[];
 };
 
 const base =
-  "inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 font-display text-base font-bold whitespace-nowrap transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-px";
+  "aperta inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 font-display text-base font-bold whitespace-nowrap";
 
 const variants = {
   primary: "bg-accent text-on-accent shadow-button",
@@ -23,6 +25,7 @@ export function ButtonLink({
   variant = "primary",
   children,
   className = "",
+  transitionTypes,
 }: ButtonLinkProps) {
   const classes = `${base} ${variants[variant]} ${className}`;
 
@@ -35,7 +38,7 @@ export function ButtonLink({
   }
 
   return (
-    <Link href={href} className={classes}>
+    <Link href={href} className={classes} transitionTypes={transitionTypes}>
       {children}
     </Link>
   );

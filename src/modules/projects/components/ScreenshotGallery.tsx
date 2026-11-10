@@ -18,13 +18,13 @@ export function ScreenshotGallery({ screenshots }: { screenshots: ProjectScreens
 
       <ul className="mt-8 grid gap-x-6 gap-y-10 md:grid-cols-2">
         {screenshots.map((shot) => (
-          <li key={shot.url}>
+          <li key={shot.url} className="surge">
             <figure>
               <a
                 href={shot.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative block aspect-[16/10] overflow-hidden rounded-2xl bg-surface shadow-soft transition-transform duration-200 hover:-translate-y-1"
+                className="relative block aspect-[16/10] overflow-hidden rounded-2xl bg-surface shadow-soft sobe"
               >
                 <Image
                   src={shot.url}

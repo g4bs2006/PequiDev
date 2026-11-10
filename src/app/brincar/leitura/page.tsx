@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { PageTransition } from "@/components/motion/PageTransition";
 import { ReadingPreview } from "@/modules/blog";
 
 export const metadata: Metadata = {
@@ -10,5 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default function LeituraPage() {
-  return <ReadingPreview />;
+  return (
+    <PageTransition>
+      <ReadingPreview />
+    </PageTransition>
+  );
 }

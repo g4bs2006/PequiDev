@@ -6,6 +6,8 @@ export type ShowcaseItem = {
   project: Pick<ProjectSummary, "name" | "summary" | "stack" | "cover">;
   href?: string;
   note?: ReactNode;
+  /** Nome do morph da capa, quando o card leva à página do projeto. */
+  morph?: string;
 };
 
 const WIDE_SIZES = "(min-width: 1024px) 45vw, 100vw";
@@ -32,11 +34,12 @@ export function ProjectShowcase({ items }: { items: ShowcaseItem[] }) {
         const wide = hasLead && index === 0;
 
         return (
-          <li key={index} className={span(index)}>
+          <li key={index} className={`surge ${span(index)}`}>
             <ProjectCard
               project={item.project}
               href={item.href}
               note={item.note}
+              morph={item.morph}
               wide={wide}
               sizes={wide ? WIDE_SIZES : CARD_SIZES}
             />

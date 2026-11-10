@@ -44,6 +44,25 @@
   --elev-hang: drop-shadow(0 10px 10px rgb(42 33 24 / 0.22));
 
   --nav-h: 4rem;
+
+  /* Movimento: o guia completo está em docs/animacoes.md.
+     Durações da interface. Saídas rápidas, chegadas mais calmas. */
+  --dur-toque: 100ms; /* resposta ao clique */
+  --dur-rapida: 150ms; /* cor, saída de conteúdo */
+  --dur-base: 220ms; /* hover que mexe, entrada de conteúdo */
+  --dur-movimento: 400ms; /* troca de página, morph, revelação do tema */
+
+  /* Curvas. O Pequi pousa devagar, sai depressa e dá o bote com folga. */
+  --curva-pouso: cubic-bezier(0.22, 1, 0.36, 1); /* desacelera: entradas e hover */
+  --curva-saida: cubic-bezier(0.55, 0, 1, 0.45); /* acelera: o que vai embora */
+  --curva-travessia: cubic-bezier(0.65, 0, 0.35, 1); /* algo que vai de um lugar a outro */
+  --curva-bote: cubic-bezier(0.34, 1.56, 0.64, 1); /* passa um tico e volta: botões */
+
+  /* Distâncias. Pouca coisa se mexe, e se mexe pouco. */
+  --sobe-card: -4px;
+  --sobe-botao: -2px;
+  --surge-dist: 16px; /* de onde o conteúdo sobe ao aparecer */
+  --desliza-pagina: 40px; /* troca de página com direção */
 }
 
 @media (min-width: 768px) {
@@ -104,6 +123,194 @@
 
   --shadow-soft: var(--elev-soft);
   --shadow-button: var(--elev-button);
+
+  /* Curvas como utilitários (ease-pouso, ease-saida...) e o padrão de todo
+     transition-*: quem só escreve transition-colors já sai no ritmo do site. */
+  --ease-pouso: var(--curva-pouso);
+  --ease-saida: var(--curva-saida);
+  --ease-travessia: var(--curva-travessia);
+  --ease-bote: var(--curva-bote);
+  --default-transition-duration: var(--dur-base);
+  --default-transition-timing-function: var(--curva-pouso);
+}
+
+/* ---------------------------------------------------------------------------
+   Padrões de movimento. Cada um tem um nome e um uso; componente novo escolhe
+   um destes em vez de inventar duração e curva. Ver docs/animacoes.md.
+--------------------------------------------------------------------------- */
+
+/* Card que leva a outra página: sobe um pouco sob o mouse. */
+@utility sobe {
+  transition: translate var(--dur-base) var(--curva-pouso);
+
+  @media (hover: hover) {
+    &:hover {
+      translate: 0 var(--sobe-card);
+    }
+  }
+}
+
+/* Botão: sobe com um bote sob o mouse e afunda no clique. */
+@utility aperta {
+  transition: translate var(--dur-base) var(--curva-bote);
+
+  @media (hover: hover) {
+    &:hover {
+      translate: 0 var(--sobe-botao);
+    }
+  }
+
+  &:active {
+    translate: 0 1px;
+    transition-duration: var(--dur-toque);
+  }
+}
+
+/* Link e item de lista: só a cor muda, rápido. */
+@utility tinge {
+  transition-property: color, background-color, border-color, text-decoration-color;
+  transition-duration: var(--dur-rapida);
+  transition-timing-function: var(--curva-pouso);
+}
+
+/* Bloco que aparece ao entrar na tela, preso à rolagem. Só em navegador que
+   tem animação por rolagem; nos outros o bloco já está lá, parado. */
+@utility surge {
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: surge linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
+  }
+}
+
+@keyframes surge {
+  from {
+    opacity: 0;
+    translate: 0 var(--surge-dist);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Transições entre páginas (View Transitions). Os nomes das classes vêm do
+   PageTransition (src/components/motion) e do morph das capas.
+--------------------------------------------------------------------------- */
+
+/* Cliques durante a transição chegam à página de verdade. */
+::view-transition {
+  pointer-events: none;
+}
+
+/* Troca sem direção (menu, voltar do navegador): sai rápido, entra subindo. */
+::view-transition-old(.troca) {
+  animation: var(--dur-rapida) var(--curva-saida) both vt-some;
+}
+
+::view-transition-new(.troca) {
+  animation:
+    var(--dur-base) var(--curva-pouso) var(--dur-rapida) both vt-aparece,
+    var(--dur-movimento) var(--curva-pouso) both vt-sobe;
+}
+
+/* Avança (entrar num projeto) e volta (voltar para a lista). */
+::view-transition-old(.avanca),
+::view-transition-old(.volta) {
+  animation:
+    var(--dur-rapida) var(--curva-saida) both vt-some,
+    var(--dur-movimento) var(--curva-travessia) both vt-desliza-sai;
+}
+
+::view-transition-new(.avanca),
+::view-transition-new(.volta) {
+  animation:
+    var(--dur-base) var(--curva-pouso) var(--dur-rapida) both vt-aparece,
+    var(--dur-movimento) var(--curva-travessia) both vt-desliza-entra;
+}
+
+::view-transition-old(.avanca),
+::view-transition-new(.volta) {
+  --desliza: calc(var(--desliza-pagina) * -1);
+}
+
+::view-transition-new(.avanca),
+::view-transition-old(.volta) {
+  --desliza: var(--desliza-pagina);
+}
+
+/* A mesma imagem em duas páginas: ela viaja de um lugar para o outro. */
+::view-transition-group(.morfa) {
+  animation-duration: var(--dur-movimento);
+  animation-timing-function: var(--curva-travessia);
+}
+
+::view-transition-image-pair(.morfa) {
+  animation-name: vt-desfoca;
+}
+
+/* Troca de tema: o tema novo se abre num círculo a partir do botão. */
+html[data-transicao="tema"]::view-transition-old(root) {
+  animation: none;
+}
+
+html[data-transicao="tema"]::view-transition-new(root) {
+  animation: var(--dur-movimento) var(--curva-travessia) both vt-tema;
+}
+
+@keyframes vt-some {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-aparece {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-sobe {
+  from {
+    translate: 0 var(--surge-dist);
+  }
+}
+
+@keyframes vt-desliza-sai {
+  to {
+    translate: var(--desliza) 0;
+  }
+}
+
+@keyframes vt-desliza-entra {
+  from {
+    translate: var(--desliza) 0;
+  }
+}
+
+@keyframes vt-desfoca {
+  30% {
+    filter: blur(3px);
+  }
+}
+
+@keyframes vt-tema {
+  from {
+    clip-path: circle(0 at var(--tema-x, 50%) var(--tema-y, 0));
+  }
+  to {
+    clip-path: circle(150vmax at var(--tema-x, 50%) var(--tema-y, 0));
+  }
+}
+
+/* Com menos movimento pedido, as páginas trocam na hora. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-image-pair(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }
 
 @layer base {

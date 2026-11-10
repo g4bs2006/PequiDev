@@ -20,7 +20,7 @@ export function ProjectsNavMobile({ guides, pathname }: ProjectsNavProps) {
         {projectsPageCopy.navLabel}
         <span
           aria-hidden="true"
-          className="font-mono text-xl leading-none transition-transform duration-200 group-open:rotate-45"
+          className="font-mono text-xl leading-none transition-transform ease-bote group-open:rotate-45"
         >
           +
         </span>

@@ -112,7 +112,7 @@ export function TableOfContents({ headings, label = "Neste post" }: TableOfConte
                 <a
                   href={`#${heading.id}`}
                   aria-current={current ? "location" : undefined}
-                  className={`block rounded-xl px-3 py-1.5 text-[0.9375rem] leading-snug text-pretty transition-colors duration-200 ${
+                  className={`block rounded-xl px-3 py-1.5 text-[0.9375rem] leading-snug text-pretty tinge ${
                     current
                       ? "bg-ink/10 font-bold text-ink"
                       : "text-ink-soft hover:bg-ink/5 hover:text-ink"

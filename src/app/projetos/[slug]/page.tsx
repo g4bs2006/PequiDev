@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { PageTransition } from "@/components/motion/PageTransition";
 import { getProject, getProjects, ProjectDetail, projectMetadata } from "@/modules/projects";
 
 /**
@@ -36,5 +37,9 @@ export default async function ProjetoPage({ params }: PageProps<"/projetos/[slug
 
   if (!project) notFound();
 
-  return <ProjectDetail project={project} />;
+  return (
+    <PageTransition>
+      <ProjectDetail project={project} />
+    </PageTransition>
+  );
 }
