@@ -36,7 +36,7 @@ function ProjectMedia({ project }: { project: Project }) {
   if (!video && !cover) return null;
 
   return (
-    <div className="mt-10 rounded-card bg-band p-3 sm:p-5 md:mt-12 md:p-8">
+    <div data-plataforma className="mt-10 rounded-card bg-band p-3 sm:p-5 md:mt-12 md:p-8">
       <Morph name={morphName.capaDoProjeto(project.slug)}>
         <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-surface shadow-soft">
           {video ? (
@@ -71,7 +71,7 @@ function ProjectFacts({ project }: { project: Project }) {
   const hasLinks = Boolean(repoUrl || liveUrl || videoLink);
 
   return (
-    <aside className="grid content-start gap-7 rounded-card bg-surface p-7 shadow-soft xl:sticky xl:top-8">
+    <aside data-plataforma className="grid content-start gap-7 rounded-card bg-surface p-7 shadow-soft xl:sticky xl:top-8">
       {stack.length > 0 ? (
         <div>
           <Label>{projectCopy.stack}</Label>
@@ -126,7 +126,7 @@ function TextSection({ id, title, children }: { id: string; title: string; child
 
   return (
     <section aria-labelledby={id}>
-      <h2 id={id} className="font-display text-3xl font-bold tracking-tight md:text-4xl">
+      <h2 id={id} data-plataforma className="font-display text-3xl font-bold tracking-tight md:text-4xl">
         {title}
       </h2>
       <div className="mt-5">
@@ -152,7 +152,7 @@ export function ProjectDetail({ project }: { project: Project }) {
             {category ? category.name : projectCopy.back}
           </Link>
         </p>
-        <h1 className="mt-3 font-display text-[clamp(2.75rem,8vw,5.5rem)] leading-[0.95] font-bold tracking-tighter text-balance">
+        <h1 data-plataforma className="mt-3 font-display text-[clamp(2.75rem,8vw,5.5rem)] leading-[0.95] font-bold tracking-tighter text-balance">
           {name}
         </h1>
         <p className="mt-5 max-w-3xl text-xl text-pretty text-ink-soft md:text-2xl">{summary}</p>

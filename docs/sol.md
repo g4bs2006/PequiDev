@@ -39,3 +39,7 @@ OPENAI_API_KEY=... node scripts/sol.mjs <tarefa.md> <pasta-de-rascunho> [arquivo
 | Sitemap, robots e feed RSS | `src/app/sitemap.ts`, `robots.ts`, `feed.xml/route.ts` e o feed anunciado no layout; entrou sem ajustes |
 | Interações do sonho e entrada pelo hero (etapas 2 e 3) | `engine.ts` evoluído, `DreamHost`, `DreamDock`, `DreamTrigger`, `TitleBand`; entrou com ajustes meus: chão pela borda de baixo no menu, ignorar links de âncora, reaparecer no alto, foco padrão no gatilho |
 | Motor do modo sonho (etapa 1) | `engine.ts`, `DreamMode.tsx` e `/brincar/sonho`; entrou com um ajuste (tirar um `<main>` aninhado) |
+
+Fora do Sol: a correção da queda sem fim do sonho na página de projeto mexeu em
+poucas linhas. Escrever a especificação daria mais trabalho que a correção,
+então foi feita direto (ver docs/modo-sonho.md).

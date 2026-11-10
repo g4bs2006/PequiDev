@@ -537,7 +537,11 @@ export function createDreamEngine(
       if (velocityY >= 0) {
         for (const platform of platforms) {
           if (platform.element === dropThrough || !overlaps(platform)) continue;
-          if (previousFeet <= platform.top + 0.5 && nextFeet >= platform.top) {
+          // O chão segura sempre, mesmo que ele já esteja abaixo: a página
+          // pode encolher (troca de página, conteúdo que some) e ele cairia
+          // para sempre fora do mundo.
+          const crossed = platform.ground || previousFeet <= platform.top + 0.5;
+          if (crossed && nextFeet >= platform.top) {
             if (!landing || platform.top < landing.top) landing = platform;
           }
         }
@@ -756,9 +760,11 @@ export function createDreamEngine(
     resetState();
     facing = 1;
     x = window.scrollX + window.innerWidth / 2 - CELL_W / 2;
-    // Reaparece no alto da tela e cai na primeira plataforma: na maioria das
-    // páginas, o menu, de onde ele desce para o conteúdo (S/↓).
-    y = window.scrollY + 8 - CELL_H;
+    // Reaparece no topo da página, não da tela, e cai no menu, de onde desce
+    // para o conteúdo (S/↓). Na troca de página a rolagem ainda pode ser a da
+    // página anterior: contar com ela fazia ele nascer abaixo do menu e cair
+    // pela página inteira. A câmera vai até ele.
+    y = 8 - CELL_H;
   }
 
   function start(origem?: DreamOrigin | null) {

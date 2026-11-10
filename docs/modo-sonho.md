@@ -200,7 +200,31 @@ com o `DreamTrigger`, que manda junto o ponto onde o Pequi aparece.
 - **Leitor de tela:** anúncio ao ligar e desligar, e a dica de abrir num
   `aria-live`. O foco vai para "Sair do sonho" e volta para onde estava.
 
+## Correção: a queda sem fim na página de projeto
+
+Ao abrir um projeto pelo sonho, o Pequi às vezes passava direto pelo menu e
+caía pela página inteira. Era assim que acontecia:
+
+- **Por quê:** ao trocar de página, ele reaparecia contando a partir da
+  rolagem da tela. Nesse momento a rolagem ainda podia ser a da página
+  anterior, então ele nascia abaixo do menu. A página de projeto não tinha
+  nenhuma plataforma, e ele caía uns 4.000 px até o rodapé.
+- **Correção no motor:** ele reaparece no topo da página, não da tela, e
+  sempre cai no menu. O chão agora segura o gato mesmo que ele já esteja
+  abaixo dele, caso a página encolha.
+- **Plataformas na página de projeto:** o título, a faixa da demo, os
+  títulos das seções e a ficha lateral (`ProjectDetail.tsx`). Com S/↓ ele
+  desce do menu para o título.
+- **Como foi testado:** em navegador sem janela (Playwright), achando o gato
+  pelos pixels do canvas. A navegação foi feita pelo `router.push` com
+  `transitionTypes`, o mesmo caminho do Enter. O defeito apareceu em produção
+  e não aparece mais no build local.
+
+Na mesma rodada, o Gabriel avaliou o controle: andar, pulo e câmera estão
+bons, e as constantes não mudaram. Os botões de toque do celular estão ruins
+e ficam para a próxima.
+
 ## O que ainda dá para fazer
 
-- Afinar o controle jogando (constantes no topo do `engine.ts`).
+- Melhorar os botões de toque no celular (o Gabriel achou ruins; falta saber o que incomoda).
 - Mais alvos de patada e mais coisas para abrir.
