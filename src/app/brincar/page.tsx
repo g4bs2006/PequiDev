@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SpritePreview } from "@/modules/pequi";
 
 export const metadata: Metadata = {
@@ -24,6 +25,14 @@ export default function BrincarPage() {
         </h1>
         <p className="mt-3 max-w-xl text-lg text-pretty text-ink-soft">
           Prévia das animações do modo sonho. Ainda não dá para jogar.
+        </p>
+        <p className="mt-3 text-lg">
+          <Link
+            href="/brincar/leitura"
+            className="font-medium underline decoration-accent decoration-2 underline-offset-4 hover:decoration-4"
+          >
+            Ver o Pequi acompanhando a leitura de um post
+          </Link>
         </p>
       </header>
       <SpritePreview />

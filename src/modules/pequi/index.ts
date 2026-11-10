@@ -2,6 +2,7 @@ import geometry from "./data/dormindo.json";
 
 export { SleepingPequi } from "./components/SleepingPequi";
 export { SpritePreview } from "./components/SpritePreview";
+export { TocCompanion } from "./components/TocCompanion";
 
 /** Medidas do Pequi dormindo, em frações da largura dele. */
 export const sleepingPequi = {

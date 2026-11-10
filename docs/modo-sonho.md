@@ -110,6 +110,42 @@ python scripts/montar-sprite.py
    `montar-sprite.py`, e rode o script.
 4. Dê um nome legível para ela em `LABELS`, no `SpritePreview.tsx`.
 
+## Fora do sonho: o Pequi no índice do post
+
+O sprite também aparece sem o modo sonho, na página de post. Ele mora numa
+margem à esquerda do índice lateral, que existe só para ele, e por isso nunca
+fica por cima de texto. Prévia em `/brincar/leitura`, com um post de exemplo.
+
+| Situação | O que ele faz |
+| --- | --- |
+| A página carrega | Aparece parado ao lado da seção que está na tela |
+| A leitura passa para outra seção | Pula até o item dela no índice (agacha, voa num arco, aterrissa) |
+| A seção muda de novo no meio do pulo | Termina o pulo e emenda outro até o item novo |
+| Ninguém rola a página por 30 segundos | Deita e dorme, respirando |
+| Alguém rola enquanto ele dorme | Levanta e, se a seção mudou, pula até ela |
+| `prefers-reduced-motion` | Fica num quadro parado e troca de lugar sem pular |
+
+A seção atual é a do último título que passou de 25% da altura da tela; no fim
+da página é sempre a última.
+
+| Arquivo | O que é |
+| --- | --- |
+| `src/modules/pequi/components/TocCompanion.tsx` | O Pequi: posição, pulo, sono. Recebe só a altura do chão e um sinal de rolagem |
+| `src/modules/blog/components/TableOfContents.tsx` | O índice: marca a seção atual e diz ao Pequi onde é o chão |
+| `src/modules/blog/components/PostLayout.tsx` | A moldura do post: texto à esquerda, índice fixo à direita |
+| `src/modules/blog/components/ReadingPreview.tsx` | O post de exemplo da prévia |
+
+Os tempos (30 s para dormir, ritmo da respiração, altura e duração do pulo)
+são constantes no topo do `TocCompanion.tsx`.
+
+Ainda falta:
+
+- **Celular:** abaixo de 1024 px o índice some, e o Pequi junto. A ideia é ele
+  andar numa barra de progresso de leitura no rodapé.
+- **Página de post de verdade:** `/blog/[slug]` precisa tirar os títulos do
+  Markdown (com ids) para montar o índice. A `PostLayout` já está pronta para isso.
+- **Patada no botão de copiar** dos blocos de código e o **meme no fim do post**.
+
 ## Próximo passo: o motor (etapa 1)
 
 O que a etapa 1 precisa entregar, em `/brincar`:

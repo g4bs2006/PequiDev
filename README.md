@@ -38,7 +38,7 @@ src/
     hero/              Primeira tela da home (textos em content.ts)
     pequi/             O mascote: componentes, medidas dos recortes e o sprite em pixel art
     home/              Seções da home: Projetos, Últimos posts e O humano por trás (textos e marcadores em content.ts)
-    blog/              Posts: tipos, consultas e a linha de post
+    blog/              Posts: tipos, consultas, a linha de post e a moldura do post com o índice lateral
     projects/          Projetos e categorias: tipos, consultas e o card de projeto
   lib/                 Fontes, dados do site, datas, tema e cliente do Supabase
 supabase/migrations/   Histórico do banco: tabelas e regras de acesso
@@ -98,5 +98,7 @@ O Pequi em pixel art que vai andar e pular por cima do site. Por enquanto só o 
 ```bash
 python scripts/montar-sprite.py
 ```
+
+O mesmo sprite já acompanha a leitura no índice lateral do post: o Pequi pula até a seção que está na tela e dorme se ninguém rolar a página. A prévia fica em `/brincar/leitura`.
 
 O plano, as decisões, o estado de cada etapa e como gerar ou adicionar animações estão em [docs/modo-sonho.md](docs/modo-sonho.md).

@@ -16,6 +16,15 @@ export type PostSummary = {
   tags: Tag[];
 };
 
+/** Um título do post, como aparece no índice lateral. */
+export type PostHeading = {
+  /** Id do título na página, para o índice apontar com #id. */
+  id: string;
+  text: string;
+  /** 2 para seção, 3 para subseção. */
+  level: number;
+};
+
 /** O post inteiro, para a página dele. */
 export type Post = PostSummary & {
   /** Texto em Markdown. */
