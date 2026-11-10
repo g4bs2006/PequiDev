@@ -20,10 +20,10 @@ export const site = {
     name: "Gabriel",
     github: "https://github.com/g4bs2006",
   },
-  /** Blog e Sobre ainda são seções da home. O Blog ganha página própria na fase 2. */
+  /** Projetos e Blog têm página própria; Sobre é a última seção da home. */
   nav: [
     { label: "Projetos", href: "/projetos" },
-    { label: "Blog", href: "/#blog" },
+    { label: "Blog", href: "/blog" },
     { label: "Sobre", href: "/#sobre" },
   ],
 } as const;

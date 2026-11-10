@@ -265,6 +265,11 @@ function createCompanion({ box, cat, balloon }: Partes) {
     themeChanged() {
       if (mode === "em-pe" || mode === "sentado") swat("tema");
     },
+    /** Alguém copiou código: ele aprova (ou dá um conselho). */
+    codeCopied() {
+      if (mode === "em-pe" || mode === "sentado") swat("copiou");
+      else if (mode !== "fora" && mode !== "andando") speak("copiou");
+    },
     destroy() {
       walk?.cancel();
       clearRoutine();
@@ -383,6 +388,7 @@ export function PequiCompanion() {
 
     const stopListening = ouvir((aviso) => {
       if (aviso.tipo === "tema") instance.themeChanged();
+      if (aviso.tipo === "codigo-copiado") instance.codeCopied();
     });
 
     return () => {

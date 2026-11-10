@@ -9,6 +9,8 @@
 export type AvisoDoSite = {
   /** O tema acabou de trocar. */
   tema: { tema: "light" | "dark" };
+  /** Alguém copiou um bloco de código de um post. */
+  "codigo-copiado": { linguagem: string | null };
 };
 
 export type TipoDeAviso = keyof AvisoDoSite;

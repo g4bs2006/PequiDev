@@ -36,6 +36,22 @@
   --code-str: #b5d98a;
   --code-name: var(--ceu);
 
+  /* Cores do código dos posts (Shiki com tema de variáveis): os tokens acima. */
+  --shiki-foreground: var(--code-ink);
+  --shiki-background: var(--code-bg);
+  --shiki-token-keyword: var(--code-key);
+  --shiki-token-string: var(--code-str);
+  --shiki-token-string-expression: var(--code-str);
+  --shiki-token-function: var(--code-name);
+  --shiki-token-constant: var(--code-name);
+  --shiki-token-link: var(--code-name);
+  --shiki-token-comment: var(--code-dim);
+  --shiki-token-punctuation: var(--code-dim);
+  --shiki-token-parameter: var(--code-ink);
+  --shiki-token-inserted: var(--code-str);
+  --shiki-token-deleted: var(--focinho);
+  --shiki-token-changed: var(--code-key);
+
   /* Sombras largas e suaves, puxadas para o marrom da Tinta. */
   --elev-soft: 0 2px 6px rgb(92 74 54 / 0.08), 0 24px 48px -18px rgb(92 74 54 / 0.3);
   --elev-button:

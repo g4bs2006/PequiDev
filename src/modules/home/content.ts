@@ -30,6 +30,7 @@ export const postsCopy = {
   /** Quantos posts aparecem na home. */
   limit: 3,
   empty: "Nenhum post publicado ainda. Quando o primeiro sair, ele aparece aqui.",
+  seeAll: "Ver todos os posts",
 };
 
 export const aboutCopy = {

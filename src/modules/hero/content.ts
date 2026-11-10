@@ -4,7 +4,7 @@ export const heroCopy = {
   subtitle:
     "Projetos, estudos e rotina de um dev em formação. O Pequi supervisiona, quando acorda.",
   primaryAction: { label: "Ver projetos", href: "/#projetos" },
-  secondaryAction: { label: "Ler o blog", href: "/#blog" },
+  secondaryAction: { label: "Ler o blog", href: "/blog" },
   scrollHint: { label: "Rolar para os projetos", href: "/#projetos" },
 };
 

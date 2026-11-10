@@ -1,3 +1,5 @@
+import { ButtonLink } from "@/components/atoms/ButtonLink";
+import { navegacao } from "@/components/motion/navegacao";
 import { getPosts } from "@/modules/blog";
 
 import { postsCopy } from "../content";
@@ -22,6 +24,13 @@ export async function LatestPosts() {
           <p className="border-y border-ink/15 py-10 text-lg text-ink-soft">{postsCopy.empty}</p>
         )}
       </div>
+      {posts.length > 0 ? (
+        <div className="mt-10">
+          <ButtonLink href="/blog" variant="soft" transitionTypes={navegacao.avanca}>
+            {postsCopy.seeAll}
+          </ButtonLink>
+        </div>
+      ) : null}
     </section>
   );
 }

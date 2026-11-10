@@ -9,12 +9,21 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@shikijs/rehype": "^4.6.0",
     "@supabase/supabase-js": "^2.119.0",
+    "github-slugger": "^2.0.0",
+    "hast-util-to-string": "^3.0.1",
+    "mdast-util-to-string": "^4.0.0",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1"
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "shiki": "^4.6.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.2.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",

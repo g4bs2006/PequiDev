@@ -39,14 +39,14 @@ src/
     hero/              Primeira tela da home (textos em content.ts)
     pequi/             O personagem: o Pequi do canto, o do índice, o dormindo do hero e o sprite (guia em docs/pequi.md)
     home/              Seções da home: Projetos, Últimos posts e O humano por trás (textos e marcadores em content.ts)
-    blog/              Posts: tipos, consultas, a linha de post e a moldura do post com o índice lateral
+    blog/              Posts: /blog, a página de cada post (Markdown, código colorido, índice com o Pequi) e as consultas
     projects/          Projetos e guias: consultas, card, barra lateral de /projetos e a página de cada projeto
   lib/                 Fontes, dados do site, datas, tema e cliente do Supabase
 supabase/migrations/   Histórico do banco: tabelas e regras de acesso
 public/pequi/          Recortes do Pequi e a folha de sprites, já prontos para a web
 referencias/           Imagens originais do Pequi e as fontes do sprite (sprite-ia/)
 scripts/               Scripts que geram os recortes, o sprite e a imagem de compartilhamento
-docs/                  Guias e planos: o Pequi, animações, modo sonho
+docs/                  Guias e planos: o Pequi, animações, como escrever um post, modo sonho
 ```
 
 Regras da casa:
@@ -63,7 +63,7 @@ O conteúdo mora em cinco tabelas no Supabase:
 
 | Tabela               | O que guarda                                              |
 | -------------------- | --------------------------------------------------------- |
-| `posts`              | Posts do blog, em Markdown                                |
+| `posts`              | Posts do blog, em Markdown (como escrever: docs/blog.md)  |
 | `tags`               | Tags dos posts                                            |
 | `post_tags`          | Quais tags cada post tem                                  |
 | `projects`           | Projetos do portfólio                                     |

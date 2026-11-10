@@ -14,6 +14,8 @@ export const falas = {
   acordou: ["hm?", "eu não tava dormindo", "oi", "já acordei"],
   /** Enquanto dorme. */
   dormindo: ["zzz"],
+  /** Quando alguém copia um bloco de código de um post. */
+  copiou: ["ctrl+c aprovado", "pode levar", "testa antes, hein", "copiado"],
 } satisfies Record<string, string[]>;
 
 export type Situacao = keyof typeof falas;
