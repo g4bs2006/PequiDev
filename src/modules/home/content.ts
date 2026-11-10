@@ -36,15 +36,33 @@ export const postsCopy = {
 export const aboutCopy = {
   title: "O humano por trás",
   intro:
-    "O Gabriel estuda Engenharia de Computação na UFG e trabalha com agentes de IA. O PequiDev é onde ele publica o que constrói e o que aprende no caminho.",
+    "O Gabriel estuda Engenharia de Computação na UFG e trabalha com inteligência artificial e desenvolvimento fullstack. O PequiDev é onde ele publica o que constrói e o que aprende no caminho.",
   trajectoryPlaceholder: "[TRAJETÓRIA: como o Gabriel chegou até aqui, em poucas linhas.]",
   facts: [
     { label: "Curso", value: "Engenharia de Computação" },
     { label: "Universidade", value: "UFG" },
-    { label: "Foco", value: "Agentes de IA" },
+    { label: "Foco", value: "Inteligência artificial e desenvolvimento fullstack" },
   ],
   technologiesLabel: "Tecnologias",
-  technologies: ["[TECNOLOGIA]", "[TECNOLOGIA]", "[TECNOLOGIA]"],
+  /** As stacks dos repositórios do portfólio (CRM, Mensageria, Lembretes, Aniversariantes). */
+  technologies: [
+    "TypeScript",
+    "Next.js",
+    "React",
+    "Tailwind CSS",
+    "TanStack Query",
+    "Hono",
+    "Zod",
+    "OpenAPI",
+    "PostgreSQL",
+    "Drizzle",
+    "Supabase",
+    "pg-boss",
+    "Vitest",
+    "GitHub Actions",
+    "Docker",
+    "nginx",
+  ],
   contactLabel: "Contato",
   githubLabel: "GitHub do Gabriel",
 };

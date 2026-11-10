@@ -27,7 +27,7 @@ export const heroCode: { fileName: string; language: string; lines: CodeLine[] }
     { tokens: [["class", "key"], " ", ["Gabriel", "name"], "(", ["Dev", "name"], "):"] },
     { tokens: ["    curso = ", ['"Engenharia de Computação"', "str"]] },
     { tokens: ["    onde = ", ['"UFG"', "str"]] },
-    { tokens: ["    foco = ", ['"agentes de IA"', "str"]] },
+    { tokens: ["    foco = ", ['"IA e fullstack"', "str"]] },
     { tokens: [], desktopOnly: true },
     {
       tokens: ["    ", ["def", "key"], " ", ["rotina", "name"], "(self):"],
