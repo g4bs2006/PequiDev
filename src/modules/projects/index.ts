@@ -1,3 +1,4 @@
+export { ProjectCard } from "./components/ProjectCard";
 export {
   getFeaturedProjects,
   getProject,

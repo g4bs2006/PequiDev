@@ -31,16 +31,16 @@ Arquitetura por módulo, com os componentes compartilhados em atomic design.
 src/
   app/                 Rotas, layout, estilos globais, ícone e imagem de compartilhamento
   components/
-    atoms/             Peças mínimas: botão, tag, ícones
+    atoms/             Peças mínimas: botão, tag, etiqueta de tecnologia, ícones
     molecules/         Combinações pequenas: link do menu, botão de tema
     organisms/         Blocos do site inteiro: menu e rodapé
   modules/
     hero/              Primeira tela da home (textos em content.ts)
     pequi/             O mascote: componentes e medidas dos recortes
-    home/              Seções da home
-    blog/              Posts: tipos e consultas
-    projects/          Projetos e categorias: tipos e consultas
-  lib/                 Fontes, dados do site, tema e cliente do Supabase
+    home/              Seções da home: Projetos, Últimos posts e O humano por trás (textos e marcadores em content.ts)
+    blog/              Posts: tipos, consultas e a linha de post
+    projects/          Projetos e categorias: tipos, consultas e o card de projeto
+  lib/                 Fontes, dados do site, datas, tema e cliente do Supabase
 supabase/migrations/   Histórico do banco: tabelas e regras de acesso
 public/pequi/          Recortes do Pequi já prontos para a web
 referencias/           Imagens originais do Pequi

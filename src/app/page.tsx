@@ -1,11 +1,13 @@
 import { Hero } from "@/modules/hero";
-import { ComingSoon } from "@/modules/home";
+import { About, FeaturedProjects, LatestPosts } from "@/modules/home";
 
 export default function HomePage() {
   return (
     <>
       <Hero />
-      <ComingSoon />
+      <FeaturedProjects />
+      <LatestPosts />
+      <About />
     </>
   );
 }
