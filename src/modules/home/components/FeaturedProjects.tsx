@@ -1,3 +1,4 @@
+import { ButtonLink } from "@/components/atoms/ButtonLink";
 import { Tag } from "@/components/atoms/Tag";
 import { getFeaturedProjects } from "@/modules/projects";
 
@@ -34,6 +35,13 @@ export async function FeaturedProjects() {
       <div className="mt-10 md:mt-12">
         <ProjectShowcase items={items} />
       </div>
+      {hasProjects ? (
+        <div className="mt-10">
+          <ButtonLink href="/projetos" variant="soft">
+            {projectsCopy.seeAll}
+          </ButtonLink>
+        </div>
+      ) : null}
     </section>
   );
 }

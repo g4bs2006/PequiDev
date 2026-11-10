@@ -23,12 +23,33 @@ export type ProjectSummary = {
   featured: boolean;
 };
 
+/** Uma tela do projeto, com a legenda que aparece embaixo. */
+export type ProjectScreenshot = {
+  url: string;
+  alt: string;
+  caption: string;
+};
+
+/**
+ * Guia de /projetos já com os projetos dela. As subguias vêm em `children`.
+ * Guia sem nenhum projeto publicado não aparece.
+ */
+export type ProjectGuide = {
+  slug: string;
+  name: string;
+  projects: ProjectSummary[];
+  children: ProjectGuide[];
+};
+
 /** O projeto inteiro, para a página dele. */
 export type Project = ProjectSummary & {
   /** O problema que o projeto resolve, em Markdown. */
   problem: string;
   /** O resultado alcançado, em Markdown. */
   result: string;
+  /** Como foi construído, em Markdown. */
+  approach: string;
+  screenshots: ProjectScreenshot[];
   repoUrl: string | null;
   liveUrl: string | null;
   updatedAt: string;
