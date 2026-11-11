@@ -1,4 +1,12 @@
 import {
+  createYarn,
+  repositionWorldObject,
+  YARN_SIZE,
+  type WorldColors,
+  type WorldObject,
+  type WorldView,
+} from "./objetos";
+import {
   animation,
   CELL_H,
   CELL_W,
@@ -14,6 +22,7 @@ const BODY_LEFT = 15;
 const BODY_RIGHT = 75;
 const PAW_REACH = 28;
 const PAW_HIT_FRAME = 2;
+const OBJECT_EXTRA_REACH = 32;
 // Títulos e parágrafos ocupam a largura toda; o limite de altura é que
 // segura as seções inteiras. Quanto mais largo, menos ele tomba.
 const KNOCK_MAX_WIDTH = 1_400;
@@ -84,6 +93,7 @@ const CONTROL_CODES = new Set([
   "KeyX",
   "KeyJ",
   "KeyL",
+  "KeyN",
   "Space",
   "Enter",
   "Escape",
@@ -142,6 +152,7 @@ export type DreamEngine = {
   start: (origem?: DreamOrigin | null) => void;
   stop: () => void;
   respawn: () => void;
+  dropYarn: () => void;
   setAction: (action: DreamAction, pressed: boolean) => void;
   setLaser: (ativo: boolean) => void;
 };
@@ -172,6 +183,7 @@ export function createDreamEngine(
   const sprite = new Image();
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const knockedThings = new WeakSet<Element>();
+  const objects: WorldObject[] = [];
 
   let reducedMotion = motion.matches;
   let active = false;
@@ -208,6 +220,7 @@ export function createDreamEngine(
   let currentHint: string | null = null;
   let zColor = "";
   let laserColor = "";
+  let worldColors: WorldColors = { yarn: "", yarnLine: "" };
   let movementDuration = KNOCK_MOVEMENT_FALLBACK;
   let quickDuration = KNOCK_QUICK_FALLBACK;
   let exitCurve = KNOCK_EXIT_CURVE_FALLBACK;
@@ -270,6 +283,13 @@ export function createDreamEngine(
     };
   }
 
+  function isBeingKnocked(element: Element) {
+    for (let current: Element | null = element; current; current = current.parentElement) {
+      if (knockedThings.has(current)) return true;
+    }
+    return false;
+  }
+
   function readPlatforms() {
     const size = pageSize();
     worldWidth = size.width;
@@ -278,6 +298,13 @@ export function createDreamEngine(
     const found = Array.from(
       document.querySelectorAll<HTMLElement>("[data-plataforma]"),
     ).flatMap((element): Platform[] => {
+      // Tombando pela patada, a caixa medida gira e sobe: fica valendo a de
+      // antes da queda, senão o gato e o novelo atravessam a plataforma.
+      if (isBeingKnocked(element)) {
+        const before = platforms.find((platform) => platform.element === element);
+        if (before) return [before];
+      }
+
       const rect = element.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return [];
 
@@ -315,6 +342,14 @@ export function createDreamEngine(
     laserColor =
       tokens.getPropertyValue("--sonho-laser").trim() ||
       tokens.getPropertyValue("--focinho").trim();
+    worldColors = {
+      yarn:
+        tokens.getPropertyValue("--sonho-novelo").trim() ||
+        tokens.getPropertyValue("--focinho").trim(),
+      yarnLine:
+        tokens.getPropertyValue("--sonho-novelo-linha").trim() ||
+        tokens.getPropertyValue("--ink").trim(),
+    };
     movementDuration = durationToken(
       tokens.getPropertyValue("--dur-movimento"),
       KNOCK_MOVEMENT_FALLBACK,
@@ -385,7 +420,9 @@ export function createDreamEngine(
 
     const href = link.getAttribute("href")?.trim() ?? "";
     // Só páginas do site; âncoras (como a setinha "rolar" do hero) não contam.
-    if (!href.startsWith("/") || href.startsWith("//") || href.includes("#")) return null;
+    if (!href.startsWith("/") || href.startsWith("//") || href.includes("#")) {
+      return null;
+    }
 
     const heading = support.querySelector<HTMLElement>("h1, h2, h3");
     const name = shortText(heading?.textContent ?? link.textContent ?? "") || "link";
@@ -432,13 +469,46 @@ export function createDreamEngine(
     return parsed;
   }
 
-  function hitPawTarget() {
+  function pawReachBounds() {
     const bodyFront = facing > 0 ? x + BODY_RIGHT : x + BODY_LEFT;
-    const reachLeft = facing > 0 ? bodyFront : bodyFront - PAW_REACH;
-    const reachRight = facing > 0 ? bodyFront + PAW_REACH : bodyFront;
-    const reachTop = y + CELL_H / 2 - 10;
-    const reachBottom = y + CELL_H / 2 + 10;
 
+    return {
+      left: facing > 0 ? bodyFront : bodyFront - PAW_REACH,
+      right: facing > 0 ? bodyFront + PAW_REACH : bodyFront,
+      top: y + CELL_H / 2 - 10,
+      bottom: y + CELL_H / 2 + 10,
+    };
+  }
+
+  function hitWorldObject() {
+    // Objetos rolam no chão: a pata desce até os pés e vai mais longe.
+    const paw = pawReachBounds();
+    const reach = {
+      left: facing > 0 ? paw.left : paw.left - OBJECT_EXTRA_REACH,
+      right: facing > 0 ? paw.right + OBJECT_EXTRA_REACH : paw.right,
+      top: paw.top,
+      bottom: y + CELL_H + 2,
+    };
+
+    for (const object of objects) {
+      const bounds = object.bounds();
+      const touched =
+        bounds.right >= reach.left &&
+        bounds.left <= reach.right &&
+        bounds.bottom >= reach.top &&
+        bounds.top <= reach.bottom;
+
+      if (touched) {
+        object.kick(facing);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function hitPawTarget() {
+    const reach = pawReachBounds();
     const targets = document.querySelectorAll<HTMLElement>("[data-pequi-patada]");
 
     for (const target of targets) {
@@ -450,10 +520,10 @@ export function createDreamEngine(
       const top = rect.top + window.scrollY;
       const bottom = rect.bottom + window.scrollY;
       const reached =
-        right >= reachLeft &&
-        left <= reachRight &&
-        bottom >= reachTop &&
-        top <= reachBottom;
+        right >= reach.left &&
+        left <= reach.right &&
+        bottom >= reach.top &&
+        top <= reach.bottom;
 
       if (reached) {
         target.click();
@@ -647,6 +717,26 @@ export function createDreamEngine(
     options.onLaserChange(next);
   }
 
+  function dropYarn() {
+    if (!active) return;
+
+    const desiredX =
+      x + (BODY_LEFT + BODY_RIGHT) / 2 + facing * 120;
+    const maximumX = Math.max(0, worldWidth - YARN_SIZE);
+    const yarnX = Math.min(maximumX, Math.max(0, desiredX));
+    // Cai do céu perto dele: soltar do alto da tela fazia o novelo parar no
+    // menu, que é plataforma da largura toda.
+    const yarnY = Math.max(window.scrollY - YARN_SIZE, y - 140);
+    const yarn = objects.find((object) => object.kind === "novelo");
+
+    if (yarn) {
+      repositionWorldObject(yarn, yarnX, yarnY);
+      return;
+    }
+
+    objects.push(createYarn(yarnX, yarnY));
+  }
+
   function updateLaserPilot(
     currentPlatform: Platform | null,
     manualMovement: boolean,
@@ -747,6 +837,11 @@ export function createDreamEngine(
       return;
     }
 
+    if (event.code === "KeyN") {
+      if (!event.repeat) dropYarn();
+      return;
+    }
+
     if (!CONTROL_CODES.has(event.code)) return;
 
     const wasPressed = pressed.has(event.code);
@@ -802,6 +897,24 @@ export function createDreamEngine(
     lastTime = performance.now();
     readPlatforms();
     frameRequest = window.requestAnimationFrame(loop);
+  }
+
+  function worldView(): WorldView {
+    return {
+      platforms,
+      worldWidth,
+      gravity: GRAVITY,
+      maxFallSpeed: MAX_FALL_SPEED,
+      cat: {
+        left: x + BODY_LEFT,
+        right: x + BODY_RIGHT,
+        top: y,
+        bottom: y + CELL_H,
+        velocityX,
+        facing,
+        grounded: support !== null,
+      },
+    };
   }
 
   function updatePhysics(delta: number) {
@@ -932,10 +1045,17 @@ export function createDreamEngine(
       else y = nextY;
     }
 
+    const view = worldView();
+    for (const object of objects) object.update(delta, view);
+
     if (pawTime !== null) {
       pawTime += delta;
       const meta = animation("patada");
       const frame = Math.min(meta.quadros - 1, Math.floor(pawTime * meta.fps));
+
+      // Objetos fogem rolando: o chute sai já no começo da patada, senão o
+      // novelo empurrado está longe quando a pata chega.
+      if (!pawHit && hitWorldObject()) pawHit = true;
 
       if (!pawHit && frame >= PAW_HIT_FRAME) {
         pawHit = true;
@@ -1123,6 +1243,10 @@ export function createDreamEngine(
     context.clearRect(0, 0, window.innerWidth, window.innerHeight);
     context.imageSmoothingEnabled = false;
 
+    for (const object of objects) {
+      object.render(context, window.scrollX, window.scrollY, worldColors);
+    }
+
     // A física pode começar antes da imagem; só o desenho do gato espera.
     if (sprite.complete && sprite.naturalWidth > 0) {
       const current = visual();
@@ -1217,6 +1341,7 @@ export function createDreamEngine(
   function respawn() {
     if (!active) return;
 
+    objects.length = 0;
     readPlatforms();
     resetState();
     laserTarget = null;
@@ -1299,6 +1424,7 @@ export function createDreamEngine(
 
     setLaser(false);
     laserTarget = null;
+    objects.length = 0;
     started = false;
     active = false;
     paused = false;
@@ -1318,5 +1444,5 @@ export function createDreamEngine(
     if (context) context.clearRect(0, 0, window.innerWidth, window.innerHeight);
   }
 
-  return { start, stop, respawn, setAction, setLaser };
+  return { start, stop, respawn, dropYarn, setAction, setLaser };
 }

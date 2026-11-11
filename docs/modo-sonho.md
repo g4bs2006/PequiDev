@@ -237,7 +237,7 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
 | 1 | Céu do sonho | Ao entrar, o fundo vira fim de tarde (tema claro) ou noite estrelada (escuro); "z" sobem quando ele dorme | — | **Feita** |
 | 2 | Ponteiro laser | Botão liga um pontinho vermelho que segue o cursor (ou o toque) e o Pequi corre e pula atrás sozinho | — | **Feita** (rascunho do Sol) |
 | 3 | Patada que derruba | A patada entorta e derruba um pouco títulos, etiquetas e cards, que voltam devagar | — | **Feita** (rascunho do Sol) |
-| 4 | Objetos do mundo e novelo | O motor ganha objetos com física própria; o primeiro é um novelo que rola e que a patada empurra | — | A fazer |
+| 4 | Objetos do mundo e novelo | O motor ganha objetos com física própria; o primeiro é um novelo que rola e que a patada empurra | — | **Feita** (rascunho do Sol) |
 | 5 | Caixa de papelão | Uma caixa numa página; se ele entra, dorme na hora | 4 | A fazer |
 | 6 | Peixinhos escondidos | Um por página, com contador; pegar todos troca a cor do lenço | 4 | A fazer |
 | 7 | O Pequi comenta | Balão com um comentário curto ao pisar num projeto ou post, escrito pelo Gabriel no painel | coluna nova no banco | A fazer |
@@ -289,6 +289,27 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
   instante e volta com o bote (`--curva-bote`), em 3 × `--dur-movimento`. Quanto
   mais largo, menos tomba: uma etiqueta gira 15°, um título da largura da
   página uns 3°. Com menos movimento pedido, só treme.
+
+### 4. Objetos do mundo e o novelo
+
+- **Onde mora:** `src/modules/pequi/dream/objetos.ts`, sem React e sem DOM.
+  Cada objeto tem `bounds`, `update`, `kick` e `render`; o motor monta a cada
+  passo uma visão do mundo (`WorldView`: plataformas, largura, gravidade e o
+  corpo do gato) e só repassa. A caixa e os peixinhos vão entrar aqui.
+- **O novelo:** botão "Novelo" ou tecla N. Ele cai do céu 140 px acima e à
+  frente do gato (soltar do alto da tela fazia parar no menu); se já existe,
+  é recolocado. Tem gravidade, pousa só por cima, quica de leve, rola com
+  atrito, cai das beiras e bate nas bordas. Andar contra ele empurra; a patada
+  chuta para cima e para longe. Desenho em grade de 8×8 com pixels de 2 px, a
+  escala do sprite do gato, girando em quatro quadros. Cores por
+  `--sonho-novelo` e `--sonho-novelo-linha`.
+- **A patada nos objetos** vem antes de tudo e já no começo do golpe, com 32
+  px a mais de alcance e descendo até os pés. O novelo empurrado sai rolando,
+  e só no quadro do acerto ele já estaria longe.
+- **Plataforma tombando:** enquanto a patada derruba um elemento que é
+  plataforma, o motor usa a posição de antes da queda. A caixa girada sobe
+  dezenas de pixels, e o gato e o novelo atravessavam.
+- Troca de página e saída do sonho recolhem o novelo.
 
 ## O que ainda dá para fazer
 

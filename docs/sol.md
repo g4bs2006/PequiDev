@@ -36,6 +36,7 @@ OPENAI_API_KEY=... node scripts/sol.mjs <tarefa.md> <pasta-de-rascunho> [arquivo
 
 | Tarefa | Resultado |
 | --- | --- |
+| Objetos do mundo e novelo (brincadeira 4) | `dream/objetos.ts` (novo), `engine.ts` e `DreamHost.tsx`; entrou com ajustes meus: a patada desce até os pés, chuta já no começo e alcança mais longe, o novelo cai perto do gato, o desenho usa pixels de 2 px, e as plataformas tombando guardam a posição de antes |
 | Patada que derruba (brincadeira 3) | `engine.ts` (busca do alvo e animação); entrou com dois ajustes meus: `tagName` de SVG em minúsculas e giro proporcional à largura, para os títulos largos também tombarem |
 | Ponteiro laser do sonho (brincadeira 2) | `engine.ts` (alvo, piloto automático, desenho) e `DreamHost.tsx` (botão e anúncios); entrou com um ajuste meu: o botão mantém o nome "Laser" e mostra o estado com `aria-pressed` e um ponto visual |
 | Sitemap, robots e feed RSS | `src/app/sitemap.ts`, `robots.ts`, `feed.xml/route.ts` e o feed anunciado no layout; entrou sem ajustes |

@@ -121,6 +121,9 @@
   --sonho-z: var(--ink-soft);
   /* O pontinho do ponteiro laser, também lido pelo motor. */
   --sonho-laser: #e5262d;
+  /* O novelo de lã: a cor e a linha enrolada. */
+  --sonho-novelo: var(--focinho);
+  --sonho-novelo-linha: #a8414f;
 }
 
 [data-sonho][data-theme="dark"] {

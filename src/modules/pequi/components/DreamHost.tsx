@@ -170,7 +170,7 @@ export function DreamHost() {
       setLaser(false);
       setActive(true);
       setAnnouncement(
-        "Modo sonho ligado. Setas para andar, espaço para pular, X para patada, Enter para abrir, L para o laser, Esc para sair.",
+        "Modo sonho ligado. Setas para andar, espaço para pular, X para patada, Enter para abrir, L para o laser, N para soltar um novelo, Esc para sair.",
       );
     } catch {
       if (mountedRef.current) {
@@ -228,6 +228,10 @@ export function DreamHost() {
     engineRef.current?.setAction("abrir", false);
   }, []);
 
+  const dropYarn = useCallback(() => {
+    engineRef.current?.dropYarn();
+  }, []);
+
   const toggleLaser = useCallback(() => {
     engineRef.current?.setLaser(!laser);
   }, [laser]);
@@ -251,7 +255,7 @@ export function DreamHost() {
                 tela, fora da faixa onde a câmera mantém o gato. */}
             <p className="mb-3 max-w-2xl font-mono text-sm text-ink-soft [@media(hover:none)_and_(pointer:coarse)]:hidden">
               ← → ou A/D: andar · Espaço/W/↑: pular · X/J: patada · Enter:
-              abrir · S/↓: descer · L: laser
+              abrir · S/↓: descer · L: laser · N: novelo
             </p>
 
             <p
@@ -276,6 +280,14 @@ export function DreamHost() {
                   {touchOpenLabel(hint)}
                 </button>
               ) : null}
+
+              <button
+                type="button"
+                onClick={dropYarn}
+                className={panelButton}
+              >
+                Novelo
+              </button>
 
               <button
                 type="button"
