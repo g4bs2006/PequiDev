@@ -85,7 +85,8 @@ const pequi = "gato";
   capa.
 - **Dados estruturados:** `BlogPosting` em cada post e `WebSite`/`Person` na
   home, para o Google mostrar autor e data.
-- **Visitas:** Vercel Analytics e Speed Insights no layout, sem cookies.
+- **Visitas:** Vercel Analytics no layout, sem cookies (ligado no projeto da
+  Vercel). O Speed Insights pede plano pago e ficou de fora.
 
 ## Onde mora o código
 

@@ -1,5 +1,4 @@
 import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { Footer } from "@/components/organisms/Footer";
 import { Navbar } from "@/components/organisms/Navbar";
@@ -64,9 +63,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Footer />
         <PequiDock />
         <DreamDock />
-        {/* Visitas e desempenho real, pela Vercel, sem cookies. */}
+        {/* Visitas, pela Vercel, sem cookies. */}
         <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   );
