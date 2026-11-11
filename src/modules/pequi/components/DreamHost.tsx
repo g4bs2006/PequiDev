@@ -26,6 +26,7 @@ type EngineFactory = (
     onHint: (hint: string | null) => void;
     onLaserChange: (ativo: boolean) => void;
     onFish: (info: FishInfo) => void;
+    onSpeech: (text: string | null) => void;
   },
 ) => DreamEngine;
 
@@ -151,6 +152,11 @@ export function DreamHost() {
     );
   }, []);
 
+  // O balão é desenhado no canvas; o leitor de tela ouve o texto por aqui.
+  const updateSpeech = useCallback((text: string | null) => {
+    if (text) setAnnouncement(`O Pequi diz: ${text}`);
+  }, []);
+
   const updateFish = useCallback((info: FishInfo) => {
     setFish({ count: info.count, total: info.total, prize: info.prize });
 
@@ -218,6 +224,7 @@ export function DreamHost() {
       onHint: updateHint,
       onLaserChange: updateLaser,
       onFish: updateFish,
+      onSpeech: updateSpeech,
     });
 
     engineRef.current = engine;
@@ -231,7 +238,7 @@ export function DreamHost() {
       engine.stop();
       if (engineRef.current === engine) engineRef.current = null;
     };
-  }, [active, leave, open, updateFish, updateHint, updateLaser]);
+  }, [active, leave, open, updateFish, updateHint, updateLaser, updateSpeech]);
 
   useEffect(() => {
     const changed = previousPathRef.current !== pathname;

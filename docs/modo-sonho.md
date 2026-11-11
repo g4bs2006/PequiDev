@@ -240,7 +240,7 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
 | 4 | Objetos do mundo e novelo | O motor ganha objetos com física própria; o primeiro é um novelo que rola e que a patada empurra | — | **Feita** (rascunho do Sol) |
 | 5 | Caixa de papelão | Uma caixa no fim de cada página; se ele pula dentro, dorme na hora | 4 | **Feita** (rascunho do Sol) |
 | 6 | Peixinhos escondidos | Um por página, com contador; pegar todos troca a cor do lenço | 4 | **Feita** (rascunho do Sol) |
-| 7 | O Pequi comenta | Balão com um comentário curto ao pisar num projeto ou post, escrito pelo Gabriel no painel | coluna nova no banco | A fazer |
+| 7 | O Pequi comenta | Balão com um comentário curto ao pisar num projeto ou post, escrito pelo Gabriel no painel | coluna nova no banco | **Balão feito**; banco e painel esperam a migração |
 
 ### 1. Céu do sonho
 
@@ -351,6 +351,20 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
   `--sonho-peixe-escuro`) e balança 3 px, parado com menos movimento pedido.
 - Para zerar a coleção, apague a chave `pequidev:sonho:peixes` no
   armazenamento do navegador.
+
+### 7. O Pequi comenta
+
+- **No motor (feito):** se o gato pisa numa plataforma com
+  `data-pequi-comenta="…"`, aparece um balão em pixel sobre a cabeça dele, com
+  borda de 2 px e o texto na fonte do site, por 6 s. O leitor de tela ouve "O
+  Pequi diz: …". Para falar de novo, ele precisa sair do card e voltar. Cores
+  por `--surface` e `--ink`.
+- **Banco e painel (esperando):** a coluna `pequi_comentario` (até 140
+  caracteres) em `projects` e `posts`, um campo "Comentário do Pequi" nos
+  formulários do painel, e o atributo no card de projeto, no card de post e no
+  título da página de projeto. A migração está em
+  `supabase/migrations/20261111001500_comentario_do_pequi.sql`. Ela não foi
+  aplicada porque o MCP do Supabase recusou a permissão nesta sessão.
 
 ## O que ainda dá para fazer
 

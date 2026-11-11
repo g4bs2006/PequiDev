@@ -83,6 +83,15 @@ const Z_COUNT = 3;
 const Z_CYCLE = 2.4;
 const Z_RISE = 34;
 
+// Balão do comentário (data-pequi-comenta no card onde ele pisa).
+const SPEECH_TIME = 6;
+const SPEECH_FONT_SIZE = 13;
+const SPEECH_LINE_HEIGHT = 17;
+const SPEECH_MAX_WIDTH = 220;
+const SPEECH_PADDING = 8;
+const SPEECH_BORDER = 2;
+const SPEECH_TAIL = 6;
+
 const LASER_DOT_SIZE = 6;
 const LASER_HALO_SIZE = 14;
 const LASER_HALO_CYCLE = 0.8;
@@ -201,6 +210,8 @@ export function createDreamEngine(
     onHint: (hint: string | null) => void;
     onLaserChange: (ativo: boolean) => void;
     onFish: (info: FishInfo) => void;
+    /** O comentário que o Pequi acabou de dizer (ou null quando para). */
+    onSpeech: (text: string | null) => void;
   },
 ): DreamEngine {
   const context = canvas.getContext("2d");
@@ -255,6 +266,9 @@ export function createDreamEngine(
   let pawHit = false;
   let currentHint: string | null = null;
   let zColor = "";
+  // O comentário dito e o card de onde veio, para não repetir sem sair dele.
+  let speech: { text: string; source: HTMLElement; age: number } | null = null;
+  let speechColors = { fill: "", ink: "", font: "" };
   let laserColor = "";
   let worldColors: WorldColors = {
     yarn: "",
@@ -468,6 +482,13 @@ export function createDreamEngine(
       fishEye: tokens.getPropertyValue("--ink").trim(),
     };
 
+    speechColors = {
+      fill: tokens.getPropertyValue("--surface").trim(),
+      ink: tokens.getPropertyValue("--ink").trim(),
+      // A fonte do texto do site (a do <body>), com o tamanho do balão.
+      font: `600 ${SPEECH_FONT_SIZE}px ${window.getComputedStyle(document.body).fontFamily}`,
+    };
+
     const nextScarfLight =
       tokens.getPropertyValue("--sonho-lenco").trim() ||
       tokens.getPropertyValue("--focinho").trim();
@@ -664,6 +685,105 @@ export function createDreamEngine(
   function updateHint() {
     const target = openTarget();
     publishHint(target ? `Enter: abrir ${target.name}` : null);
+  }
+
+  /**
+   * Pisou num card com comentário: o Pequi fala uma vez, por alguns
+   * segundos. Para falar de novo, precisa sair do card e voltar.
+   */
+  function updateSpeech(delta: number) {
+    const source =
+      support instanceof HTMLElement && support.dataset.pequiComenta?.trim()
+        ? support
+        : null;
+
+    if (speech) {
+      speech.age += delta;
+      // Saiu do card: o balão some e o card pode falar de novo depois.
+      if (source !== speech.source) {
+        speech = null;
+        options.onSpeech(null);
+      }
+      return;
+    }
+
+    if (!source) return;
+    const text = source.dataset.pequiComenta?.trim() ?? "";
+    speech = { text, source, age: 0 };
+    options.onSpeech(text);
+  }
+
+  function wrapSpeech(text: string) {
+    if (!context) return [text];
+
+    const lines: string[] = [];
+    let line = "";
+    for (const word of text.split(/\s+/)) {
+      const next = line ? `${line} ${word}` : word;
+      if (line && context.measureText(next).width > SPEECH_MAX_WIDTH) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = next;
+      }
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  /** Balão em pixel: retângulo com borda de 2 px e um rabinho em degraus. */
+  function drawSpeech(screenX: number, screenY: number) {
+    if (!context || !speech || speech.age >= SPEECH_TIME) return;
+
+    context.save();
+    context.font = speechColors.font;
+    context.textBaseline = "top";
+
+    const lines = wrapSpeech(speech.text);
+    const textWidth = Math.max(...lines.map((line) => context.measureText(line).width));
+    const width = Math.ceil(textWidth) + SPEECH_PADDING * 2 + SPEECH_BORDER * 2;
+    const height = lines.length * SPEECH_LINE_HEIGHT + SPEECH_PADDING * 2 + SPEECH_BORDER * 2;
+
+    const catCenter = screenX + (BODY_LEFT + BODY_RIGHT) / 2;
+    const left = Math.round(
+      Math.min(window.innerWidth - width - 8, Math.max(8, catCenter - width / 2)),
+    );
+    const top = Math.round(screenY - height - SPEECH_TAIL - 2);
+
+    // Some de leve no último meio segundo (sem esmaecer com menos movimento).
+    const remaining = SPEECH_TIME - speech.age;
+    context.globalAlpha = reducedMotion ? 1 : Math.min(1, remaining / 0.5);
+
+    context.fillStyle = speechColors.ink;
+    context.fillRect(left, top, width, height);
+    context.fillStyle = speechColors.fill;
+    context.fillRect(
+      left + SPEECH_BORDER,
+      top + SPEECH_BORDER,
+      width - SPEECH_BORDER * 2,
+      height - SPEECH_BORDER * 2,
+    );
+
+    // O rabinho aponta para a cabeça do gato, preso dentro do balão.
+    const tailX = Math.round(Math.min(left + width - 16, Math.max(left + 10, catCenter - 3)));
+    for (let step = 0; step < SPEECH_TAIL / 2; step += 1) {
+      const tailWidth = SPEECH_TAIL - step * 2;
+      context.fillStyle = speechColors.ink;
+      context.fillRect(tailX + step, top + height + step * 2, tailWidth + 2, 2);
+      context.fillStyle = speechColors.fill;
+      if (tailWidth > 2) context.fillRect(tailX + step + 2, top + height - 2 + step * 2, tailWidth - 2, 2);
+    }
+
+    context.fillStyle = speechColors.ink;
+    lines.forEach((line, index) => {
+      context.fillText(
+        line,
+        left + SPEECH_BORDER + SPEECH_PADDING,
+        top + SPEECH_BORDER + SPEECH_PADDING + index * SPEECH_LINE_HEIGHT,
+      );
+    });
+
+    context.restore();
   }
 
   function tryOpen() {
@@ -1360,6 +1480,7 @@ export function createDreamEngine(
     }
 
     updateHint();
+    updateSpeech(delta);
   }
 
   function visual(): Visual {
@@ -1599,6 +1720,8 @@ export function createDreamEngine(
       );
     }
 
+    drawSpeech(x - window.scrollX, y - window.scrollY);
+
     // A luz fica sobre o gato, como o cursor que ela substitui.
     if (laserActive && laserTarget) drawLaser();
   }
@@ -1651,6 +1774,8 @@ export function createDreamEngine(
     laserLastPaw = null;
     clearInput();
     publishHint(null);
+    if (speech) options.onSpeech(null);
+    speech = null;
   }
 
   function respawn() {
@@ -1756,6 +1881,8 @@ export function createDreamEngine(
     window.clearInterval(refreshTimer);
     clearInput();
     publishHint(null);
+    if (speech) options.onSpeech(null);
+    speech = null;
 
     window.removeEventListener("keydown", onKeyDown, true);
     window.removeEventListener("keyup", onKeyUp, true);
