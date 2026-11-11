@@ -15,6 +15,7 @@ import type {
   DreamAction,
   DreamEngine,
   DreamOrigin,
+  FishInfo,
 } from "../dream/engine";
 
 type EngineFactory = (
@@ -24,8 +25,11 @@ type EngineFactory = (
     onOpen: (href: string) => void;
     onHint: (hint: string | null) => void;
     onLaserChange: (ativo: boolean) => void;
+    onFish: (info: FishInfo) => void;
   },
 ) => DreamEngine;
+
+type FishState = Pick<FishInfo, "count" | "total" | "prize">;
 
 const primaryButton =
   "aperta inline-flex h-12 items-center justify-center rounded-full bg-accent px-6 font-display font-bold text-on-accent shadow-button";
@@ -84,6 +88,7 @@ export function DreamHost() {
   const [active, setActive] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const [laser, setLaser] = useState(false);
+  const [fish, setFish] = useState<FishState | null>(null);
   const [announcement, setAnnouncement] = useState("");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -115,6 +120,7 @@ export function DreamHost() {
     setActive(false);
     setHint(null);
     setLaser(false);
+    setFish(null);
     setAnnouncement("Modo sonho desligado.");
 
     const previousFocus = previousFocusRef.current;
@@ -145,12 +151,25 @@ export function DreamHost() {
     );
   }, []);
 
+  const updateFish = useCallback((info: FishInfo) => {
+    setFish({ count: info.count, total: info.total, prize: info.prize });
+
+    if (!info.justCaught) return;
+    setAnnouncement(
+      info.prize
+        ? "Todos os peixinhos! O Pequi ganhou um lenço novo."
+        : `Peixinho! ${info.count} de ${info.total}.`,
+    );
+  }, []);
+
   const enter = useCallback(async (origem: DreamOrigin | null) => {
     if (activeRef.current || loadingRef.current) return;
 
     loadingRef.current = true;
     previousFocusRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
 
     try {
       let factory = factoryRef.current;
@@ -168,6 +187,7 @@ export function DreamHost() {
       activeRef.current = true;
       setHint(null);
       setLaser(false);
+      setFish(null);
       setActive(true);
       setAnnouncement(
         "Modo sonho ligado. Setas para andar, espaço para pular, X para patada, Enter para abrir, L para o laser, N para soltar um novelo, Esc para sair.",
@@ -197,6 +217,7 @@ export function DreamHost() {
       onOpen: open,
       onHint: updateHint,
       onLaserChange: updateLaser,
+      onFish: updateFish,
     });
 
     engineRef.current = engine;
@@ -210,7 +231,7 @@ export function DreamHost() {
       engine.stop();
       if (engineRef.current === engine) engineRef.current = null;
     };
-  }, [active, leave, open, updateHint, updateLaser]);
+  }, [active, leave, open, updateFish, updateHint, updateLaser]);
 
   useEffect(() => {
     const changed = previousPathRef.current !== pathname;
@@ -270,6 +291,13 @@ export function DreamHost() {
               {hint ?? ""}
             </p>
 
+            {fish ? (
+              <p className="mb-3 font-mono text-sm text-ink-soft [@media(hover:none)_and_(pointer:coarse)]:mb-2">
+                Peixinhos: {fish.count} de {fish.total}
+                {fish.prize ? " · lenço novo!" : ""}
+              </p>
+            ) : null}
+
             <div className="flex flex-wrap items-center gap-3 [@media(hover:none)_and_(pointer:coarse)]:gap-2">
               {hint ? (
                 <button
@@ -281,11 +309,7 @@ export function DreamHost() {
                 </button>
               ) : null}
 
-              <button
-                type="button"
-                onClick={dropYarn}
-                className={panelButton}
-              >
+              <button type="button" onClick={dropYarn} className={panelButton}>
                 Novelo
               </button>
 
@@ -307,7 +331,9 @@ export function DreamHost() {
                 className={panelButton}
               >
                 Sair do sonho
-                <span className="[@media(hover:none)_and_(pointer:coarse)]:hidden">&nbsp;(Esc)</span>
+                <span className="[@media(hover:none)_and_(pointer:coarse)]:hidden">
+                  &nbsp;(Esc)
+                </span>
               </button>
             </div>
           </aside>
@@ -318,18 +344,34 @@ export function DreamHost() {
             className="fixed inset-x-5 bottom-5 z-50 hidden items-end justify-between gap-3 [@media(hover:none)_and_(pointer:coarse)]:flex"
           >
             <div className="flex gap-3">
-              <TouchButton action="esquerda" label="Andar para a esquerda" onAction={setAction}>
+              <TouchButton
+                action="esquerda"
+                label="Andar para a esquerda"
+                onAction={setAction}
+              >
                 <span aria-hidden="true">◀</span>
               </TouchButton>
-              <TouchButton action="direita" label="Andar para a direita" onAction={setAction}>
+              <TouchButton
+                action="direita"
+                label="Andar para a direita"
+                onAction={setAction}
+              >
                 <span aria-hidden="true">▶</span>
               </TouchButton>
-              <TouchButton action="descer" label="Descer da plataforma" onAction={setAction}>
+              <TouchButton
+                action="descer"
+                label="Descer da plataforma"
+                onAction={setAction}
+              >
                 <span aria-hidden="true">▼</span>
               </TouchButton>
             </div>
             <div className="flex flex-col items-end gap-3">
-              <TouchButton action="patada" label="Dar uma patada" onAction={setAction}>
+              <TouchButton
+                action="patada"
+                label="Dar uma patada"
+                onAction={setAction}
+              >
                 Patada
               </TouchButton>
               <TouchButton action="pular" label="Pular" onAction={setAction}>

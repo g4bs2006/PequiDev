@@ -239,7 +239,7 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
 | 3 | Patada que derruba | A patada entorta e derruba um pouco títulos, etiquetas e cards, que voltam devagar | — | **Feita** (rascunho do Sol) |
 | 4 | Objetos do mundo e novelo | O motor ganha objetos com física própria; o primeiro é um novelo que rola e que a patada empurra | — | **Feita** (rascunho do Sol) |
 | 5 | Caixa de papelão | Uma caixa no fim de cada página; se ele pula dentro, dorme na hora | 4 | **Feita** (rascunho do Sol) |
-| 6 | Peixinhos escondidos | Um por página, com contador; pegar todos troca a cor do lenço | 4 | A fazer |
+| 6 | Peixinhos escondidos | Um por página, com contador; pegar todos troca a cor do lenço | 4 | **Feita** (rascunho do Sol) |
 | 7 | O Pequi comenta | Balão com um comentário curto ao pisar num projeto ou post, escrito pelo Gabriel no painel | coluna nova no banco | A fazer |
 
 ### 1. Céu do sonho
@@ -330,6 +330,27 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
   pela identidade (o elemento, o objeto ou o chão), não pela posição, e a
   acompanham até 40 px por leitura. A animação `surge` sobe o card ao entrar
   na tela, e antes disso a caixa perdia o apoio e caía até o rodapé.
+
+### 6. Peixinhos escondidos e o lenço novo
+
+- **Onde:** cinco peixes, um em cada página da coleção (`FISH_PAGES` em
+  `dream/peixes.ts`): `/`, `/projetos`, um em qualquer página de projeto
+  (`/projetos/*`), `/blog` e `/brincar/sonho`. Cada um flutua 18 px acima de uma
+  plataforma, escolhida pelo hash da página: a mesma página sempre esconde no
+  mesmo lugar, fora da plataforma da caixa.
+- **Pegar:** encostar. O painel mostra "Peixinhos: 3 de 5" e o leitor de tela
+  ouve "Peixinho! 3 de 5.".
+- **Guardado no navegador** de quem joga (`localStorage`,
+  `pequidev:sonho:peixes`), dentro de `try/catch`: em janela anônima o jogo
+  segue sem guardar.
+- **O prêmio:** com os cinco, o Pequi ganha um lenço lilás (`--sonho-lenco` e
+  `--sonho-lenco-sombra`). O motor copia a folha de sprites e troca só os dois
+  verdes exatos do lenço (`#87b274` e `#5f834d`). Se um dia a folha for refeita
+  com outros verdes, atualize `recolorScarf`.
+- O peixe é desenhado em 8×5 com pixels de 2 px (`--sonho-peixe`,
+  `--sonho-peixe-escuro`) e balança 3 px, parado com menos movimento pedido.
+- Para zerar a coleção, apague a chave `pequidev:sonho:peixes` no
+  armazenamento do navegador.
 
 ## O que ainda dá para fazer
 

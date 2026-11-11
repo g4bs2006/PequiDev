@@ -27,6 +27,11 @@ OPENAI_API_KEY=... node scripts/sol.mjs <tarefa.md> <pasta-de-rascunho> [arquivo
 
 ## Antes de entrar no projeto
 
+Arquivo grande (o `engine.ts` passa de 1.500 linhas) pode voltar compactado,
+com linhas juntadas e comentários apagados para economizar saída. Conte os
+comentários antes e depois (`grep -c "//"`) e, se sumirem, leve só as partes
+novas à mão.
+
 1. Ler cada arquivo entregue e comparar com o que existia (`diff`).
 2. Copiar para o projeto e rodar `tsc`, `eslint` e `npm run build`.
 3. Testar no navegador o que for visível.
@@ -36,6 +41,7 @@ OPENAI_API_KEY=... node scripts/sol.mjs <tarefa.md> <pasta-de-rascunho> [arquivo
 
 | Tarefa | Resultado |
 | --- | --- |
+| Peixinhos e lenço novo (brincadeira 6) | `peixes.ts` (novo), o peixe em `objetos.ts` e o contador no `DreamHost.tsx` entraram sem ajustes. O `engine.ts` veio compactado, sem 33 dos 34 comentários, e foi recusado: levei as partes novas à mão, e o peixe passou a aparecer também em página sem lugar para a caixa |
 | Caixa de papelão (brincadeira 5) | `objetos.ts` (caixa, plataforma de objeto, desenho em duas camadas) e `engine.ts` (plataformas de objeto, sono na caixa); entrou com quatro correções minhas: o tempo de sono parado no primeiro quadro, a caixa caindo quando o card se mexe, entrar na caixa só com o meio do corpo, e a caixa esperando a página nova |
 | Objetos do mundo e novelo (brincadeira 4) | `dream/objetos.ts` (novo), `engine.ts` e `DreamHost.tsx`; entrou com ajustes meus: a patada desce até os pés, chuta já no começo e alcança mais longe, o novelo cai perto do gato, o desenho usa pixels de 2 px, e as plataformas tombando guardam a posição de antes |
 | Patada que derruba (brincadeira 3) | `engine.ts` (busca do alvo e animação); entrou com dois ajustes meus: `tagName` de SVG em minúsculas e giro proporcional à largura, para os títulos largos também tombarem |

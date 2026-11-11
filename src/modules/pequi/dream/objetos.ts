@@ -17,6 +17,7 @@ export type WorldView = {
   worldWidth: number;
   gravity: number;
   maxFallSpeed: number;
+  reducedMotion: boolean;
   /** Caixa do corpo do gato e para onde ele anda. */
   cat: {
     left: number;
@@ -35,10 +36,13 @@ export type WorldColors = {
   box: string;
   boxCrease: string;
   boxInside: string;
+  fish: string;
+  fishDark: string;
+  fishEye: string;
 };
 
 export interface WorldObject {
-  readonly kind: "novelo" | "caixa";
+  readonly kind: "novelo" | "caixa" | "peixe";
   /** Caixa atual, para a patada e para colisões. */
   bounds(): { left: number; right: number; top: number; bottom: number };
   update(delta: number, world: WorldView): void;
@@ -59,6 +63,8 @@ export interface WorldObject {
   ): void;
   /** Plataforma extra oferecida pelo objeto enquanto ele está apoiado. */
   platform?(): WorldPlatform | null;
+  /** Peixes avisam ao motor quando o gato encostou neles. */
+  collected?(): boolean;
 }
 
 export const YARN_SIZE = 16;
@@ -78,6 +84,13 @@ const BOX_WALL_GAP = 4;
 const BOX_FLOOR_RISE = 6;
 const BOX_SHAKE_TIME = 0.3;
 const BOX_SHAKE_INTERVAL = 0.05;
+
+const FISH_WIDTH = 16;
+const FISH_HEIGHT = 10;
+const FISH_PIXEL = 2;
+const FISH_PLATFORM_GAP = 18;
+const FISH_BOB_DISTANCE = 3;
+const FISH_BOB_CYCLE = 1.6;
 
 // O desenho é uma grade de 8×8 com pixels de 2 px, a mesma escala do sprite
 // do gato (16 px na tela).
@@ -109,6 +122,15 @@ const YARN_LINES = new Set([
   "5,4",
   "6,3",
 ]);
+
+// B é corpo, D é rabo/barbatana e E é o olho.
+const FISH_GRID = [
+  "...D...D",
+  ".BBBBBD.",
+  "BEBBBBD.",
+  ".BBBBBD.",
+  "..BBB..D",
+] as const;
 
 function approaches(value: number, target: number, amount: number) {
   if (value < target) return Math.min(value + amount, target);
@@ -515,12 +537,110 @@ class BoxObject implements WorldObject {
   }
 }
 
+class FishObject implements WorldObject {
+  readonly kind = "peixe";
+
+  private readonly owner: unknown;
+  private readonly fraction: number;
+  private x = 0;
+  private y = 0;
+  private baseY = 0;
+  private time = 0;
+  private caught = false;
+  private placed = false;
+
+  constructor(owner: unknown, fraction: number) {
+    this.owner = owner;
+    this.fraction = Math.min(1, Math.max(0, fraction));
+  }
+
+  bounds() {
+    return {
+      left: this.x,
+      right: this.x + FISH_WIDTH,
+      top: this.y,
+      bottom: this.y + FISH_HEIGHT,
+    };
+  }
+
+  update(delta: number, world: WorldView) {
+    const platform = world.platforms.find(
+      (candidate) => candidate.owner === this.owner,
+    );
+
+    if (platform) {
+      const desired =
+        platform.left + this.fraction * (platform.right - platform.left);
+      const maximum = Math.max(platform.left, platform.right - FISH_WIDTH);
+      this.x = Math.min(maximum, Math.max(platform.left, desired));
+      this.baseY = platform.top - FISH_PLATFORM_GAP - FISH_HEIGHT;
+      this.placed = true;
+    }
+
+    if (!this.placed) return;
+
+    if (!world.reducedMotion) this.time += delta;
+    const bob = world.reducedMotion
+      ? 0
+      : Math.sin((this.time / FISH_BOB_CYCLE) * Math.PI * 2) *
+        FISH_BOB_DISTANCE;
+    this.y = this.baseY + bob;
+
+    if (boxesTouch(this.bounds(), world.cat)) this.caught = true;
+  }
+
+  kick() {
+    // O peixe é prêmio, não brinquedo: só o contato do gato o pega.
+  }
+
+  collected() {
+    return this.caught;
+  }
+
+  render(
+    context: CanvasRenderingContext2D,
+    scrollX: number,
+    scrollY: number,
+    colors: WorldColors,
+  ) {
+    if (!this.placed || this.caught) return;
+
+    const left = Math.round(this.x - scrollX);
+    const top = Math.round(this.y - scrollY);
+    context.imageSmoothingEnabled = false;
+
+    FISH_GRID.forEach((row, rowIndex) => {
+      for (let column = 0; column < row.length; column += 1) {
+        const pixel = row[column];
+        if (pixel === ".") continue;
+
+        context.fillStyle =
+          pixel === "D"
+            ? colors.fishDark
+            : pixel === "E"
+              ? colors.fishEye
+              : colors.fish;
+        context.fillRect(
+          left + column * FISH_PIXEL,
+          top + rowIndex * FISH_PIXEL,
+          FISH_PIXEL,
+          FISH_PIXEL,
+        );
+      }
+    });
+  }
+}
+
 export function createYarn(x: number, y: number): WorldObject {
   return new YarnObject(x, y);
 }
 
 export function createBox(x: number, y: number): WorldObject {
   return new BoxObject(x, y);
+}
+
+export function createFish(owner: unknown, fraction: number): WorldObject {
+  return new FishObject(owner, fraction);
 }
 
 /** Reaproveita o objeto para não acumular novelos no mundo. */

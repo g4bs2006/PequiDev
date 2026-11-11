@@ -128,6 +128,11 @@
   --sonho-caixa: #c99a5b;
   --sonho-caixa-vinco: #9c6d38;
   --sonho-caixa-dentro: #5e3f1f;
+  /* Os peixinhos escondidos e o lenço que o Pequi ganha ao pegar todos. */
+  --sonho-peixe: var(--ceu);
+  --sonho-peixe-escuro: #3f8a82;
+  --sonho-lenco: #a58bdc;
+  --sonho-lenco-sombra: #6f58a8;
 }
 
 [data-sonho][data-theme="dark"] {

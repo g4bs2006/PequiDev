@@ -2,6 +2,7 @@ import {
   BOX_HEIGHT,
   BOX_WIDTH,
   createBox,
+  createFish,
   createYarn,
   repositionWorldObject,
   YARN_SIZE,
@@ -9,6 +10,14 @@ import {
   type WorldObject,
   type WorldView,
 } from "./objetos";
+import {
+  FISH_PAGES,
+  fishKey,
+  hashString,
+  readCollected,
+  recolorScarf,
+  saveCollected,
+} from "./peixes";
 import {
   animation,
   CELL_H,
@@ -154,6 +163,14 @@ type LaserPaw = DreamOrigin & {
   time: number;
 };
 
+/** Coleção de peixinhos: quantos já pegou e se ganhou o lenço novo. */
+export type FishInfo = {
+  count: number;
+  total: number;
+  justCaught: boolean;
+  prize: boolean;
+};
+
 export type DreamEngine = {
   start: (origem?: DreamOrigin | null) => void;
   stop: () => void;
@@ -183,6 +200,7 @@ export function createDreamEngine(
     onOpen: (href: string) => void;
     onHint: (hint: string | null) => void;
     onLaserChange: (ativo: boolean) => void;
+    onFish: (info: FishInfo) => void;
   },
 ): DreamEngine {
   const context = canvas.getContext("2d");
@@ -244,7 +262,20 @@ export function createDreamEngine(
     box: "",
     boxCrease: "",
     boxInside: "",
+    fish: "",
+    fishDark: "",
+    fishEye: "",
   };
+
+  // Peixinhos: o que já foi pego fica no navegador (ver peixes.ts).
+  let collectedFish = new Set<string>();
+  let activeFishKey: string | null = null;
+  let hasPrize = false;
+  // O lenço novo é a folha de sprites com os dois verdes trocados.
+  let scarfLight = "";
+  let scarfDark = "";
+  let scarfSheet: HTMLCanvasElement | null = null;
+  let scarfAttempted = false;
   let movementDuration = KNOCK_MOVEMENT_FALLBACK;
   let quickDuration = KNOCK_QUICK_FALLBACK;
   let exitCurve = KNOCK_EXIT_CURVE_FALLBACK;
@@ -261,6 +292,24 @@ export function createDreamEngine(
 
   sprite.decoding = "async";
   sprite.src = SPRITE_URL;
+
+  function publishFish(justCaught: boolean) {
+    options.onFish({
+      count: collectedFish.size,
+      total: FISH_PAGES.length,
+      justCaught,
+      prize: hasPrize,
+    });
+  }
+
+  /** Monta a folha com o lenço novo quando a imagem já carregou. */
+  function preparePrizeSprite() {
+    if (!hasPrize || scarfSheet || scarfAttempted) return;
+    if (!sprite.complete || sprite.naturalWidth <= 0) return;
+
+    scarfAttempted = true;
+    scarfSheet = recolorScarf(sprite, { light: scarfLight, dark: scarfDark });
+  }
 
   const hasAny = (codes: string[]) => codes.some((code) => pressed.has(code));
   const isJumpHeld = () => hasAny(JUMP_CODES) || actions.has("pular");
@@ -410,7 +459,27 @@ export function createDreamEngine(
       boxInside:
         tokens.getPropertyValue("--sonho-caixa-dentro").trim() ||
         tokens.getPropertyValue("--ink").trim(),
+      fish:
+        tokens.getPropertyValue("--sonho-peixe").trim() ||
+        tokens.getPropertyValue("--ceu").trim(),
+      fishDark:
+        tokens.getPropertyValue("--sonho-peixe-escuro").trim() ||
+        tokens.getPropertyValue("--ink-soft").trim(),
+      fishEye: tokens.getPropertyValue("--ink").trim(),
     };
+
+    const nextScarfLight =
+      tokens.getPropertyValue("--sonho-lenco").trim() ||
+      tokens.getPropertyValue("--focinho").trim();
+    const nextScarfDark =
+      tokens.getPropertyValue("--sonho-lenco-sombra").trim() ||
+      tokens.getPropertyValue("--ink-soft").trim();
+    if (nextScarfLight !== scarfLight || nextScarfDark !== scarfDark) {
+      scarfLight = nextScarfLight;
+      scarfDark = nextScarfDark;
+      scarfSheet = null;
+      scarfAttempted = false;
+    }
     movementDuration = durationToken(
       tokens.getPropertyValue("--dur-movimento"),
       KNOCK_MOVEMENT_FALLBACK,
@@ -437,15 +506,77 @@ export function createDreamEngine(
       }
     }
 
-    if (!lastPlatform) return;
+    if (lastPlatform) {
+      objects.push(
+        createBox(
+          lastPlatform.right - BOX_WIDTH - 24,
+          lastPlatform.top - BOX_HEIGHT - 4,
+        ),
+      );
+    }
 
-    objects.push(
-      createBox(
-        lastPlatform.right - BOX_WIDTH - 24,
-        lastPlatform.top - BOX_HEIGHT - 4,
-      ),
-    );
+    createPageFish(lastPlatform);
     refreshObjectPlatforms();
+  }
+
+  /**
+   * Um peixinho por página da coleção, sempre no mesmo lugar (pelo hash da
+   * página, sem sorteio), fora da plataforma da caixa.
+   */
+  function createPageFish(boxPlatform: Platform | null) {
+    activeFishKey = null;
+    const key = fishKey(window.location.pathname);
+    if (!key || collectedFish.has(key)) return;
+
+    const candidates = domPlatforms.filter(
+      (platform) =>
+        platform.element &&
+        platform.element !== boxPlatform?.element &&
+        platform.right - platform.left >= 80,
+    );
+    const menu = domPlatforms.find(
+      (platform) => platform.element?.dataset.plataforma === "base",
+    );
+    const choices = candidates.length > 0 ? candidates : menu ? [menu] : [];
+    if (choices.length === 0) return;
+
+    const chosen = choices[hashString(key) % choices.length];
+    if (!chosen.element) return;
+
+    const fraction = 0.2 + (hashString(`${key}x`) % 60) / 100;
+    objects.push(createFish(chosen.element, fraction));
+    activeFishKey = key;
+  }
+
+  /** Tira os peixes pegos do mundo e guarda a coleção. */
+  function collectCaughtFish() {
+    let caught = false;
+
+    for (let index = objects.length - 1; index >= 0; index -= 1) {
+      const object = objects[index];
+      if (object.kind === "peixe" && object.collected?.()) {
+        objects.splice(index, 1);
+        caught = true;
+      }
+    }
+
+    if (!caught || !activeFishKey) return;
+
+    // Relê antes de gravar: outra aba pode ter pegado outro peixe.
+    const latest = readCollected();
+    latest.add(activeFishKey);
+    saveCollected(latest);
+    collectedFish = latest;
+    activeFishKey = null;
+
+    const nextPrize = collectedFish.size === FISH_PAGES.length;
+    if (nextPrize && !hasPrize) {
+      scarfSheet = null;
+      scarfAttempted = false;
+    }
+    hasPrize = nextPrize;
+    preparePrizeSprite();
+    publishFish(true);
   }
 
   function resizeCanvas() {
@@ -1024,6 +1155,7 @@ export function createDreamEngine(
       worldWidth,
       gravity: GRAVITY,
       maxFallSpeed: MAX_FALL_SPEED,
+      reducedMotion,
       cat: {
         left: x + BODY_LEFT,
         right: x + BODY_RIGHT,
@@ -1185,6 +1317,7 @@ export function createDreamEngine(
     for (const object of objects) {
       object.update(delta, worldView(object));
     }
+    collectCaughtFish();
 
     if (pawTime !== null) {
       pawTime += delta;
@@ -1418,12 +1551,15 @@ export function createDreamEngine(
       const sourceX = current.frame * CELL_W;
       const sourceY = meta.linha * CELL_H;
 
+      preparePrizeSprite();
+      const sheet = scarfSheet ?? sprite;
+
       context.save();
       if (facing < 0) {
         context.translate(screenX + CELL_W, screenY);
         context.scale(-1, 1);
         context.drawImage(
-          sprite,
+          sheet,
           sourceX,
           sourceY,
           CELL_W,
@@ -1435,7 +1571,7 @@ export function createDreamEngine(
         );
       } else {
         context.drawImage(
-          sprite,
+          sheet,
           sourceX,
           sourceY,
           CELL_W,
@@ -1521,6 +1657,7 @@ export function createDreamEngine(
     if (!active) return;
 
     objects.length = 0;
+    activeFishKey = null;
     readPlatforms();
     resetState();
     boxDueAt = performance.now() + BOX_DELAY_MS;
@@ -1545,6 +1682,11 @@ export function createDreamEngine(
     resizeCanvas();
     readPlatforms();
     resetState();
+    collectedFish = readCollected();
+    hasPrize = collectedFish.size === FISH_PAGES.length;
+    scarfSheet = null;
+    scarfAttempted = false;
+    publishFish(false);
     boxDueAt = performance.now() + BOX_DELAY_MS;
     facing = 1;
 
@@ -1606,6 +1748,7 @@ export function createDreamEngine(
     setLaser(false);
     laserTarget = null;
     objects.length = 0;
+    activeFishKey = null;
     started = false;
     active = false;
     paused = false;
