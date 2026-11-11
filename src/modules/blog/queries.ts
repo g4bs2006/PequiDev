@@ -3,7 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { toCover } from "@/lib/content";
 import { createPublicClient } from "@/lib/supabase/public";
 
-import type { Post, PostSummary } from "./types";
+import type { Post, PostSummary, Tag } from "./types";
 
 /**
  * Etiqueta de cache de tudo que vem do blog. Quem publica ou edita um post
@@ -85,4 +85,61 @@ export async function getPost(slug: string): Promise<Post | null> {
       ? { pose: data.pequi_reacao, caption: data.pequi_legenda }
       : null,
   };
+}
+
+/** Tags usadas por pelo menos um post publicado, em ordem alfabética. */
+export async function getTags(): Promise<(Tag & { count: number })[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(POSTS_CACHE_TAG);
+
+  const tags = new Map<string, Tag & { count: number }>();
+
+  for (const post of await getPosts()) {
+    for (const tag of post.tags) {
+      const current = tags.get(tag.slug);
+      tags.set(tag.slug, { ...tag, count: (current?.count ?? 0) + 1 });
+    }
+  }
+
+  return [...tags.values()].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+}
+
+/** Posts publicados que usam uma tag e o nome atual dela. */
+export async function getPostsByTag(
+  slug: string,
+): Promise<{ tag: Tag | null; posts: PostSummary[] }> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(POSTS_CACHE_TAG);
+
+  const posts = (await getPosts()).filter((post) =>
+    post.tags.some((tag) => tag.slug === slug),
+  );
+  const tag = posts[0]?.tags.find((candidate) => candidate.slug === slug) ?? null;
+
+  return { tag, posts };
+}
+
+/** Posts parecidos, priorizando tags em comum e depois a data de publicação. */
+export async function getRelatedPosts(post: Post, limit = 3): Promise<PostSummary[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(POSTS_CACHE_TAG);
+
+  const postTags = new Set(post.tags.map((tag) => tag.slug));
+
+  return (await getPosts())
+    .filter((candidate) => candidate.slug !== post.slug)
+    .map((candidate) => ({
+      post: candidate,
+      sharedTags: candidate.tags.filter((tag) => postTags.has(tag.slug)).length,
+    }))
+    .sort(
+      (a, b) =>
+        b.sharedTags - a.sharedTags ||
+        new Date(b.post.publishedAt).getTime() - new Date(a.post.publishedAt).getTime(),
+    )
+    .slice(0, Math.max(0, limit))
+    .map(({ post: relatedPost }) => relatedPost);
 }

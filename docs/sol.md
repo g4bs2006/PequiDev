@@ -37,6 +37,7 @@ OPENAI_API_KEY=... node scripts/sol.mjs <tarefa.md> <pasta-de-rascunho> [arquivo
 | Tarefa | Resultado |
 | --- | --- |
 | Sitemap, robots e feed RSS | `src/app/sitemap.ts`, `robots.ts`, `feed.xml/route.ts` e o feed anunciado no layout; entrou sem ajustes |
+| Blog: páginas por tag, "Leia também", imagem de compartilhamento por post, JSON-LD | 16 arquivos; entrou com dois ajustes meus (a imagem tinha texto alternativo por post, que mudava o endereço dela, e um erro de tipo escondido) |
 | "O humano por trás" editável no painel | `home/queries.ts`, `About` lendo o banco, `AboutForm`, `salvarSobre`, `/admin/sobre`; entrou sem ajustes |
 | Interações do sonho e entrada pelo hero (etapas 2 e 3) | `engine.ts` evoluído, `DreamHost`, `DreamDock`, `DreamTrigger`, `TitleBand`; entrou com ajustes meus: chão pela borda de baixo no menu, ignorar links de âncora, reaparecer no alto, foco padrão no gatilho |
 | Motor do modo sonho (etapa 1) | `engine.ts`, `DreamMode.tsx` e `/brincar/sonho`; entrou com um ajuste (tirar um `<main>` aninhado) |

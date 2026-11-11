@@ -2,16 +2,19 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ButtonLink } from "@/components/atoms/ButtonLink";
-import { Tag } from "@/components/atoms/Tag";
 import { navegacao } from "@/components/motion/navegacao";
 import { formatDate } from "@/lib/dates";
 import { isPequiMeme, MemeCard } from "@/modules/pequi";
 
 import { postCopy } from "../content";
 import { extractHeadings, readingMinutes } from "../headings";
+import { getRelatedPosts } from "../queries";
 import type { Post } from "../types";
 import { PostBody } from "./PostBody";
+import { PostJsonLd } from "./PostJsonLd";
 import { PostLayout } from "./PostLayout";
+import { RelatedPosts } from "./RelatedPosts";
+import { TagLink } from "./TagLink";
 
 /** Mais de um dia entre publicar e editar conta como atualização. */
 function wasUpdated(post: Post) {
@@ -25,7 +28,7 @@ function TagList({ post }: { post: Post }) {
     <ul aria-label={postCopy.tags} className="flex flex-wrap gap-2">
       {post.tags.map((tag) => (
         <li key={tag.slug}>
-          <Tag>{tag.name}</Tag>
+          <TagLink tag={tag} />
         </li>
       ))}
     </ul>
@@ -99,29 +102,35 @@ function PequiReaction({ post }: { post: Post }) {
 }
 
 /** A página de um post: abertura, índice, texto, a reação do Pequi e o fim com as tags. */
-export function PostArticle({ post }: { post: Post }) {
+export async function PostArticle({ post }: { post: Post }) {
   const headings = extractHeadings(post.content);
+  const relatedPosts = await getRelatedPosts(post);
 
   return (
-    <PostLayout headings={headings} header={<PostHeader post={post} />}>
-      <PostBody content={post.content} />
+    <>
+      <PostJsonLd post={post} />
+      <PostLayout headings={headings} header={<PostHeader post={post} />}>
+        <PostBody content={post.content} />
 
-      <PequiReaction post={post} />
+        <PequiReaction post={post} />
 
-      <footer className="mt-16 grid gap-6 border-t border-ink/15 pt-8">
-        {wasUpdated(post) ? (
-          <p className="font-mono text-sm text-ink-soft">
-            {postCopy.updated}{" "}
-            <time dateTime={post.updatedAt}>{formatDate(post.updatedAt)}</time>
-          </p>
-        ) : null}
-        <TagList post={post} />
-        <div>
-          <ButtonLink href="/blog" variant="soft" transitionTypes={navegacao.volta}>
-            {postCopy.back}
-          </ButtonLink>
-        </div>
-      </footer>
-    </PostLayout>
+        <footer className="mt-16 grid gap-6 border-t border-ink/15 pt-8">
+          {wasUpdated(post) ? (
+            <p className="font-mono text-sm text-ink-soft">
+              {postCopy.updated}{" "}
+              <time dateTime={post.updatedAt}>{formatDate(post.updatedAt)}</time>
+            </p>
+          ) : null}
+          <TagList post={post} />
+          <div>
+            <ButtonLink href="/blog" variant="soft" transitionTypes={navegacao.volta}>
+              {postCopy.back}
+            </ButtonLink>
+          </div>
+        </footer>
+
+        <RelatedPosts posts={relatedPosts} />
+      </PostLayout>
+    </>
   );
 }

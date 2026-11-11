@@ -74,6 +74,19 @@ const pequi = "gato";
 - Se o post for editado mais de um dia depois de publicado, aparece
   "Atualizado em" no fim.
 
+## O que sai sozinho
+
+- **Páginas por tag:** cada tag com post publicado ganha `/blog/tag/<slug>`; as
+  etiquetas dos posts são links para elas.
+- **Leia também:** no fim do post, até três posts, primeiro os que dividem mais
+  tags.
+- **Imagem de compartilhamento:** gerada para cada post (`opengraph-image.tsx`),
+  com o título, a data, as tags e o Pequi dormindo na faixa Céu. Vale mesmo sem
+  capa.
+- **Dados estruturados:** `BlogPosting` em cada post e `WebSite`/`Person` na
+  home, para o Google mostrar autor e data.
+- **Visitas:** Vercel Analytics e Speed Insights no layout, sem cookies.
+
 ## Onde mora o código
 
 | O quê | Onde |

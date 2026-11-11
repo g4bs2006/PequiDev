@@ -21,3 +21,21 @@ export const postCopy = {
   notFoundTitle: "Post não encontrado",
   reaction: "O Pequi leu",
 };
+
+export const tagCopy = {
+  eyebrow: "Tag",
+  back: "Blog",
+  title: (name: string) => `Posts sobre ${name}`,
+  description: (name: string) => `Posts do Gabriel sobre ${name} no blog do PequiDev.`,
+  count: (count: number) => (count === 1 ? "1 post" : `${count} posts`),
+  notFoundTitle: "Tag não encontrada",
+};
+
+export const relatedCopy = {
+  title: "Leia também",
+};
+
+export const sharingCopy = {
+  brand: "PEQUIDEV · BLOG",
+  fallbackTitle: "PequiDev",
+};

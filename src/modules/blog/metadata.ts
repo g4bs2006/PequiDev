@@ -20,13 +20,12 @@ export const blogIndexMetadata: Metadata = {
   },
 };
 
-/** O mesmo para um post. A capa, se houver, vira a imagem do link. */
+/** O mesmo para um post. A imagem gerada pela rota acompanha cada link. */
 export function postMetadata(post: Post | null): Metadata {
   if (!post) return { title: postCopy.notFoundTitle, robots: { index: false } };
 
   const url = `/blog/${post.slug}`;
   const title = `${post.title} · ${site.name}`;
-  const images = post.cover ? [{ url: post.cover.url, alt: post.cover.alt }] : undefined;
 
   return {
     title: post.title,
@@ -43,13 +42,11 @@ export function postMetadata(post: Post | null): Metadata {
       modifiedTime: post.updatedAt,
       authors: [site.author.name],
       tags: post.tags.map((tag) => tag.name),
-      images,
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: post.summary,
-      images,
     },
   };
 }

@@ -1,10 +1,10 @@
 import Link from "next/link";
 
-import { Tag } from "@/components/atoms/Tag";
 import { navegacao } from "@/components/motion/navegacao";
 import { formatDate } from "@/lib/dates";
 
 import type { PostSummary } from "../types";
+import { TagLink } from "./TagLink";
 
 type PostPreviewProps = {
   post: PostSummary;
@@ -41,10 +41,10 @@ export function PostPreview({ post, href, headingLevel = 3 }: PostPreviewProps) 
         <p className="mt-2 max-w-2xl text-pretty text-ink-soft">{post.summary}</p>
 
         {post.tags.length > 0 ? (
-          <ul aria-label="Tags" className="mt-4 flex flex-wrap gap-2">
+          <ul aria-label="Tags" className="relative z-10 mt-4 flex flex-wrap gap-2">
             {post.tags.map((tag) => (
               <li key={tag.slug}>
-                <Tag>{tag.name}</Tag>
+                <TagLink tag={tag} />
               </li>
             ))}
           </ul>

@@ -2,7 +2,7 @@
 import type { MetadataRoute } from "next";
 
 import { site } from "@/lib/site";
-import { getPosts } from "@/modules/blog";
+import { getPosts, getTags } from "@/modules/blog";
 import { getProjects } from "@/modules/projects";
 
 function absoluteUrl(path: string) {
@@ -10,7 +10,7 @@ function absoluteUrl(path: string) {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [projects, posts] = await Promise.all([getProjects(), getPosts()]);
+  const [projects, posts, tags] = await Promise.all([getProjects(), getPosts(), getTags()]);
 
   const fixedPages: MetadataRoute.Sitemap = [
     {
@@ -43,5 +43,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...fixedPages, ...projectPages, ...postPages];
+  const tagPages: MetadataRoute.Sitemap = tags.map((tag) => ({
+    url: absoluteUrl(`/blog/tag/${tag.slug}`),
+    changeFrequency: "weekly",
+    priority: 0.5,
+  }));
+
+  return [...fixedPages, ...projectPages, ...postPages, ...tagPages];
 }
