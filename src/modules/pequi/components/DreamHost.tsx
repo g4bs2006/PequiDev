@@ -23,6 +23,7 @@ type EngineFactory = (
     onExit: () => void;
     onOpen: (href: string) => void;
     onHint: (hint: string | null) => void;
+    onLaserChange: (ativo: boolean) => void;
   },
 ) => DreamEngine;
 
@@ -82,6 +83,7 @@ export function DreamHost() {
 
   const [active, setActive] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
+  const [laser, setLaser] = useState(false);
   const [announcement, setAnnouncement] = useState("");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -112,6 +114,7 @@ export function DreamHost() {
     activeRef.current = false;
     setActive(false);
     setHint(null);
+    setLaser(false);
     setAnnouncement("Modo sonho desligado.");
 
     const previousFocus = previousFocusRef.current;
@@ -131,6 +134,15 @@ export function DreamHost() {
 
   const updateHint = useCallback((nextHint: string | null) => {
     setHint(nextHint);
+  }, []);
+
+  const updateLaser = useCallback((ativo: boolean) => {
+    setLaser(ativo);
+    setAnnouncement(
+      ativo
+        ? "Laser ligado: o Pequi segue o ponteiro."
+        : "Laser desligado.",
+    );
   }, []);
 
   const enter = useCallback(async (origem: DreamOrigin | null) => {
@@ -155,9 +167,10 @@ export function DreamHost() {
       originRef.current = origem;
       activeRef.current = true;
       setHint(null);
+      setLaser(false);
       setActive(true);
       setAnnouncement(
-        "Modo sonho ligado. Setas para andar, espaço para pular, X para patada, Enter para abrir, Esc para sair.",
+        "Modo sonho ligado. Setas para andar, espaço para pular, X para patada, Enter para abrir, L para o laser, Esc para sair.",
       );
     } catch {
       if (mountedRef.current) {
@@ -183,6 +196,7 @@ export function DreamHost() {
       onExit: leave,
       onOpen: open,
       onHint: updateHint,
+      onLaserChange: updateLaser,
     });
 
     engineRef.current = engine;
@@ -196,7 +210,7 @@ export function DreamHost() {
       engine.stop();
       if (engineRef.current === engine) engineRef.current = null;
     };
-  }, [active, leave, open, updateHint]);
+  }, [active, leave, open, updateHint, updateLaser]);
 
   useEffect(() => {
     const changed = previousPathRef.current !== pathname;
@@ -213,6 +227,10 @@ export function DreamHost() {
     engineRef.current?.setAction("abrir", true);
     engineRef.current?.setAction("abrir", false);
   }, []);
+
+  const toggleLaser = useCallback(() => {
+    engineRef.current?.setLaser(!laser);
+  }, [laser]);
 
   return (
     <>
@@ -233,7 +251,7 @@ export function DreamHost() {
                 tela, fora da faixa onde a câmera mantém o gato. */}
             <p className="mb-3 max-w-2xl font-mono text-sm text-ink-soft [@media(hover:none)_and_(pointer:coarse)]:hidden">
               ← → ou A/D: andar · Espaço/W/↑: pular · X/J: patada · Enter:
-              abrir · S/↓: descer
+              abrir · S/↓: descer · L: laser
             </p>
 
             <p
@@ -258,6 +276,17 @@ export function DreamHost() {
                   {touchOpenLabel(hint)}
                 </button>
               ) : null}
+
+              <button
+                type="button"
+                aria-pressed={laser}
+                onClick={toggleLaser}
+                className={panelButton}
+              >
+                {/* O nome fica fixo; quem diz se está ligado é o aria-pressed. */}
+                {laser ? <span aria-hidden="true">●&nbsp;</span> : null}
+                Laser
+              </button>
 
               <button
                 ref={exitRef}

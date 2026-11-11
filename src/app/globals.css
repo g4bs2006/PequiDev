@@ -119,6 +119,8 @@
   --sonho-ceu: linear-gradient(to bottom, var(--pessego), var(--lavanda) 70%);
   /* A cor dos "z" que sobem do Pequi dormindo, lida pelo motor. */
   --sonho-z: var(--ink-soft);
+  /* O pontinho do ponteiro laser, também lido pelo motor. */
+  --sonho-laser: #e5262d;
 }
 
 [data-sonho][data-theme="dark"] {

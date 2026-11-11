@@ -235,7 +235,7 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
 | # | Brincadeira | O que é | Depende de | Situação |
 | --- | --- | --- | --- | --- |
 | 1 | Céu do sonho | Ao entrar, o fundo vira fim de tarde (tema claro) ou noite estrelada (escuro); "z" sobem quando ele dorme | — | **Feita** |
-| 2 | Ponteiro laser | Botão liga um pontinho vermelho que segue o cursor (ou o toque) e o Pequi corre e pula atrás sozinho | — | A fazer |
+| 2 | Ponteiro laser | Botão liga um pontinho vermelho que segue o cursor (ou o toque) e o Pequi corre e pula atrás sozinho | — | **Feita** (rascunho do Sol) |
 | 3 | Patada que derruba | A patada entorta e derruba um pouco títulos, etiquetas e cards, que voltam devagar | — | A fazer |
 | 4 | Objetos do mundo e novelo | O motor ganha objetos com física própria; o primeiro é um novelo que rola e que a patada empurra | — | A fazer |
 | 5 | Caixa de papelão | Uma caixa numa página; se ele entra, dorme na hora | 4 | A fazer |
@@ -253,6 +253,25 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
 - Os "z" são uma letra de 5×5 pixels desenhada no canvas. Três sobem da cabeça
   do Pequi quando ele termina de deitar. Com menos movimento pedido, fica um
   "z" parado.
+
+### 2. Ponteiro laser
+
+- **Ligar:** botão "Laser" no painel (`aria-pressed`) ou a tecla L.
+- **O pontinho:** com o laser ligado, o canvas passa a receber o ponteiro
+  (cursor escondido, sem rolagem por toque) e o pontinho vai para onde o mouse
+  passa ou o dedo toca. Ele fica pintado na página: se a câmera rola, ele rola
+  junto. A cor é o token `--sonho-laser`.
+- **O piloto:** sem ninguém apertando controle, o Pequi anda até o pontinho,
+  pula se ele está acima (uma vez por pouso, segurando o pulo enquanto o alvo
+  está acima da cabeça), atravessa a plataforma se está abaixo e dá o bote
+  (patada) ao chegar. A entrada manual sempre ganha. Mirar no botão de tema
+  troca o tema, de propósito.
+- **Limites:** o painel de controles fica por cima do canvas, então o laser não
+  passa por ali. Plataformas fora do alcance do pulo (cerca de 144 px) não dá
+  para subir; ele fica pulando atrás do pontinho, como um gato de verdade.
+- **Testado** em navegador sem janela (desktop e Pixel 7 emulado): perseguir
+  para o lado, descer do título "Projetos" para o card, pular atrás de um
+  pontinho no ar, botão e tecla L, e o toque, que não abre links por baixo.
 
 ## O que ainda dá para fazer
 

@@ -36,6 +36,7 @@ OPENAI_API_KEY=... node scripts/sol.mjs <tarefa.md> <pasta-de-rascunho> [arquivo
 
 | Tarefa | Resultado |
 | --- | --- |
+| Ponteiro laser do sonho (brincadeira 2) | `engine.ts` (alvo, piloto automático, desenho) e `DreamHost.tsx` (botão e anúncios); entrou com um ajuste meu: o botão mantém o nome "Laser" e mostra o estado com `aria-pressed` e um ponto visual |
 | Sitemap, robots e feed RSS | `src/app/sitemap.ts`, `robots.ts`, `feed.xml/route.ts` e o feed anunciado no layout; entrou sem ajustes |
 | Blog: páginas por tag, "Leia também", imagem de compartilhamento por post, JSON-LD | 16 arquivos; entrou com dois ajustes meus (a imagem tinha texto alternativo por post, que mudava o endereço dela, e um erro de tipo escondido) |
 | "O humano por trás" editável no painel | `home/queries.ts`, `About` lendo o banco, `AboutForm`, `salvarSobre`, `/admin/sobre`; entrou sem ajustes |

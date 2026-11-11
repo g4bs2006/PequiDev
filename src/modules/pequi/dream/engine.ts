@@ -33,6 +33,13 @@ const Z_COUNT = 3;
 const Z_CYCLE = 2.4;
 const Z_RISE = 34;
 
+const LASER_DOT_SIZE = 6;
+const LASER_HALO_SIZE = 14;
+const LASER_HALO_CYCLE = 0.8;
+const LASER_INITIAL_DISTANCE = 140;
+const LASER_PAW_DISTANCE = 40;
+const LASER_PAW_INTERVAL = 1.5;
+
 const SIT_AFTER = 8;
 const SLEEP_AFTER = SIT_AFTER + 10;
 const BREATH_TIME = 0.7;
@@ -48,6 +55,7 @@ const CONTROL_CODES = new Set([
   "KeyW",
   "KeyX",
   "KeyJ",
+  "KeyL",
   "Space",
   "Enter",
   "Escape",
@@ -92,11 +100,22 @@ type OpenTarget = {
   name: string;
 };
 
+type PilotInput = {
+  axis: -1 | 0 | 1;
+  jumping: boolean;
+  down: boolean;
+};
+
+type LaserPaw = DreamOrigin & {
+  time: number;
+};
+
 export type DreamEngine = {
   start: (origem?: DreamOrigin | null) => void;
   stop: () => void;
   respawn: () => void;
   setAction: (action: DreamAction, pressed: boolean) => void;
+  setLaser: (ativo: boolean) => void;
 };
 
 function approaches(value: number, target: number, amount: number) {
@@ -118,6 +137,7 @@ export function createDreamEngine(
     onExit: () => void;
     onOpen: (href: string) => void;
     onHint: (hint: string | null) => void;
+    onLaserChange: (ativo: boolean) => void;
   },
 ): DreamEngine {
   const context = canvas.getContext("2d");
@@ -158,6 +178,13 @@ export function createDreamEngine(
   let pawHit = false;
   let currentHint: string | null = null;
   let zColor = "";
+  let laserColor = "";
+
+  let laserActive = false;
+  let laserTarget: DreamOrigin | null = null;
+  let laserJumpUsed = false;
+  let laserJumpHeld = false;
+  let laserLastPaw: LaserPaw | null = null;
 
   const pressed = new Set<string>();
   const actions = new Set<DreamAction>();
@@ -173,6 +200,19 @@ export function createDreamEngine(
     const left = hasAny(LEFT_CODES) || actions.has("esquerda") ? 1 : 0;
     const right = hasAny(RIGHT_CODES) || actions.has("direita") ? 1 : 0;
     return right - left;
+  }
+
+  function hasManualMovement() {
+    return (
+      hasAny(LEFT_CODES) ||
+      hasAny(RIGHT_CODES) ||
+      hasAny(DOWN_CODES) ||
+      hasAny(JUMP_CODES) ||
+      actions.has("esquerda") ||
+      actions.has("direita") ||
+      actions.has("descer") ||
+      actions.has("pular")
+    );
   }
 
   function pageSize() {
@@ -216,7 +256,8 @@ export function createDreamEngine(
           // data-plataforma="base": o chão é a borda de baixo (o menu do topo,
           // onde ele anda ao lado dos botões); nos outros, a borda de cima.
           top:
-            (element.dataset.plataforma === "base" ? rect.bottom : rect.top) + window.scrollY,
+            (element.dataset.plataforma === "base" ? rect.bottom : rect.top) +
+            window.scrollY,
           ground: false,
         },
       ];
@@ -233,10 +274,14 @@ export function createDreamEngine(
     platforms = found;
     platformsDirty = false;
 
-    // A cor dos "z" vem dos tokens e muda com o tema; relida junto com o mundo.
+    // As cores vêm dos tokens e mudam com o tema; relidas junto com o mundo.
     const tokens = window.getComputedStyle(document.documentElement);
     zColor =
-      tokens.getPropertyValue("--sonho-z").trim() || tokens.getPropertyValue("--ink").trim();
+      tokens.getPropertyValue("--sonho-z").trim() ||
+      tokens.getPropertyValue("--ink").trim();
+    laserColor =
+      tokens.getPropertyValue("--sonho-laser").trim() ||
+      tokens.getPropertyValue("--focinho").trim();
   }
 
   function resizeCanvas() {
@@ -273,6 +318,7 @@ export function createDreamEngine(
     velocityY = 0;
     landingAge = 0;
     idleTime = 0;
+    laserJumpUsed = false;
   }
 
   function publishHint(next: string | null) {
@@ -367,6 +413,132 @@ export function createDreamEngine(
     idleTime = 0;
   }
 
+  function releaseLaserJump() {
+    if (laserJumpHeld && !isJumpHeld()) jumpCutRequested = true;
+    laserJumpHeld = false;
+  }
+
+  function updateLaserTarget(event: PointerEvent) {
+    laserTarget = {
+      x: event.clientX + window.scrollX,
+      y: event.clientY + window.scrollY,
+    };
+  }
+
+  function enableLaserPointer() {
+    canvas.style.pointerEvents = "auto";
+    canvas.style.cursor = "none";
+    canvas.style.touchAction = "none";
+    canvas.addEventListener("pointermove", updateLaserTarget);
+    canvas.addEventListener("pointerdown", updateLaserTarget);
+  }
+
+  function disableLaserPointer() {
+    canvas.removeEventListener("pointermove", updateLaserTarget);
+    canvas.removeEventListener("pointerdown", updateLaserTarget);
+    canvas.style.pointerEvents = "";
+    canvas.style.cursor = "";
+    canvas.style.touchAction = "";
+  }
+
+  function setLaser(next: boolean) {
+    if (!active || laserActive === next) return;
+
+    laserActive = next;
+    laserJumpUsed = false;
+    laserLastPaw = null;
+
+    if (next) {
+      if (!laserTarget) {
+        laserTarget = {
+          x: x + (BODY_LEFT + BODY_RIGHT) / 2 + facing * LASER_INITIAL_DISTANCE,
+          y: y + CELL_H,
+        };
+      }
+      enableLaserPointer();
+    } else {
+      releaseLaserJump();
+      disableLaserPointer();
+    }
+
+    options.onLaserChange(next);
+  }
+
+  function updateLaserPilot(
+    currentPlatform: Platform | null,
+    manualMovement: boolean,
+  ): PilotInput {
+    const idle: PilotInput = { axis: 0, jumping: false, down: false };
+
+    if (!laserActive || !laserTarget || manualMovement) {
+      releaseLaserJump();
+      return idle;
+    }
+
+    const centerX = x + (BODY_LEFT + BODY_RIGHT) / 2;
+    const feet = y + CELL_H;
+    const dx = laserTarget.x - centerX;
+    const dy = laserTarget.y - feet;
+    const absoluteX = Math.abs(dx);
+    const absoluteY = Math.abs(dy);
+
+    let axis: -1 | 0 | 1 = 0;
+    if (absoluteX > 10) axis = dx > 0 ? 1 : -1;
+    else if (dx !== 0) facing = dx > 0 ? 1 : -1;
+
+    const down = Boolean(
+      currentPlatform && !currentPlatform.ground && dy > 48 && absoluteX < 140,
+    );
+
+    let jumping = false;
+    if (
+      currentPlatform &&
+      pawTime === null &&
+      !laserJumpUsed &&
+      dy < -28 &&
+      absoluteX < 220
+    ) {
+      jumpBuffer = JUMP_BUFFER_TIME;
+      laserJumpUsed = true;
+      jumping = true;
+    }
+
+    if (!currentPlatform && velocityY < 0 && laserTarget.y < y + 10) {
+      jumping = true;
+    }
+
+    if (laserJumpHeld && !jumping && !isJumpHeld()) jumpCutRequested = true;
+    laserJumpHeld = jumping;
+
+    if (
+      currentPlatform &&
+      pawTime === null &&
+      absoluteX <= 14 &&
+      absoluteY <= 24
+    ) {
+      const moved = laserLastPaw
+        ? Math.hypot(
+            laserTarget.x - laserLastPaw.x,
+            laserTarget.y - laserLastPaw.y,
+          ) > LASER_PAW_DISTANCE
+        : true;
+      const waited = laserLastPaw
+        ? gameTime - laserLastPaw.time >= LASER_PAW_INTERVAL
+        : true;
+
+      if (moved || waited) {
+        startPaw();
+        laserLastPaw = {
+          x: laserTarget.x,
+          y: laserTarget.y,
+          time: gameTime,
+        };
+      }
+    }
+
+    return { axis, jumping, down };
+  }
+
   function clearInput() {
     pressed.clear();
     actions.clear();
@@ -384,6 +556,11 @@ export function createDreamEngine(
         exitRequested = true;
         options.onExit();
       }
+      return;
+    }
+
+    if (event.code === "KeyL") {
+      if (!event.repeat) setLaser(!laserActive);
       return;
     }
 
@@ -453,11 +630,6 @@ export function createDreamEngine(
       if (landingAge >= 2 / animation("pulo").fps) landingAge = null;
     }
 
-    if (jumpCutRequested) {
-      if (velocityY < -JUMP_CUT_SPEED) velocityY = -JUMP_CUT_SPEED;
-      jumpCutRequested = false;
-    }
-
     let currentPlatform = platformFor(support);
     const feet = y + CELL_H;
 
@@ -479,9 +651,18 @@ export function createDreamEngine(
       pawHit = false;
     }
 
-    const patting = pawTime !== null;
+    const manualMovement = hasManualMovement();
+    const pilot = updateLaserPilot(currentPlatform, manualMovement);
 
-    if (currentPlatform && !patting && isDownHeld() && !currentPlatform.ground) {
+    if (jumpCutRequested) {
+      if (velocityY < -JUMP_CUT_SPEED) velocityY = -JUMP_CUT_SPEED;
+      jumpCutRequested = false;
+    }
+
+    const patting = pawTime !== null;
+    const downHeld = manualMovement ? isDownHeld() : pilot.down;
+
+    if (currentPlatform && !patting && downHeld && !currentPlatform.ground) {
       dropThrough = currentPlatform.element;
       support = null;
       currentPlatform = null;
@@ -494,7 +675,12 @@ export function createDreamEngine(
     if (currentPlatform) coyoteTime = COYOTE_TIME;
     else coyoteTime = Math.max(0, coyoteTime - delta);
 
-    const axis = patting ? 0 : inputAxis();
+    const axis = patting
+      ? 0
+      : manualMovement
+        ? inputAxis()
+        : pilot.axis;
+
     if (patting) {
       velocityX = 0;
     } else if (axis !== 0) {
@@ -524,7 +710,7 @@ export function createDreamEngine(
       currentPlatform = null;
     }
 
-    if (!patting && jumpBuffer > 0 && coyoteTime > 0 && !isDownHeld()) {
+    if (!patting && jumpBuffer > 0 && coyoteTime > 0 && !downHeld) {
       support = null;
       currentPlatform = null;
       velocityY = -JUMP_SPEED;
@@ -579,8 +765,10 @@ export function createDreamEngine(
       }
     }
 
+    const laserPursuing =
+      !manualMovement && (pilot.axis !== 0 || pilot.jumping || pilot.down);
     const resting = support !== null && axis === 0 && Math.abs(velocityX) < 1;
-    if (patting || pawTime !== null) idleTime = 0;
+    if (patting || pawTime !== null || laserPursuing) idleTime = 0;
     else if (resting) idleTime += delta;
     else idleTime = 0;
 
@@ -719,54 +907,84 @@ export function createDreamEngine(
     }
   }
 
+  /** O halo pisca sem deslocar o alvo pintado na página. */
+  function drawLaser() {
+    if (!context || !laserTarget) return;
+
+    const centerX = Math.round(laserTarget.x - window.scrollX);
+    const centerY = Math.round(laserTarget.y - window.scrollY);
+    const haloAlpha = reducedMotion
+      ? 0.25
+      : 0.25 + Math.sin((gameTime / LASER_HALO_CYCLE) * Math.PI * 2) * 0.1;
+
+    context.fillStyle = laserColor;
+    context.globalAlpha = haloAlpha;
+    context.fillRect(
+      centerX - LASER_HALO_SIZE / 2,
+      centerY - LASER_HALO_SIZE / 2,
+      LASER_HALO_SIZE,
+      LASER_HALO_SIZE,
+    );
+    context.globalAlpha = 1;
+    context.fillRect(
+      centerX - LASER_DOT_SIZE / 2,
+      centerY - LASER_DOT_SIZE / 2,
+      LASER_DOT_SIZE,
+      LASER_DOT_SIZE,
+    );
+  }
+
   function render() {
     if (!context) return;
 
     context.clearRect(0, 0, window.innerWidth, window.innerHeight);
     context.imageSmoothingEnabled = false;
 
-    // A física pode começar antes da imagem; o desenho espera sem travar o jogo.
-    if (!sprite.complete || sprite.naturalWidth === 0) return;
+    // A física pode começar antes da imagem; só o desenho do gato espera.
+    if (sprite.complete && sprite.naturalWidth > 0) {
+      const current = visual();
+      const meta = animation(current.name);
+      const screenX = x - window.scrollX;
+      const screenY = y - window.scrollY;
+      const sourceX = current.frame * CELL_W;
+      const sourceY = meta.linha * CELL_H;
 
-    const current = visual();
-    const meta = animation(current.name);
-    const screenX = x - window.scrollX;
-    const screenY = y - window.scrollY;
-    const sourceX = current.frame * CELL_W;
-    const sourceY = meta.linha * CELL_H;
+      context.save();
+      if (facing < 0) {
+        context.translate(screenX + CELL_W, screenY);
+        context.scale(-1, 1);
+        context.drawImage(
+          sprite,
+          sourceX,
+          sourceY,
+          CELL_W,
+          CELL_H,
+          0,
+          0,
+          CELL_W,
+          CELL_H,
+        );
+      } else {
+        context.drawImage(
+          sprite,
+          sourceX,
+          sourceY,
+          CELL_W,
+          CELL_H,
+          screenX,
+          screenY,
+          CELL_W,
+          CELL_H,
+        );
+      }
+      context.restore();
 
-    context.save();
-    if (facing < 0) {
-      context.translate(screenX + CELL_W, screenY);
-      context.scale(-1, 1);
-      context.drawImage(
-        sprite,
-        sourceX,
-        sourceY,
-        CELL_W,
-        CELL_H,
-        0,
-        0,
-        CELL_W,
-        CELL_H,
-      );
-    } else {
-      context.drawImage(
-        sprite,
-        sourceX,
-        sourceY,
-        CELL_W,
-        CELL_H,
-        screenX,
-        screenY,
-        CELL_W,
-        CELL_H,
-      );
+      // Só depois de deitar de vez (os quadros da respiração).
+      if (current.name === "dormir" && current.frame >= 4) drawSleepZs(screenX, screenY);
     }
-    context.restore();
 
-    // Só depois de deitar de vez (os quadros da respiração).
-    if (current.name === "dormir" && current.frame >= 4) drawSleepZs(screenX, screenY);
+    // A luz fica sobre o gato, como o cursor que ela substitui.
+    if (laserActive && laserTarget) drawLaser();
   }
 
   function loop(time: number) {
@@ -806,6 +1024,9 @@ export function createDreamEngine(
     landingAge = null;
     pawTime = null;
     pawHit = false;
+    laserJumpUsed = false;
+    laserJumpHeld = false;
+    laserLastPaw = null;
     clearInput();
     publishHint(null);
   }
@@ -815,6 +1036,7 @@ export function createDreamEngine(
 
     readPlatforms();
     resetState();
+    laserTarget = null;
     facing = 1;
     x = window.scrollX + window.innerWidth / 2 - CELL_W / 2;
     // Reaparece no topo da página, não da tela, e cai no menu, de onde desce
@@ -892,6 +1114,8 @@ export function createDreamEngine(
   function stop() {
     if (!started) return;
 
+    setLaser(false);
+    laserTarget = null;
     started = false;
     active = false;
     paused = false;
@@ -911,5 +1135,5 @@ export function createDreamEngine(
     if (context) context.clearRect(0, 0, window.innerWidth, window.innerHeight);
   }
 
-  return { start, stop, respawn, setAction };
+  return { start, stop, respawn, setAction, setLaser };
 }
