@@ -363,8 +363,12 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
   caracteres) em `projects` e `posts`, um campo "Comentário do Pequi" nos
   formulários do painel, e o atributo no card de projeto, no card de post e no
   título da página de projeto. A migração está em
-  `supabase/migrations/20261111001500_comentario_do_pequi.sql`. Ela não foi
-  aplicada porque o MCP do Supabase recusou a permissão nesta sessão.
+  `supabase/migrations/20261111001500_comentario_do_pequi.sql` e o código no
+  branch `pequi-comenta` (commit `07ce4b1`, só local). A migração não foi
+  aplicada porque o MCP do Supabase recusou a permissão nesta sessão. Para
+  terminar: aplicar o SQL no banco, juntar o branch na `main`, rodar
+  `npm run build` e publicar. Antes disso, o branch não pode ir para a `main`,
+  porque as consultas passam a ler a coluna nova.
 
 ## O que ainda dá para fazer
 
