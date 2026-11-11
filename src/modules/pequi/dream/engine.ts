@@ -1,4 +1,7 @@
 import {
+  BOX_HEIGHT,
+  BOX_WIDTH,
+  createBox,
   createYarn,
   repositionWorldObject,
   YARN_SIZE,
@@ -23,6 +26,7 @@ const BODY_RIGHT = 75;
 const PAW_REACH = 28;
 const PAW_HIT_FRAME = 2;
 const OBJECT_EXTRA_REACH = 32;
+const BOX_DELAY_MS = 700;
 // Títulos e parágrafos ocupam a largura toda; o limite de altura é que
 // segura as seções inteiras. Quanto mais largo, menos ele tomba.
 const KNOCK_MAX_WIDTH = 1_400;
@@ -120,13 +124,15 @@ export type DreamOrigin = {
 
 type Platform = {
   element: HTMLElement | null;
+  object: WorldObject | null;
   left: number;
   right: number;
   top: number;
   ground: boolean;
 };
 
-type Support = HTMLElement | "ground" | null;
+type PlatformOwner = HTMLElement | WorldObject;
+type Support = PlatformOwner | "ground" | null;
 
 type Visual = {
   name: AnimationName;
@@ -197,9 +203,21 @@ export function createDreamEngine(
   let accumulator = 0;
   let platformsDirty = true;
 
+  let domPlatforms: Platform[] = [];
+  // A caixa espera a página nova assentar: na troca de página o DOM ainda
+  // pode ser o da anterior (ver respawn).
+  let boxDueAt = 0;
   let platforms: Platform[] = [];
   let worldWidth = window.innerWidth;
   let worldHeight = document.documentElement.scrollHeight;
+  let groundPlatform: Platform = {
+    element: null,
+    object: null,
+    left: 0,
+    right: worldWidth,
+    top: worldHeight,
+    ground: true,
+  };
 
   let x = 0;
   let y = 0;
@@ -207,7 +225,7 @@ export function createDreamEngine(
   let velocityY = 0;
   let facing: 1 | -1 = 1;
   let support: Support = null;
-  let dropThrough: HTMLElement | null = null;
+  let dropThrough: PlatformOwner | null = null;
 
   let coyoteTime = 0;
   let jumpBuffer = 0;
@@ -220,7 +238,13 @@ export function createDreamEngine(
   let currentHint: string | null = null;
   let zColor = "";
   let laserColor = "";
-  let worldColors: WorldColors = { yarn: "", yarnLine: "" };
+  let worldColors: WorldColors = {
+    yarn: "",
+    yarnLine: "",
+    box: "",
+    boxCrease: "",
+    boxInside: "",
+  };
   let movementDuration = KNOCK_MOVEMENT_FALLBACK;
   let quickDuration = KNOCK_QUICK_FALLBACK;
   let exitCurve = KNOCK_EXIT_CURVE_FALLBACK;
@@ -284,10 +308,34 @@ export function createDreamEngine(
   }
 
   function isBeingKnocked(element: Element) {
-    for (let current: Element | null = element; current; current = current.parentElement) {
+    for (
+      let current: Element | null = element;
+      current;
+      current = current.parentElement
+    ) {
       if (knockedThings.has(current)) return true;
     }
     return false;
+  }
+
+  function refreshObjectPlatforms() {
+    const objectPlatforms = objects.flatMap((object): Platform[] => {
+      const offered = object.platform?.() ?? null;
+      if (!offered) return [];
+
+      return [
+        {
+          element: null,
+          object,
+          left: offered.left,
+          right: offered.right,
+          top: offered.top,
+          ground: false,
+        },
+      ];
+    });
+
+    platforms = [...domPlatforms, ...objectPlatforms, groundPlatform];
   }
 
   function readPlatforms() {
@@ -301,7 +349,9 @@ export function createDreamEngine(
       // Tombando pela patada, a caixa medida gira e sobe: fica valendo a de
       // antes da queda, senão o gato e o novelo atravessam a plataforma.
       if (isBeingKnocked(element)) {
-        const before = platforms.find((platform) => platform.element === element);
+        const before = domPlatforms.find(
+          (platform) => platform.element === element,
+        );
         if (before) return [before];
       }
 
@@ -311,6 +361,7 @@ export function createDreamEngine(
       return [
         {
           element,
+          object: null,
           left: rect.left + window.scrollX,
           right: rect.right + window.scrollX,
           // data-plataforma="base": o chão é a borda de baixo (o menu do topo,
@@ -323,15 +374,16 @@ export function createDreamEngine(
       ];
     });
 
-    found.push({
+    domPlatforms = found;
+    groundPlatform = {
       element: null,
+      object: null,
       left: 0,
       right: worldWidth,
       top: worldHeight,
       ground: true,
-    });
-
-    platforms = found;
+    };
+    refreshObjectPlatforms();
     platformsDirty = false;
 
     // As cores e o movimento vêm dos tokens e mudam com o tema.
@@ -348,6 +400,15 @@ export function createDreamEngine(
         tokens.getPropertyValue("--focinho").trim(),
       yarnLine:
         tokens.getPropertyValue("--sonho-novelo-linha").trim() ||
+        tokens.getPropertyValue("--ink").trim(),
+      box:
+        tokens.getPropertyValue("--sonho-caixa").trim() ||
+        tokens.getPropertyValue("--polpa").trim(),
+      boxCrease:
+        tokens.getPropertyValue("--sonho-caixa-vinco").trim() ||
+        tokens.getPropertyValue("--ink-soft").trim(),
+      boxInside:
+        tokens.getPropertyValue("--sonho-caixa-dentro").trim() ||
         tokens.getPropertyValue("--ink").trim(),
     };
     movementDuration = durationToken(
@@ -366,6 +427,27 @@ export function createDreamEngine(
       KNOCK_POUNCE_CURVE_FALLBACK;
   }
 
+  function createPageBox() {
+    let lastPlatform: Platform | null = null;
+
+    for (const platform of domPlatforms) {
+      if (platform.right - platform.left < 120) continue;
+      if (!lastPlatform || platform.top > lastPlatform.top) {
+        lastPlatform = platform;
+      }
+    }
+
+    if (!lastPlatform) return;
+
+    objects.push(
+      createBox(
+        lastPlatform.right - BOX_WIDTH - 24,
+        lastPlatform.top - BOX_HEIGHT - 4,
+      ),
+    );
+    refreshObjectPlatforms();
+  }
+
   function resizeCanvas() {
     if (!context) return;
 
@@ -380,22 +462,39 @@ export function createDreamEngine(
     platformsDirty = true;
   }
 
+  function platformOwner(platform: Platform): PlatformOwner | null {
+    return platform.object ?? platform.element;
+  }
+
   function platformFor(current: Support) {
     if (current === null) return null;
     if (current === "ground") {
       return platforms.find((platform) => platform.ground) ?? null;
     }
-    return platforms.find((platform) => platform.element === current) ?? null;
+    if (current instanceof HTMLElement) {
+      return (
+        platforms.find((platform) => platform.element === current) ?? null
+      );
+    }
+    return platforms.find((platform) => platform.object === current) ?? null;
   }
 
   function overlaps(platform: Platform) {
     const left = x + BODY_LEFT;
     const right = x + BODY_RIGHT;
+
+    // A caixa é menor que o gato: só conta como dentro com o meio do corpo
+    // sobre o fundo, senão ele "entrava" com a beirada e ficava flutuando.
+    if (platform.object) {
+      const center = (left + right) / 2;
+      return center >= platform.left && center <= platform.right;
+    }
+
     return right > platform.left && left < platform.right;
   }
 
   function setSupport(platform: Platform) {
-    support = platform.ground ? "ground" : platform.element;
+    support = platform.ground ? "ground" : platformOwner(platform);
     y = platform.top - CELL_H;
     velocityY = 0;
     landingAge = 0;
@@ -425,7 +524,8 @@ export function createDreamEngine(
     }
 
     const heading = support.querySelector<HTMLElement>("h1, h2, h3");
-    const name = shortText(heading?.textContent ?? link.textContent ?? "") || "link";
+    const name =
+      shortText(heading?.textContent ?? link.textContent ?? "") || "link";
 
     return { href, name };
   }
@@ -441,7 +541,11 @@ export function createDreamEngine(
   }
 
   function targetIsVisible(target: HTMLElement, rect: DOMRect) {
-    if (rect.width <= 0 || rect.height <= 0 || target.getClientRects().length === 0) {
+    if (
+      rect.width <= 0 ||
+      rect.height <= 0 ||
+      target.getClientRects().length === 0
+    ) {
       return false;
     }
 
@@ -455,7 +559,11 @@ export function createDreamEngine(
     }
 
     const style = window.getComputedStyle(target);
-    return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+    return (
+      style.display !== "none" &&
+      style.visibility !== "hidden" &&
+      style.opacity !== "0"
+    );
   }
 
   function durationToken(value: string, fallback: number) {
@@ -509,7 +617,9 @@ export function createDreamEngine(
 
   function hitPawTarget() {
     const reach = pawReachBounds();
-    const targets = document.querySelectorAll<HTMLElement>("[data-pequi-patada]");
+    const targets = document.querySelectorAll<HTMLElement>(
+      "[data-pequi-patada]",
+    );
 
     for (const target of targets) {
       const rect = target.getBoundingClientRect();
@@ -600,7 +710,10 @@ export function createDreamEngine(
 
     const side = facing;
     const width = target.getBoundingClientRect().width;
-    const tilt = Math.min(1, Math.max(0.2, KNOCK_FULL_TILT_WIDTH / Math.max(1, width)));
+    const tilt = Math.min(
+      1,
+      Math.max(0.2, KNOCK_FULL_TILT_WIDTH / Math.max(1, width)),
+    );
     const transformOrigin = side > 0 ? "right bottom" : "left bottom";
     const keyframes: Keyframe[] = reducedMotion
       ? [
@@ -720,8 +833,7 @@ export function createDreamEngine(
   function dropYarn() {
     if (!active) return;
 
-    const desiredX =
-      x + (BODY_LEFT + BODY_RIGHT) / 2 + facing * 120;
+    const desiredX = x + (BODY_LEFT + BODY_RIGHT) / 2 + facing * 120;
     const maximumX = Math.max(0, worldWidth - YARN_SIZE);
     const yarnX = Math.min(maximumX, Math.max(0, desiredX));
     // Cai do céu perto dele: soltar do alto da tela fazia o novelo parar no
@@ -760,7 +872,10 @@ export function createDreamEngine(
     else if (dx !== 0) facing = dx > 0 ? 1 : -1;
 
     const down = Boolean(
-      currentPlatform && !currentPlatform.ground && dy > 48 && absoluteX < 140,
+      currentPlatform &&
+        !currentPlatform.ground &&
+        dy > 48 &&
+        absoluteX < 140,
     );
 
     let jumping = false;
@@ -899,9 +1014,13 @@ export function createDreamEngine(
     frameRequest = window.requestAnimationFrame(loop);
   }
 
-  function worldView(): WorldView {
+  function worldView(excludedObject?: WorldObject): WorldView {
     return {
-      platforms,
+      platforms: platforms.flatMap((platform) =>
+        platform.object === excludedObject && excludedObject
+          ? []
+          : [{ ...platform, owner: platform.object ?? platform.element ?? "chao" }],
+      ),
       worldWidth,
       gravity: GRAVITY,
       maxFallSpeed: MAX_FALL_SPEED,
@@ -918,6 +1037,9 @@ export function createDreamEngine(
   }
 
   function updatePhysics(delta: number) {
+    // Objetos podem oferecer plataformas novas sem reler o DOM inteiro.
+    refreshObjectPlatforms();
+
     gameTime += delta;
     jumpBuffer = Math.max(0, jumpBuffer - delta);
 
@@ -928,6 +1050,8 @@ export function createDreamEngine(
 
     let currentPlatform = platformFor(support);
     const feet = y + CELL_H;
+
+    if (support !== null && !currentPlatform) support = null;
 
     if (
       currentPlatform &&
@@ -959,7 +1083,7 @@ export function createDreamEngine(
     const downHeld = manualMovement ? isDownHeld() : pilot.down;
 
     if (currentPlatform && !patting && downHeld && !currentPlatform.ground) {
-      dropThrough = currentPlatform.element;
+      dropThrough = platformOwner(currentPlatform);
       support = null;
       currentPlatform = null;
       coyoteTime = 0;
@@ -981,8 +1105,14 @@ export function createDreamEngine(
       velocityX = 0;
     } else if (axis !== 0) {
       facing = axis > 0 ? 1 : -1;
-      const acceleration = currentPlatform ? GROUND_ACCELERATION : AIR_ACCELERATION;
-      velocityX = approaches(velocityX, axis * WALK_SPEED, acceleration * delta);
+      const acceleration = currentPlatform
+        ? GROUND_ACCELERATION
+        : AIR_ACCELERATION;
+      velocityX = approaches(
+        velocityX,
+        axis * WALK_SPEED,
+        acceleration * delta,
+      );
       idleTime = 0;
     } else {
       const friction = currentPlatform ? GROUND_FRICTION : AIR_FRICTION;
@@ -1023,14 +1153,21 @@ export function createDreamEngine(
       const nextFeet = nextY + CELL_H;
 
       if (dropThrough) {
-        const ignored = platforms.find((platform) => platform.element === dropThrough);
+        const ignored = platforms.find(
+          (platform) => platformOwner(platform) === dropThrough,
+        );
         if (!ignored || nextFeet > ignored.top + 10) dropThrough = null;
       }
 
       let landing: Platform | null = null;
       if (velocityY >= 0) {
         for (const platform of platforms) {
-          if (platform.element === dropThrough || !overlaps(platform)) continue;
+          if (
+            platformOwner(platform) === dropThrough ||
+            !overlaps(platform)
+          ) {
+            continue;
+          }
           // O chão segura sempre, mesmo que ele já esteja abaixo: a página
           // pode encolher (troca de página, conteúdo que some) e ele cairia
           // para sempre fora do mundo.
@@ -1045,13 +1182,17 @@ export function createDreamEngine(
       else y = nextY;
     }
 
-    const view = worldView();
-    for (const object of objects) object.update(delta, view);
+    for (const object of objects) {
+      object.update(delta, worldView(object));
+    }
 
     if (pawTime !== null) {
       pawTime += delta;
       const meta = animation("patada");
-      const frame = Math.min(meta.quadros - 1, Math.floor(pawTime * meta.fps));
+      const frame = Math.min(
+        meta.quadros - 1,
+        Math.floor(pawTime * meta.fps),
+      );
 
       // Objetos fogem rolando: o chute sai já no começo da patada, senão o
       // novelo empurrado está longe quando a pata chega.
@@ -1071,9 +1212,19 @@ export function createDreamEngine(
     const laserPursuing =
       !manualMovement && (pilot.axis !== 0 || pilot.jumping || pilot.down);
     const resting = support !== null && axis === 0 && Math.abs(velocityX) < 1;
-    if (patting || pawTime !== null || laserPursuing) idleTime = 0;
-    else if (resting) idleTime += delta;
-    else idleTime = 0;
+    const insideBox = platformFor(support)?.object?.kind === "caixa";
+
+    if (patting || pawTime !== null || laserPursuing) {
+      idleTime = 0;
+    } else if (insideBox && !manualMovement) {
+      // Pula o sentar, mas o tempo segue correndo: sem somar, a animação de
+      // dormir ficava presa no primeiro quadro.
+      idleTime = Math.max(idleTime + delta, SLEEP_AFTER);
+    } else if (resting) {
+      idleTime += delta;
+    } else {
+      idleTime = 0;
+    }
 
     updateHint();
   }
@@ -1089,7 +1240,10 @@ export function createDreamEngine(
       const meta = animation("patada");
       return {
         name: "patada",
-        frame: Math.min(meta.quadros - 1, Math.floor(pawTime * meta.fps)),
+        frame: Math.min(
+          meta.quadros - 1,
+          Math.floor(pawTime * meta.fps),
+        ),
       };
     }
 
@@ -1105,7 +1259,10 @@ export function createDreamEngine(
       if (sleepingFor < layingDownTime) {
         return {
           name: "dormir",
-          frame: Math.min(4, Math.floor(sleepingFor * animation("dormir").fps)),
+          frame: Math.min(
+            4,
+            Math.floor(sleepingFor * animation("dormir").fps),
+          ),
         };
       }
 
@@ -1121,7 +1278,10 @@ export function createDreamEngine(
       const meta = animation("sentar");
       return {
         name: "sentar",
-        frame: Math.min(meta.quadros - 1, Math.floor(sittingFor * meta.fps)),
+        frame: Math.min(
+          meta.quadros - 1,
+          Math.floor(sittingFor * meta.fps),
+        ),
       };
     }
 
@@ -1149,7 +1309,8 @@ export function createDreamEngine(
 
     let target = current;
     if (screenFeet < upperEdge) target = feet - window.innerHeight * 0.42;
-    else if (screenFeet > lowerEdge) target = feet - window.innerHeight * 0.58;
+    else if (screenFeet > lowerEdge)
+      target = feet - window.innerHeight * 0.58;
     else return;
 
     const maximum = Math.max(0, worldHeight - window.innerHeight);
@@ -1218,7 +1379,8 @@ export function createDreamEngine(
     const centerY = Math.round(laserTarget.y - window.scrollY);
     const haloAlpha = reducedMotion
       ? 0.25
-      : 0.25 + Math.sin((gameTime / LASER_HALO_CYCLE) * Math.PI * 2) * 0.1;
+      : 0.25 +
+        Math.sin((gameTime / LASER_HALO_CYCLE) * Math.PI * 2) * 0.1;
 
     context.fillStyle = laserColor;
     context.globalAlpha = haloAlpha;
@@ -1287,7 +1449,18 @@ export function createDreamEngine(
       context.restore();
 
       // Só depois de deitar de vez (os quadros da respiração).
-      if (current.name === "dormir" && current.frame >= 4) drawSleepZs(screenX, screenY);
+      if (current.name === "dormir" && current.frame >= 4) {
+        drawSleepZs(screenX, screenY);
+      }
+    }
+
+    for (const object of objects) {
+      object.renderFront?.(
+        context,
+        window.scrollX,
+        window.scrollY,
+        worldColors,
+      );
     }
 
     // A luz fica sobre o gato, como o cursor que ela substitui.
@@ -1298,6 +1471,12 @@ export function createDreamEngine(
     if (!active || paused) return;
 
     if (platformsDirty) readPlatforms();
+
+    if (boxDueAt && time >= boxDueAt) {
+      boxDueAt = 0;
+      readPlatforms();
+      createPageBox();
+    }
 
     const frameDelta = Math.min(0.1, Math.max(0, (time - lastTime) / 1_000));
     lastTime = time;
@@ -1344,6 +1523,7 @@ export function createDreamEngine(
     objects.length = 0;
     readPlatforms();
     resetState();
+    boxDueAt = performance.now() + BOX_DELAY_MS;
     laserTarget = null;
     facing = 1;
     x = window.scrollX + window.innerWidth / 2 - CELL_W / 2;
@@ -1365,6 +1545,7 @@ export function createDreamEngine(
     resizeCanvas();
     readPlatforms();
     resetState();
+    boxDueAt = performance.now() + BOX_DELAY_MS;
     facing = 1;
 
     if (origem) {
@@ -1441,7 +1622,9 @@ export function createDreamEngine(
     document.removeEventListener("visibilitychange", onVisibilityChange);
     motion.removeEventListener("change", onMotionChange);
 
-    if (context) context.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    if (context) {
+      context.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    }
   }
 
   return { start, stop, respawn, dropYarn, setAction, setLaser };

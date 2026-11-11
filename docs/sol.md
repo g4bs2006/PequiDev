@@ -36,6 +36,7 @@ OPENAI_API_KEY=... node scripts/sol.mjs <tarefa.md> <pasta-de-rascunho> [arquivo
 
 | Tarefa | Resultado |
 | --- | --- |
+| Caixa de papelão (brincadeira 5) | `objetos.ts` (caixa, plataforma de objeto, desenho em duas camadas) e `engine.ts` (plataformas de objeto, sono na caixa); entrou com quatro correções minhas: o tempo de sono parado no primeiro quadro, a caixa caindo quando o card se mexe, entrar na caixa só com o meio do corpo, e a caixa esperando a página nova |
 | Objetos do mundo e novelo (brincadeira 4) | `dream/objetos.ts` (novo), `engine.ts` e `DreamHost.tsx`; entrou com ajustes meus: a patada desce até os pés, chuta já no começo e alcança mais longe, o novelo cai perto do gato, o desenho usa pixels de 2 px, e as plataformas tombando guardam a posição de antes |
 | Patada que derruba (brincadeira 3) | `engine.ts` (busca do alvo e animação); entrou com dois ajustes meus: `tagName` de SVG em minúsculas e giro proporcional à largura, para os títulos largos também tombarem |
 | Ponteiro laser do sonho (brincadeira 2) | `engine.ts` (alvo, piloto automático, desenho) e `DreamHost.tsx` (botão e anúncios); entrou com um ajuste meu: o botão mantém o nome "Laser" e mostra o estado com `aria-pressed` e um ponto visual |

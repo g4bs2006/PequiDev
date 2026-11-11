@@ -3,6 +3,12 @@ export type WorldPlatform = {
   right: number;
   top: number;
   ground: boolean;
+  /**
+   * Quem é a plataforma (o elemento, o objeto, o chão). Elementos se mexem
+   * (a animação "surge" sobe o card ao entrar na tela): reconhecer pela
+   * posição fazia o objeto perder o apoio e atravessar.
+   */
+  owner?: unknown;
 };
 
 /** O que o motor mostra aos objetos a cada passo. Coordenadas do documento. */
@@ -26,10 +32,13 @@ export type WorldView = {
 export type WorldColors = {
   yarn: string;
   yarnLine: string;
+  box: string;
+  boxCrease: string;
+  boxInside: string;
 };
 
 export interface WorldObject {
-  readonly kind: "novelo";
+  readonly kind: "novelo" | "caixa";
   /** Caixa atual, para a patada e para colisões. */
   bounds(): { left: number; right: number; top: number; bottom: number };
   update(delta: number, world: WorldView): void;
@@ -41,9 +50,20 @@ export interface WorldObject {
     scrollY: number,
     colors: WorldColors,
   ): void;
+  /** Parte que precisa ficar na frente do gato. */
+  renderFront?(
+    context: CanvasRenderingContext2D,
+    scrollX: number,
+    scrollY: number,
+    colors: WorldColors,
+  ): void;
+  /** Plataforma extra oferecida pelo objeto enquanto ele está apoiado. */
+  platform?(): WorldPlatform | null;
 }
 
 export const YARN_SIZE = 16;
+// Quanto a plataforma pode andar de uma leitura para outra sem soltar o objeto.
+const PLATFORM_FOLLOW = 40;
 const YARN_RADIUS = 8;
 const YARN_FRICTION = 320;
 const YARN_MAX_SPEED = 700;
@@ -51,6 +71,13 @@ const YARN_KICK_SPEED = 460;
 const YARN_KICK_RISE = 320;
 const YARN_BOUNCE_SPEED = 220;
 const YARN_BOUNCE_FACTOR = 0.35;
+
+export const BOX_WIDTH = 32;
+export const BOX_HEIGHT = 24;
+const BOX_WALL_GAP = 4;
+const BOX_FLOOR_RISE = 6;
+const BOX_SHAKE_TIME = 0.3;
+const BOX_SHAKE_INTERVAL = 0.05;
 
 // O desenho é uma grade de 8×8 com pixels de 2 px, a mesma escala do sprite
 // do gato (16 px na tela).
@@ -110,6 +137,9 @@ function boxesTouch(
 
 function samePlatform(first: WorldPlatform, second: WorldPlatform) {
   if (first.ground && second.ground) return true;
+  if (first.owner !== undefined || second.owner !== undefined) {
+    return first.owner === second.owner;
+  }
 
   return (
     first.ground === second.ground &&
@@ -191,7 +221,7 @@ class YarnObject implements WorldObject {
     if (
       currentPlatform &&
       (!overlapsHorizontally(this.bounds(), currentPlatform) ||
-        Math.abs(this.y + YARN_SIZE - currentPlatform.top) > 1)
+        Math.abs(this.y + YARN_SIZE - currentPlatform.top) > PLATFORM_FOLLOW)
     ) {
       currentPlatform = null;
       this.support = null;
@@ -327,8 +357,170 @@ class YarnObject implements WorldObject {
   }
 }
 
+class BoxObject implements WorldObject {
+  readonly kind = "caixa";
+
+  private x: number;
+  private y: number;
+  private velocityY = 0;
+  private support: WorldPlatform | null = null;
+  private shakeTime = 0;
+
+  constructor(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+
+  bounds() {
+    return {
+      left: this.x,
+      right: this.x + BOX_WIDTH,
+      top: this.y,
+      bottom: this.y + BOX_HEIGHT,
+    };
+  }
+
+  platform(): WorldPlatform | null {
+    if (!this.support) return null;
+
+    return {
+      left: this.x + BOX_WALL_GAP,
+      right: this.x + BOX_WIDTH - BOX_WALL_GAP,
+      top: this.y + BOX_HEIGHT - BOX_FLOOR_RISE,
+      ground: false,
+    };
+  }
+
+  update(delta: number, world: WorldView) {
+    this.shakeTime = Math.max(0, this.shakeTime - delta);
+
+    const currentPlatform = this.support
+      ? (world.platforms.find((platform) =>
+          samePlatform(platform, this.support as WorldPlatform),
+        ) ?? null)
+      : null;
+
+    if (currentPlatform) {
+      this.y = currentPlatform.top - BOX_HEIGHT;
+      this.velocityY = 0;
+      this.support = currentPlatform;
+      return;
+    }
+
+    this.support = null;
+
+    const previousBottom = this.y + BOX_HEIGHT;
+    this.velocityY = Math.min(
+      world.maxFallSpeed,
+      this.velocityY + world.gravity * delta,
+    );
+    const nextY = this.y + this.velocityY * delta;
+    const nextBottom = nextY + BOX_HEIGHT;
+    const landing = findLandingPlatform(
+      this.bounds(),
+      previousBottom,
+      nextBottom,
+      world.platforms,
+    );
+
+    if (!landing) {
+      this.y = nextY;
+      return;
+    }
+
+    this.y = landing.top - BOX_HEIGHT;
+    this.velocityY = 0;
+    this.support = landing;
+  }
+
+  kick() {
+    this.shakeTime = BOX_SHAKE_TIME;
+  }
+
+  private drawingPosition(scrollX: number, scrollY: number) {
+    const elapsed = BOX_SHAKE_TIME - this.shakeTime;
+    const shaking = this.shakeTime > 0;
+    const shake = shaking
+      ? Math.floor(elapsed / BOX_SHAKE_INTERVAL) % 2 === 0
+        ? 1
+        : -1
+      : 0;
+
+    return {
+      left: Math.round(this.x - scrollX) + shake,
+      top: Math.round(this.y - scrollY),
+    };
+  }
+
+  render(
+    context: CanvasRenderingContext2D,
+    scrollX: number,
+    scrollY: number,
+    colors: WorldColors,
+  ) {
+    const { left, top } = this.drawingPosition(scrollX, scrollY);
+
+    context.imageSmoothingEnabled = false;
+
+    // A abertura fica atrás do gato quando ele entra.
+    context.fillStyle = colors.boxInside;
+    context.fillRect(left + 2, top + 4, 28, 4);
+
+    context.fillStyle = colors.box;
+    context.fillRect(left, top, 14, 2);
+    context.fillRect(left + 2, top + 2, 14, 2);
+    context.fillRect(left + 18, top, 14, 2);
+    context.fillRect(left + 16, top + 2, 14, 2);
+
+    // O contorno em degraus preserva a inclinação sem suavização.
+    context.fillStyle = colors.boxCrease;
+    context.fillRect(left, top, 14, 1);
+    context.fillRect(left, top, 1, 2);
+    context.fillRect(left, top + 1, 2, 1);
+    context.fillRect(left + 2, top + 2, 1, 2);
+    context.fillRect(left + 2, top + 3, 14, 1);
+    context.fillRect(left + 15, top + 2, 1, 2);
+    context.fillRect(left + 14, top + 2, 2, 1);
+    context.fillRect(left + 13, top, 1, 2);
+
+    context.fillRect(left + 18, top, 14, 1);
+    context.fillRect(left + 31, top, 1, 2);
+    context.fillRect(left + 30, top + 1, 2, 1);
+    context.fillRect(left + 29, top + 2, 1, 2);
+    context.fillRect(left + 16, top + 3, 14, 1);
+    context.fillRect(left + 16, top + 2, 1, 2);
+    context.fillRect(left + 16, top + 2, 2, 1);
+    context.fillRect(left + 18, top, 1, 2);
+  }
+
+  renderFront(
+    context: CanvasRenderingContext2D,
+    scrollX: number,
+    scrollY: number,
+    colors: WorldColors,
+  ) {
+    const { left, top } = this.drawingPosition(scrollX, scrollY);
+    const faceTop = top + 8;
+
+    context.imageSmoothingEnabled = false;
+    context.fillStyle = colors.box;
+    context.fillRect(left, faceTop, BOX_WIDTH, 16);
+
+    context.fillStyle = colors.boxCrease;
+    context.fillRect(left, faceTop, BOX_WIDTH, 1);
+    context.fillRect(left, top + BOX_HEIGHT - 1, BOX_WIDTH, 1);
+    context.fillRect(left, faceTop, 1, 16);
+    context.fillRect(left + BOX_WIDTH - 1, faceTop, 1, 16);
+    context.fillRect(left + 14, faceTop + 1, 2, 14);
+  }
+}
+
 export function createYarn(x: number, y: number): WorldObject {
   return new YarnObject(x, y);
+}
+
+export function createBox(x: number, y: number): WorldObject {
+  return new BoxObject(x, y);
 }
 
 /** Reaproveita o objeto para não acumular novelos no mundo. */

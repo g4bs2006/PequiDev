@@ -238,7 +238,7 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
 | 2 | Ponteiro laser | Botão liga um pontinho vermelho que segue o cursor (ou o toque) e o Pequi corre e pula atrás sozinho | — | **Feita** (rascunho do Sol) |
 | 3 | Patada que derruba | A patada entorta e derruba um pouco títulos, etiquetas e cards, que voltam devagar | — | **Feita** (rascunho do Sol) |
 | 4 | Objetos do mundo e novelo | O motor ganha objetos com física própria; o primeiro é um novelo que rola e que a patada empurra | — | **Feita** (rascunho do Sol) |
-| 5 | Caixa de papelão | Uma caixa numa página; se ele entra, dorme na hora | 4 | A fazer |
+| 5 | Caixa de papelão | Uma caixa no fim de cada página; se ele pula dentro, dorme na hora | 4 | **Feita** (rascunho do Sol) |
 | 6 | Peixinhos escondidos | Um por página, com contador; pegar todos troca a cor do lenço | 4 | A fazer |
 | 7 | O Pequi comenta | Balão com um comentário curto ao pisar num projeto ou post, escrito pelo Gabriel no painel | coluna nova no banco | A fazer |
 
@@ -310,6 +310,26 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
   plataforma, o motor usa a posição de antes da queda. A caixa girada sobe
   dezenas de pixels, e o gato e o novelo atravessavam.
 - Troca de página e saída do sonho recolhem o novelo.
+
+### 5. Caixa de papelão
+
+- **Onde:** uma por página, no fim, em cima da última plataforma com pelo menos
+  120 px de largura, a 24 px da ponta direita. É prêmio para quem desce até o
+  fim e não depende de marcação no HTML. Ela nasce 0,7 s depois de entrar ou de
+  trocar de página, para não usar o DOM da página anterior.
+- **Entrar:** a caixa oferece o fundo de dentro como plataforma (6 px acima da
+  base, de mão única). O gato entra pulando por cima e só conta com o meio do
+  corpo sobre o fundo; andando de lado, ele passa por trás da face. Dentro, ele
+  pula o sentar e deita direto, e os "z" sobem. Qualquer movimento acorda.
+  S/↓ sai pelo fundo.
+- **Desenho:** 32×24 px em pixels de 2 px, em duas camadas: as abas e a
+  abertura escura atrás do gato, a face na frente dele. Cores por
+  `--sonho-caixa`, `--sonho-caixa-vinco` e `--sonho-caixa-dentro`. A patada
+  faz a caixa tremer.
+- **Plataformas que se mexem:** os objetos reconhecem a plataforma onde estão
+  pela identidade (o elemento, o objeto ou o chão), não pela posição, e a
+  acompanham até 40 px por leitura. A animação `surge` sobe o card ao entrar
+  na tela, e antes disso a caixa perdia o apoio e caía até o rodapé.
 
 ## O que ainda dá para fazer
 

@@ -124,6 +124,10 @@
   /* O novelo de lã: a cor e a linha enrolada. */
   --sonho-novelo: var(--focinho);
   --sonho-novelo-linha: #a8414f;
+  /* A caixa de papelão: a face, o vinco e o fundo escuro da abertura. */
+  --sonho-caixa: #c99a5b;
+  --sonho-caixa-vinco: #9c6d38;
+  --sonho-caixa-dentro: #5e3f1f;
 }
 
 [data-sonho][data-theme="dark"] {
