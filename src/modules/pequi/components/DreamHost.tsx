@@ -188,8 +188,11 @@ export function DreamHost() {
     engineRef.current = engine;
     engine.start(originRef.current);
     exitRef.current?.focus();
+    // O site vira o céu do sonho (tokens em globals.css).
+    document.documentElement.dataset.sonho = "";
 
     return () => {
+      delete document.documentElement.dataset.sonho;
       engine.stop();
       if (engineRef.current === engine) engineRef.current = null;
     };

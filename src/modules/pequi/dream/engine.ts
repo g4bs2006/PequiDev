@@ -27,6 +27,12 @@ const MAX_FALL_SPEED = 1_100;
 const COYOTE_TIME = STEP * 6;
 const JUMP_BUFFER_TIME = STEP * 6;
 
+// "z" do sono: letra de 5×5 pixels, desenhada em blocos, como o sprite.
+const Z_GLYPH = ["11111", "00010", "00100", "01000", "11111"];
+const Z_COUNT = 3;
+const Z_CYCLE = 2.4;
+const Z_RISE = 34;
+
 const SIT_AFTER = 8;
 const SLEEP_AFTER = SIT_AFTER + 10;
 const BREATH_TIME = 0.7;
@@ -151,6 +157,7 @@ export function createDreamEngine(
   let pawTime: number | null = null;
   let pawHit = false;
   let currentHint: string | null = null;
+  let zColor = "";
 
   const pressed = new Set<string>();
   const actions = new Set<DreamAction>();
@@ -225,6 +232,11 @@ export function createDreamEngine(
 
     platforms = found;
     platformsDirty = false;
+
+    // A cor dos "z" vem dos tokens e muda com o tema; relida junto com o mundo.
+    const tokens = window.getComputedStyle(document.documentElement);
+    zColor =
+      tokens.getPropertyValue("--sonho-z").trim() || tokens.getPropertyValue("--ink").trim();
   }
 
   function resizeCanvas() {
@@ -665,6 +677,48 @@ export function createDreamEngine(
     });
   }
 
+  function drawZ(left: number, top: number, size: number, alpha: number) {
+    if (!context) return;
+
+    context.globalAlpha = alpha;
+    context.fillStyle = zColor;
+    Z_GLYPH.forEach((row, rowIndex) => {
+      for (let column = 0; column < row.length; column += 1) {
+        if (row[column] === "1") {
+          context.fillRect(
+            Math.round(left + column * size),
+            Math.round(top + rowIndex * size),
+            size,
+            size,
+          );
+        }
+      }
+    });
+    context.globalAlpha = 1;
+  }
+
+  /** Os "z" sobem da cabeça do Pequi dormindo, crescem e somem. */
+  function drawSleepZs(screenX: number, screenY: number) {
+    const headX = screenX + (facing > 0 ? 58 : CELL_W - 68);
+    const headY = screenY + 14;
+
+    if (reducedMotion) {
+      drawZ(headX + 6 * facing, headY - Z_RISE / 2, 2, 0.8);
+      return;
+    }
+
+    for (let index = 0; index < Z_COUNT; index += 1) {
+      const phase = (gameTime / Z_CYCLE + index / Z_COUNT) % 1;
+      const size = phase < 0.5 ? 2 : 3;
+      drawZ(
+        headX + phase * 16 * facing,
+        headY - phase * Z_RISE,
+        size,
+        Math.min(1, (1 - phase) * 1.6),
+      );
+    }
+  }
+
   function render() {
     if (!context) return;
 
@@ -710,6 +764,9 @@ export function createDreamEngine(
       );
     }
     context.restore();
+
+    // Só depois de deitar de vez (os quadros da respiração).
+    if (current.name === "dormir" && current.frame >= 4) drawSleepZs(screenX, screenY);
   }
 
   function loop(time: number) {

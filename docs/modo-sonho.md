@@ -227,6 +227,33 @@ Na mesma rodada, o Gabriel avaliou o controle: andar, pulo e câmera estão
 bons, e as constantes não mudaram. Os botões de toque do celular estão ruins
 e ficam para a próxima.
 
+## Brincadeiras: o plano
+
+O Gabriel aprovou todas as ideias em 2026-11-10. A ordem segue o que uma
+depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha.
+
+| # | Brincadeira | O que é | Depende de | Situação |
+| --- | --- | --- | --- | --- |
+| 1 | Céu do sonho | Ao entrar, o fundo vira fim de tarde (tema claro) ou noite estrelada (escuro); "z" sobem quando ele dorme | — | **Feita** |
+| 2 | Ponteiro laser | Botão liga um pontinho vermelho que segue o cursor (ou o toque) e o Pequi corre e pula atrás sozinho | — | A fazer |
+| 3 | Patada que derruba | A patada entorta e derruba um pouco títulos, etiquetas e cards, que voltam devagar | — | A fazer |
+| 4 | Objetos do mundo e novelo | O motor ganha objetos com física própria; o primeiro é um novelo que rola e que a patada empurra | — | A fazer |
+| 5 | Caixa de papelão | Uma caixa numa página; se ele entra, dorme na hora | 4 | A fazer |
+| 6 | Peixinhos escondidos | Um por página, com contador; pegar todos troca a cor do lenço | 4 | A fazer |
+| 7 | O Pequi comenta | Balão com um comentário curto ao pisar num projeto ou post, escrito pelo Gabriel no painel | coluna nova no banco | A fazer |
+
+### 1. Céu do sonho
+
+- O `DreamHost` põe `data-sonho` no `<html>` enquanto o sonho está ligado.
+- Os tokens ficam em `globals.css`: `--sonho-ceu` (o fundo, preso à tela) e
+  `--sonho-z` (a cor dos "z"). No claro, um degradê de pêssego para lavanda;
+  no escuro, azul-noite com estrelinhas creme, polpa e céu. Só o fundo muda: os
+  cartões e o texto seguem o tema, então a patada no botão de tema troca o
+  fim de tarde pela noite.
+- Os "z" são uma letra de 5×5 pixels desenhada no canvas. Três sobem da cabeça
+  do Pequi quando ele termina de deitar. Com menos movimento pedido, fica um
+  "z" parado.
+
 ## O que ainda dá para fazer
 
 - Jogar no celular de verdade: o toque só foi testado num Pixel 7 emulado.

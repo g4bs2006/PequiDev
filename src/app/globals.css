@@ -106,6 +106,33 @@
   --elev-hang: drop-shadow(0 10px 10px rgb(0 0 0 / 0.4));
 }
 
+/* Modo sonho (data-sonho no <html>, posto pelo DreamHost): o site vira o céu
+   do sonho do Pequi. Fim de tarde no tema claro, noite estrelada no escuro.
+   Só o fundo muda; os cartões e o texto continuam com as cores do tema. */
+[data-sonho] {
+  --pessego: #f8d9bf;
+  --lavanda: #e6ddf4;
+  --noite: #141a32;
+  --noite-funda: #0b0f22;
+
+  --page: var(--lavanda);
+  --sonho-ceu: linear-gradient(to bottom, var(--pessego), var(--lavanda) 70%);
+  /* A cor dos "z" que sobem do Pequi dormindo, lida pelo motor. */
+  --sonho-z: var(--ink-soft);
+}
+
+[data-sonho][data-theme="dark"] {
+  --page: var(--noite);
+  --sonho-ceu:
+    radial-gradient(1.5px 1.5px at 22px 38px, rgb(255 244 220 / 0.9) 50%, transparent 55%),
+    radial-gradient(1px 1px at 130px 90px, rgb(255 244 220 / 0.7) 50%, transparent 55%),
+    radial-gradient(2px 2px at 190px 170px, rgb(242 164 19 / 0.8) 50%, transparent 55%),
+    radial-gradient(1px 1px at 70px 200px, rgb(255 244 220 / 0.6) 50%, transparent 55%),
+    radial-gradient(1.5px 1.5px at 240px 20px, rgb(124 200 191 / 0.8) 50%, transparent 55%),
+    linear-gradient(to bottom, var(--noite-funda), var(--noite));
+  --sonho-ceu-tamanho: 260px 240px, 260px 240px, 260px 240px, 260px 240px, 260px 240px, 100% 100%;
+}
+
 /* Só as cores do projeto: a paleta padrão do Tailwind fica de fora. */
 @theme {
   --color-*: initial;
@@ -339,6 +366,12 @@ html[data-transicao="tema"]::view-transition-new(root) {
 
   html[data-theme="dark"] {
     color-scheme: dark;
+  }
+
+  html[data-sonho] body {
+    background: var(--sonho-ceu), var(--page);
+    background-size: var(--sonho-ceu-tamanho, 100% 100%);
+    background-attachment: fixed;
   }
 
   body {
