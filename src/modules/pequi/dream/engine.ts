@@ -14,6 +14,34 @@ const BODY_LEFT = 15;
 const BODY_RIGHT = 75;
 const PAW_REACH = 28;
 const PAW_HIT_FRAME = 2;
+// Títulos e parágrafos ocupam a largura toda; o limite de altura é que
+// segura as seções inteiras. Quanto mais largo, menos ele tomba.
+const KNOCK_MAX_WIDTH = 1_400;
+const KNOCK_FULL_TILT_WIDTH = 220;
+const KNOCK_MAX_HEIGHT = 260;
+const KNOCK_MOVEMENT_FALLBACK = 400;
+const KNOCK_QUICK_FALLBACK = 150;
+const KNOCK_EXIT_CURVE_FALLBACK = "ease-in";
+const KNOCK_POUNCE_CURVE_FALLBACK = "ease-out";
+const KNOCK_TAGS = new Set([
+  "H1",
+  "H2",
+  "H3",
+  "H4",
+  "P",
+  "LI",
+  "A",
+  "BUTTON",
+  "IMG",
+  "SVG",
+  "FIGURE",
+  "PICTURE",
+  "CODE",
+  "PRE",
+  "TIME",
+  "SPAN",
+]);
+const KNOCK_IGNORED_TAGS = new Set(["HTML", "BODY", "MAIN"]);
 
 const WALK_SPEED = 260;
 const GROUND_ACCELERATION = 2_400;
@@ -143,6 +171,7 @@ export function createDreamEngine(
   const context = canvas.getContext("2d");
   const sprite = new Image();
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const knockedThings = new WeakSet<Element>();
 
   let reducedMotion = motion.matches;
   let active = false;
@@ -179,6 +208,10 @@ export function createDreamEngine(
   let currentHint: string | null = null;
   let zColor = "";
   let laserColor = "";
+  let movementDuration = KNOCK_MOVEMENT_FALLBACK;
+  let quickDuration = KNOCK_QUICK_FALLBACK;
+  let exitCurve = KNOCK_EXIT_CURVE_FALLBACK;
+  let pounceCurve = KNOCK_POUNCE_CURVE_FALLBACK;
 
   let laserActive = false;
   let laserTarget: DreamOrigin | null = null;
@@ -274,7 +307,7 @@ export function createDreamEngine(
     platforms = found;
     platformsDirty = false;
 
-    // As cores vêm dos tokens e mudam com o tema; relidas junto com o mundo.
+    // As cores e o movimento vêm dos tokens e mudam com o tema.
     const tokens = window.getComputedStyle(document.documentElement);
     zColor =
       tokens.getPropertyValue("--sonho-z").trim() ||
@@ -282,6 +315,20 @@ export function createDreamEngine(
     laserColor =
       tokens.getPropertyValue("--sonho-laser").trim() ||
       tokens.getPropertyValue("--focinho").trim();
+    movementDuration = durationToken(
+      tokens.getPropertyValue("--dur-movimento"),
+      KNOCK_MOVEMENT_FALLBACK,
+    );
+    quickDuration = durationToken(
+      tokens.getPropertyValue("--dur-rapida"),
+      KNOCK_QUICK_FALLBACK,
+    );
+    exitCurve =
+      tokens.getPropertyValue("--curva-saida").trim() ||
+      KNOCK_EXIT_CURVE_FALLBACK;
+    pounceCurve =
+      tokens.getPropertyValue("--curva-bote").trim() ||
+      KNOCK_POUNCE_CURVE_FALLBACK;
   }
 
   function resizeCanvas() {
@@ -374,6 +421,17 @@ export function createDreamEngine(
     return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
   }
 
+  function durationToken(value: string, fallback: number) {
+    const clean = value.trim().toLowerCase();
+    if (!clean) return fallback;
+
+    const parsed = Number.parseFloat(clean);
+    if (!Number.isFinite(parsed)) return fallback;
+    if (clean.endsWith("ms")) return parsed;
+    if (clean.endsWith("s")) return parsed * 1_000;
+    return parsed;
+  }
+
   function hitPawTarget() {
     const bodyFront = facing > 0 ? x + BODY_RIGHT : x + BODY_LEFT;
     const reachLeft = facing > 0 ? bodyFront : bodyFront - PAW_REACH;
@@ -399,9 +457,134 @@ export function createDreamEngine(
 
       if (reached) {
         target.click();
-        return;
+        return true;
       }
     }
+
+    return false;
+  }
+
+  function canKnockThing(element: Element) {
+    // Em SVG o tagName vem em minúsculas.
+    const tag = element.tagName.toUpperCase();
+    if (element === canvas || KNOCK_IGNORED_TAGS.has(tag)) {
+      return false;
+    }
+
+    if (element.closest('[aria-label^="Controles"]')) return false;
+    if (element.closest("[data-pequi-patada]")) return false;
+    if (!KNOCK_TAGS.has(tag)) return false;
+    if (knockedThings.has(element)) return false;
+
+    const style = window.getComputedStyle(element);
+    if (style.display === "inline" || style.display === "contents") return false;
+
+    const rect = element.getBoundingClientRect();
+    return rect.width <= KNOCK_MAX_WIDTH && rect.height <= KNOCK_MAX_HEIGHT;
+  }
+
+  function knockThing() {
+    if (!active) return;
+
+    const bodyFront = facing > 0 ? x + BODY_RIGHT : x + BODY_LEFT;
+    const pawX = bodyFront + (facing * PAW_REACH) / 2;
+    const points = [
+      { x: pawX, y: y + CELL_H / 2 },
+      { x: pawX, y: y + CELL_H + 16 },
+      { x: pawX, y: y + CELL_H + 40 },
+    ];
+
+    let target: Element | null = null;
+
+    for (const point of points) {
+      const screenX = point.x - window.scrollX;
+      const screenY = point.y - window.scrollY;
+
+      if (
+        screenX < 0 ||
+        screenY < 0 ||
+        screenX >= window.innerWidth ||
+        screenY >= window.innerHeight
+      ) {
+        continue;
+      }
+
+      for (const hit of document.elementsFromPoint(screenX, screenY)) {
+        let candidate: Element | null = hit;
+
+        while (candidate) {
+          if (canKnockThing(candidate)) {
+            target = candidate;
+            break;
+          }
+          candidate = candidate.parentElement;
+        }
+
+        if (target) break;
+      }
+
+      if (target) break;
+    }
+
+    if (!target) return;
+
+    const side = facing;
+    const width = target.getBoundingClientRect().width;
+    const tilt = Math.min(1, Math.max(0.2, KNOCK_FULL_TILT_WIDTH / Math.max(1, width)));
+    const transformOrigin = side > 0 ? "right bottom" : "left bottom";
+    const keyframes: Keyframe[] = reducedMotion
+      ? [
+          { transform: "translateX(0px)", transformOrigin },
+          { transform: `translateX(${3 * side}px)`, transformOrigin },
+          { transform: `translateX(${-2 * side}px)`, transformOrigin },
+          { transform: "translateX(0px)", transformOrigin },
+        ]
+      : [
+          {
+            transform: "none",
+            transformOrigin,
+            offset: 0,
+            easing: exitCurve,
+          },
+          {
+            transform: `translate(${6 * side}px, -5px) rotate(${9 * side * tilt}deg)`,
+            transformOrigin,
+            offset: 0.22,
+            easing: exitCurve,
+          },
+          {
+            transform: `translate(${10 * side}px, 3px) rotate(${15 * side * tilt}deg)`,
+            transformOrigin,
+            offset: 0.5,
+            easing: "linear",
+          },
+          {
+            transform: `translate(${10 * side}px, 3px) rotate(${15 * side * tilt}deg)`,
+            transformOrigin,
+            offset: 0.72,
+            easing: pounceCurve,
+          },
+          {
+            transform: "none",
+            transformOrigin,
+            offset: 1,
+          },
+        ];
+
+    const movement = target.animate(keyframes, {
+      duration: reducedMotion ? quickDuration * 2 : movementDuration * 3,
+      fill: "none",
+    });
+
+    knockedThings.add(target);
+    void movement.finished.then(
+      () => {
+        knockedThings.delete(target);
+      },
+      () => {
+        knockedThings.delete(target);
+      },
+    );
   }
 
   function startPaw() {
@@ -756,7 +939,7 @@ export function createDreamEngine(
 
       if (!pawHit && frame >= PAW_HIT_FRAME) {
         pawHit = true;
-        hitPawTarget();
+        if (!hitPawTarget()) knockThing();
       }
 
       if (pawTime >= meta.quadros / meta.fps) {

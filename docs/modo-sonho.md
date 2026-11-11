@@ -236,7 +236,7 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
 | --- | --- | --- | --- | --- |
 | 1 | Céu do sonho | Ao entrar, o fundo vira fim de tarde (tema claro) ou noite estrelada (escuro); "z" sobem quando ele dorme | — | **Feita** |
 | 2 | Ponteiro laser | Botão liga um pontinho vermelho que segue o cursor (ou o toque) e o Pequi corre e pula atrás sozinho | — | **Feita** (rascunho do Sol) |
-| 3 | Patada que derruba | A patada entorta e derruba um pouco títulos, etiquetas e cards, que voltam devagar | — | A fazer |
+| 3 | Patada que derruba | A patada entorta e derruba um pouco títulos, etiquetas e cards, que voltam devagar | — | **Feita** (rascunho do Sol) |
 | 4 | Objetos do mundo e novelo | O motor ganha objetos com física própria; o primeiro é um novelo que rola e que a patada empurra | — | A fazer |
 | 5 | Caixa de papelão | Uma caixa numa página; se ele entra, dorme na hora | 4 | A fazer |
 | 6 | Peixinhos escondidos | Um por página, com contador; pegar todos troca a cor do lenço | 4 | A fazer |
@@ -272,6 +272,23 @@ depende da outra e o que rende mais cedo. Cada etapa vai para produção sozinha
 - **Testado** em navegador sem janela (desktop e Pixel 7 emulado): perseguir
   para o lado, descer do título "Projetos" para o card, pular atrás de um
   pontinho no ar, botão e tecla L, e o toque, que não abre links por baixo.
+
+### 3. Patada que derruba
+
+- **Quando:** se a patada não acerta um `data-pequi-patada` (que é clicado),
+  ela procura um elemento para derrubar em três pontos à frente da pata: à
+  altura do corpo e logo abaixo dos pés (16 e 40 px), "dentro da mesa" onde ele
+  está.
+- **O que serve:** títulos, parágrafos, itens, links, botões, imagens, código
+  e etiquetas, desde que não sejam inline (transform não age neles), não
+  passem de 260 px de altura (seções inteiras ficam de fora) e não estejam no
+  painel do sonho. Se o link de um card cobre o card inteiro, quem cai é o
+  título do card.
+- **Como cai:** pela Web Animations API, sem tocar no estilo do elemento. Ele
+  tomba para longe do gato, girando no canto de baixo, fica tombado um
+  instante e volta com o bote (`--curva-bote`), em 3 × `--dur-movimento`. Quanto
+  mais largo, menos tomba: uma etiqueta gira 15°, um título da largura da
+  página uns 3°. Com menos movimento pedido, só treme.
 
 ## O que ainda dá para fazer
 
