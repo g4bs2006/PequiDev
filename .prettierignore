@@ -1,0 +1,11 @@
+# O blog ainda não passa pelo Prettier: formatar tudo de uma vez geraria um diff
+# enorme sem mudança real. Ver docs/decisions/0001-monorepo.md.
+apps/blog/
+pnpm-lock.yaml
+.next/
+.turbo/
+dist/
+coverage/
+supabase/
+workers/fixtures/
+docs/PLANO.md

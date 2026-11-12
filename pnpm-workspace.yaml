@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - packages/*
+  - workers
+
+# pnpm 10 só roda scripts de instalação dos pacotes listados aqui.
+onlyBuiltDependencies:
+  - esbuild

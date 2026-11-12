@@ -1,9 +1,9 @@
-<!-- BEGIN:nextjs-agent-rules -->
+# Agentes no monorepo PequiDev
 
-## This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+- Leia as seções 1 a 4 de [docs/PLANO.md](docs/PLANO.md) antes de qualquer tarefa e siga as regras da seção 2
+  (escopo por fase, privacidade, scraping responsável, IA sem inventar fatos, Conventional Commits).
+- Gerenciador de pacotes: **pnpm** (nunca npm ou yarn). Antes de abrir PR: `pnpm check` e `pnpm format:check`.
+- Next.js 16 com mudanças grandes: antes de mexer em `apps/blog` ou `apps/vagas`, leia o `AGENTS.md`
+  do app e a documentação em `apps/<app>/node_modules/next/dist/docs/`.
+- O blog (`apps/blog`) tem regras próprias de arquitetura no `apps/blog/README.md`.
+- Decisões de arquitetura viram ADR em `docs/decisions/`; dúvidas de produto vão para `docs/open-questions.md`.

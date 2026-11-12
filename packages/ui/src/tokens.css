@@ -1,0 +1,107 @@
+/* ---------------------------------------------------------------------------
+   Tokens do PequiDev, compartilhados entre os apps.
+   Importe depois do Tailwind:  @import "tailwindcss"; @import "@pequidev/ui/tokens.css";
+
+   Primeiro a paleta do Pequi, com os nomes do brief. Depois os papéis que cada
+   cor cumpre na tela. Os componentes usam só os papéis, então o tema escuro
+   (data-theme="dark" no <html>) troca os papéis e nada mais precisa saber disso.
+
+   Os valores espelham apps/blog/src/app/globals.css, que ainda tem cópia
+   própria (ver docs/decisions/0001-monorepo.md).
+--------------------------------------------------------------------------- */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --creme: #fff4dc;
+  --tinta: #2a2118;
+  --polpa: #f2a413;
+  --ceu: #7cc8bf;
+  --casca: #4e7a2e;
+  --focinho: #e8697a;
+
+  --page: var(--creme);
+  --surface: #fffaf0;
+  --ink: var(--tinta);
+  --ink-soft: #5c4a36;
+  --accent: var(--polpa);
+  --on-accent: var(--tinta);
+  --band: var(--ceu);
+  --on-band: var(--tinta);
+  --tag: var(--casca);
+  --danger: var(--focinho);
+
+  /* Sombras largas e suaves, puxadas para o marrom da Tinta: o visual "3D suave". */
+  --elev-soft: 0 2px 6px rgb(92 74 54 / 0.08), 0 24px 48px -18px rgb(92 74 54 / 0.3);
+  --elev-button:
+    inset 0 1px 0 rgb(255 255 255 / 0.5), inset 0 -3px 0 rgb(42 33 24 / 0.14),
+    0 12px 22px -10px rgb(201 128 0 / 0.7);
+
+  /* Movimento: saídas rápidas, chegadas mais calmas (guia em apps/blog/docs/animacoes.md). */
+  --dur-toque: 100ms;
+  --dur-rapida: 150ms;
+  --dur-base: 220ms;
+  --dur-movimento: 400ms;
+
+  --curva-pouso: cubic-bezier(0.22, 1, 0.36, 1);
+  --curva-saida: cubic-bezier(0.55, 0, 1, 0.45);
+  --curva-travessia: cubic-bezier(0.65, 0, 0.35, 1);
+  --curva-bote: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-theme="dark"] {
+  --page: #1e1812;
+  --surface: #2f261c;
+  --ink: var(--creme);
+  --ink-soft: #d9c9a8;
+  --band: #2f6f69;
+  --on-band: var(--creme);
+  --tag: #9ccb66;
+
+  --elev-soft: 0 2px 6px rgb(0 0 0 / 0.3), 0 24px 48px -18px rgb(0 0 0 / 0.65);
+  --elev-button:
+    inset 0 1px 0 rgb(255 255 255 / 0.45), inset 0 -3px 0 rgb(42 33 24 / 0.18),
+    0 12px 22px -10px rgb(0 0 0 / 0.7);
+}
+
+/* Só as cores do projeto: a paleta padrão do Tailwind fica de fora. */
+@theme {
+  --color-*: initial;
+}
+
+@theme inline {
+  --color-creme: var(--creme);
+  --color-tinta: var(--tinta);
+  --color-polpa: var(--polpa);
+  --color-ceu: var(--ceu);
+  --color-casca: var(--casca);
+  --color-focinho: var(--focinho);
+
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-band: var(--band);
+  --color-on-band: var(--on-band);
+  --color-tag: var(--tag);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "Cascadia Code", monospace;
+  --font-meme: var(--font-anton), Impact, "Arial Narrow Bold", sans-serif;
+
+  --radius-card: 28px;
+
+  --shadow-soft: var(--elev-soft);
+  --shadow-button: var(--elev-button);
+
+  --ease-pouso: var(--curva-pouso);
+  --ease-saida: var(--curva-saida);
+  --ease-travessia: var(--curva-travessia);
+  --ease-bote: var(--curva-bote);
+  --default-transition-duration: var(--dur-base);
+  --default-transition-timing-function: var(--curva-pouso);
+}

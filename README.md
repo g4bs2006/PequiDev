@@ -1,110 +1,61 @@
 # PequiDev
 
-Blog e portfólio do Gabriel, com o Pequi (um gato laranja rajado) de mascote.
+Monorepo do PequiDev: o blog e portfólio do Gabriel e o **PequiDev Vagas**, um PWA privado que
+coleta, ranqueia e ajuda a se candidatar a vagas. O plano completo do módulo de vagas, com as fases
+e as regras para quem trabalha nele, está em [docs/PLANO.md](docs/PLANO.md).
 
-Feito com Next.js (App Router), TypeScript e Tailwind CSS. Os posts e os projetos ficam no Supabase.
+## Estrutura
+
+```
+apps/
+  blog/         Blog e portfólio (público). Guia próprio em apps/blog/README.md
+  vagas/        PWA privado de vagas (vagas.<dominio>)
+packages/
+  config/       tsconfig, ESLint e Prettier compartilhados
+  ui/           Tokens da marca (paleta, fontes, sombras, movimento)
+workers/        Coleta e ranqueamento de vagas, rodando no GitHub Actions
+supabase/       Migrations do banco (um só banco para tudo)
+docs/           Plano, decisões (ADRs), fichas de fontes e perguntas em aberto
+```
+
+Os pacotes `packages/db`, `packages/core` e `packages/ai` chegam nas próximas fases do plano.
 
 ## Rodar no computador
 
-```bash
-npm install
-cp .env.example .env.local
-npm run dev
-```
-
-Preencha o `.env.local` com o endereço e a chave pública do Supabase antes de subir. O site abre em http://localhost:3000.
-
-| Comando         | O que faz                               |
-| --------------- | --------------------------------------- |
-| `npm run dev`   | Sobe o site em modo de desenvolvimento  |
-| `npm run build` | Gera a versão de produção               |
-| `npm run start` | Serve a versão de produção já gerada    |
-| `npm run lint`  | Confere o código com o ESLint           |
-
-Na Vercel o endereço do site é detectado sozinho. Quando houver domínio próprio, defina `NEXT_PUBLIC_SITE_URL` (por exemplo `https://pequidev.com.br`): é ele que entra nos links de compartilhamento.
-
-## Como o código está organizado
-
-Arquitetura por módulo, com os componentes compartilhados em atomic design.
-
-```
-src/
-  app/                 Rotas, layout, estilos globais, ícone e imagem de compartilhamento
-  components/
-    atoms/             Peças mínimas: botão, tag, etiqueta de tecnologia, ícones
-    molecules/         Combinações pequenas: link do menu, botão de tema, texto em Markdown
-    organisms/         Blocos do site inteiro: menu e rodapé
-    motion/            Transição entre páginas, morph e tipos de navegação
-  modules/
-    hero/              Primeira tela da home (textos em content.ts)
-    pequi/             O personagem: o Pequi do canto, o do índice, o dormindo do hero e o sprite (guia em docs/pequi.md)
-    home/              Seções da home: Projetos, Últimos posts e O humano por trás (textos e marcadores em content.ts)
-    blog/              Posts: /blog, a página de cada post (Markdown, código colorido, índice com o Pequi) e as consultas
-    admin/             O painel em /admin: login, posts e projetos, envio de imagens (guia em docs/painel.md)
-    projects/          Projetos e guias: consultas, card, barra lateral de /projetos e a página de cada projeto
-  lib/                 Fontes, dados do site, datas, tema, avisos do site e clientes do Supabase (público, sessão e navegador)
-  proxy.ts             Renova a sessão do painel a cada página do /admin
-supabase/migrations/   Histórico do banco: tabelas e regras de acesso
-public/pequi/          Recortes do Pequi e a folha de sprites, já prontos para a web
-referencias/           Imagens originais do Pequi e as fontes do sprite (sprite-ia/)
-scripts/               Scripts que geram os recortes, o sprite e a imagem de compartilhamento
-docs/                  Guias e planos: o Pequi, animações, como escrever um post, o painel, o Sol, modo sonho
-```
-
-Regras da casa:
-
-- As páginas em `app/` só montam módulos. Cada módulo expõe o que é público pelo seu `index.ts`.
-- Um módulo pode usar `components/` e `lib/`, nunca o contrário.
-- Componente nenhum fala com o Supabase. Cada módulo lê o banco no seu `queries.ts`, e o cliente fica em `lib/supabase/`.
-- Cores, fontes, raios e sombras são tokens definidos em `src/app/globals.css`. Nada de cor solta no componente.
-- Movimento também: durações, curvas e distâncias são tokens, e cada animação usa um dos padrões de [docs/animacoes.md](docs/animacoes.md). Toda `page.tsx` envolve o conteúdo no `PageTransition`.
-
-## Banco de dados
-
-O conteúdo mora em cinco tabelas no Supabase:
-
-| Tabela               | O que guarda                                              |
-| -------------------- | --------------------------------------------------------- |
-| `posts`              | Posts do blog, em Markdown (como escrever: docs/blog.md)  |
-| `tags`               | Tags dos posts                                            |
-| `post_tags`          | Quais tags cada post tem                                  |
-| `projects`           | Projetos do portfólio                                     |
-| `project_categories` | Guias e subguias da barra lateral de `/projetos`          |
-
-As imagens de projetos e posts ficam no bucket público `imagens` do Storage, em WebP: `projetos/<slug>/...` para as capas e telas de cada projeto. Só admin envia ou apaga.
-
-Quem visita o site só lê o que está com status `published`. Para escrever é preciso estar logado e constar em `private.admins`; o painel em `/admin` faz isso (ver docs/painel.md). Essas regras ficam no próprio banco (RLS), então valem mesmo para quem chamar a API direto com a chave pública.
-
-Toda mudança no banco entra como um arquivo novo em `supabase/migrations/`. Depois de mudar o esquema, gere de novo os tipos em `src/lib/supabase/database.types.ts`:
+Precisa de Node 22 e pnpm 10 (`corepack enable` já instala a versão certa).
 
 ```bash
-npx supabase gen types typescript --project-id aycoiszeubfwdtemeldj > src/lib/supabase/database.types.ts
+pnpm install
+cp apps/blog/.env.example apps/blog/.env.local    # preencha com o Supabase
+pnpm --filter blog dev                            # http://localhost:3000
+pnpm --filter vagas dev                           # http://localhost:3001
 ```
 
-As consultas ficam em cache por algumas horas, com as etiquetas `posts` e `projects`. Quem publicar pelo painel invalida a etiqueta e o site mostra o conteúdo novo na hora.
+| Comando                            | O que faz                                            |
+| ---------------------------------- | ---------------------------------------------------- |
+| `pnpm dev`                         | Sobe todos os apps                                   |
+| `pnpm --filter <app> dev`          | Sobe só um app (`blog` ou `vagas`)                   |
+| `pnpm build`                       | Build de tudo (com cache do Turborepo)               |
+| `pnpm check`                       | Lint, typecheck e testes de todos os pacotes (o CI)  |
+| `pnpm lint` / `typecheck` / `test` | Cada verificação separada                            |
+| `pnpm format`                      | Formata com o Prettier (o blog fica de fora por ora) |
+| `pnpm worker <tarefa>`             | Roda uma tarefa dos workers (`pnpm worker --help`)   |
 
-## Imagens do Pequi
+Para adicionar uma dependência a um pacote: `pnpm --filter <pacote> add <dep>`.
 
-O Pequi dormindo é montado em três camadas (corpo, pata e rabo) para a pata e o rabo se mexerem sozinhos. Os recortes saem das imagens em `referencias/`:
+## Deploy
 
-```bash
-python -m venv .venv
-.venv/Scripts/pip install "rembg[cpu]" pillow numpy
-.venv/Scripts/python scripts/recortar-pequi.py
-.venv/Scripts/python scripts/gerar-og.py
-```
+Dois projetos na Vercel, apontando para o mesmo repositório:
 
-- `recortar-pequi.py` tira o fundo das fotos e grava os recortes em `public/pequi/`, as medidas em `src/modules/pequi/data/dormindo.json` e o ícone do site. Na primeira vez ele baixa um modelo de uns 180 MB para `~/.rembg`.
-- `gerar-og.py` monta a imagem que aparece quando o link é compartilhado. Só precisa do Pillow.
+| Projeto | Root Directory | Domínio           |
+| ------- | -------------- | ----------------- |
+| Blog    | `apps/blog`    | domínio principal |
+| Vagas   | `apps/vagas`   | `vagas.<dominio>` |
 
-## Modo sonho (em construção)
+Cada app tem um `vercel.json` com `turbo-ignore`: a Vercel só builda o app quando ele ou um pacote
+de que ele depende mudou. Detalhes em [docs/decisions/0001-monorepo.md](docs/decisions/0001-monorepo.md).
 
-O Pequi em pixel art que vai andar e pular por cima do site. Por enquanto só o sprite está pronto, com prévia em `/brincar` (fora do índice de busca). Para refazer a folha a partir das imagens-fonte:
+## Para agentes
 
-```bash
-python scripts/montar-sprite.py
-```
-
-O mesmo sprite já acompanha a leitura no índice lateral do post: o Pequi pula até a seção que está na tela e dorme se ninguém rolar a página. A prévia fica em `/brincar/leitura`.
-
-O plano, as decisões, o estado de cada etapa e como gerar ou adicionar animações estão em [docs/modo-sonho.md](docs/modo-sonho.md).
+Leia as seções 1 a 4 do [plano](docs/PLANO.md) antes de qualquer tarefa e siga as regras da seção 2.
+Dúvidas de produto vão para [docs/open-questions.md](docs/open-questions.md).

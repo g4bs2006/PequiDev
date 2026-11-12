@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@import "@pequidev/ui/tokens.css";
+
+/* O Tailwind não olha dentro de node_modules; o pacote de UI entra à mão. */
+@source "../../../packages/ui/src";
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}

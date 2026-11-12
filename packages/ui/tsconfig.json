@@ -1,0 +1,9 @@
+{
+  "extends": "@pequidev/config/tsconfig/nextjs.json",
+  "compilerOptions": {
+    "incremental": false,
+    "plugins": [],
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

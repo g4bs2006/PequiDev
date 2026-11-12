@@ -1,0 +1,4 @@
+{
+  "extends": "@pequidev/config/tsconfig/node.json",
+  "include": ["src/**/*.ts", "*.config.ts"]
+}
