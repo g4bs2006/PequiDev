@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { guardarNoCache, sincronizarExemplos } from "../cache";
 import { type Classe, categoriaIds, categorias } from "../categorias";
+import {
+  desativarMeusExemplos,
+  garantirSessao,
+  registrarDescarte,
+  salvarExemplo,
+  type Sessao,
+} from "../queries";
+import { capturarFoto } from "../visao/foto";
 // Só o tipo: o import() abaixo é que traz o TensorFlow, depois do toque.
 import type { Visao } from "../visao/modelo";
 import type { Veredito } from "../visao/votacao";
@@ -69,14 +78,18 @@ export function LixeiraCamera({ className }: { className?: string }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const visaoRef = useRef<Visao | null>(null);
+  const sessaoRef = useRef<Sessao | null>(null);
+  const filaRef = useRef<Promise<void>>(Promise.resolve());
   const montadoRef = useRef(true);
   const tentativaRef = useRef(0);
 
   const [estado, setEstado] = useState<Estado>("inicial");
   const [erro, setErro] = useState<ErroAbertura | null>(null);
+  const [sessao, setSessao] = useState<Sessao | null>(null);
   const [contagens, setContagens] = useState<Record<Classe, number>>(contagemInicial);
   const [resultado, setResultado] = useState<Veredito | null>(null);
   const [analisando, setAnalisando] = useState(false);
+  const [esquecendo, setEsquecendo] = useState(false);
   const [mensagem, setMensagem] = useState("");
 
   const liberarAtuais = useCallback(() => {
@@ -110,6 +123,8 @@ export function LixeiraCamera({ className }: { className?: string }) {
 
   async function abrirCamera() {
     liberarAtuais();
+    sessaoRef.current = null;
+    setSessao(null);
     setResultado(null);
     setErro(null);
     setMensagem("");
@@ -179,8 +194,19 @@ export function LixeiraCamera({ className }: { className?: string }) {
         return visao;
       });
 
+    const exemplosPromise = garantirSessao()
+      .then(async (novaSessao) => ({
+        sessao: novaSessao,
+        exemplos: await sincronizarExemplos(novaSessao),
+      }))
+      .catch(() => null);
+
     try {
-      const [stream, visao] = await Promise.all([cameraPromise, modeloPromise]);
+      const [stream, visao, persistencia] = await Promise.all([
+        cameraPromise,
+        modeloPromise,
+        exemplosPromise,
+      ]);
 
       if (!montadoRef.current || tentativaRef.current !== tentativa) {
         pararCamera(stream);
@@ -196,7 +222,25 @@ export function LixeiraCamera({ className }: { className?: string }) {
         void videoRef.current.play().catch(() => undefined);
       }
 
+      let dadosAtivos = persistencia;
+
+      if (dadosAtivos) {
+        try {
+          visao.carregar(dadosAtivos.exemplos);
+        } catch {
+          visao.esquecer();
+          dadosAtivos = null;
+        }
+      }
+
+      const sessaoAtiva = dadosAtivos?.sessao ?? null;
+      sessaoRef.current = sessaoAtiva;
+      setSessao(sessaoAtiva);
       setContagens(visao.contagem());
+
+      const total = dadosAtivos?.exemplos.length ?? 0;
+      if (total > 0) setMensagem(`Lembrei de ${total} exemplos.`);
+
       setEstado("pronto");
     } catch (falha) {
       pararCamera(criados.camera);
@@ -220,16 +264,45 @@ export function LixeiraCamera({ className }: { className?: string }) {
   function ensinar(classe: Classe) {
     const visao = visaoRef.current;
     const video = videoRef.current;
-    if (!visao || !video || analisando) return;
+    if (!visao || !video || analisando || esquecendo) return;
 
     const antes = visao.contagem()[classe];
-    visao.ensinar(video, classe);
+    const embedding = visao.ensinar(video, classe);
     const novasContagens = visao.contagem();
     setContagens(novasContagens);
 
-    if (novasContagens[classe] > antes) {
+    if (novasContagens[classe] > antes && embedding) {
       const nome = classe === "vazio" ? "Vazio" : categorias[classe].nome;
       setMensagem(`Guardei mais um exemplo de ${nome}.`);
+
+      const sessaoAtual = sessaoRef.current;
+      if (sessaoAtual) {
+        let fotoPromise: Promise<Blob>;
+
+        try {
+          fotoPromise = capturarFoto(video);
+        } catch {
+          fotoPromise = Promise.reject(new Error("Não consegui tirar a foto."));
+        }
+
+        filaRef.current = filaRef.current
+          .catch(() => undefined)
+          .then(async () => {
+            const foto = await fotoPromise;
+            const exemplo = await salvarExemplo(sessaoAtual, classe, embedding, foto);
+            await guardarNoCache(sessaoAtual, exemplo);
+          })
+          .catch(() => {
+            if (
+              montadoRef.current &&
+              sessaoRef.current?.userId === sessaoAtual.userId
+            ) {
+              setMensagem(
+                "Não consegui guardar esse exemplo, mas lembro dele até cê fechar a página.",
+              );
+            }
+          });
+      }
     } else {
       setMensagem("Ainda não enxerguei um quadro da câmera. Espera só um tiquinho.");
     }
@@ -238,7 +311,7 @@ export function LixeiraCamera({ className }: { className?: string }) {
   async function analisarObjeto() {
     const visao = visaoRef.current;
     const video = videoRef.current;
-    if (!visao || !video || analisando) return;
+    if (!visao || !video || analisando || esquecendo) return;
 
     setAnalisando(true);
     setResultado(null);
@@ -252,6 +325,10 @@ export function LixeiraCamera({ className }: { className?: string }) {
       setMensagem(
         veredito ? "" : "Não consegui ver o objeto. Chega mais perto e tenta de novo.",
       );
+
+      if (veredito && sessaoRef.current) {
+        void registrarDescarte(veredito).catch(() => undefined);
+      }
     } catch {
       if (montadoRef.current) {
         setMensagem("Meu olho tropeçou na análise. Tenta mais uma vez, sô.");
@@ -261,15 +338,50 @@ export function LixeiraCamera({ className }: { className?: string }) {
     }
   }
 
-  function esquecer() {
-    visaoRef.current?.esquecer();
-    setContagens({ ...contagemInicial });
+  async function esquecer() {
+    const visao = visaoRef.current;
+    const sessaoAtual = sessaoRef.current;
+    if (!visao || analisando || esquecendo || sessaoAtual?.admin) return;
+
     setResultado(null);
-    setMensagem("Pronto, esqueci o que cê me ensinou.");
+
+    if (!sessaoAtual) {
+      visao.esquecer();
+      setContagens({ ...contagemInicial });
+      setMensagem("Pronto, esqueci o que cê me ensinou.");
+      return;
+    }
+
+    setEsquecendo(true);
+    setMensagem("Esquecendo o que cê me ensinou…");
+
+    try {
+      await filaRef.current.catch(() => undefined);
+      await desativarMeusExemplos(sessaoAtual);
+      const exemplos = await sincronizarExemplos(sessaoAtual);
+
+      if (
+        !montadoRef.current ||
+        visaoRef.current !== visao ||
+        sessaoRef.current?.userId !== sessaoAtual.userId
+      ) {
+        return;
+      }
+
+      visao.carregar(exemplos);
+      setContagens(visao.contagem());
+      setMensagem("Pronto, esqueci o que cê me ensinou.");
+    } catch {
+      if (montadoRef.current) {
+        setMensagem("Não consegui esquecer agora. Tenta de novo daqui a pouco.");
+      }
+    } finally {
+      if (montadoRef.current) setEsquecendo(false);
+    }
   }
 
   const classesEnsinadas = Object.values(contagens).filter((quantidade) => quantidade > 0).length;
-  const podeAnalisar = classesEnsinadas >= 2 && !analisando;
+  const podeAnalisar = classesEnsinadas >= 2 && !analisando && !esquecendo;
   const cameraVisivel = estado === "carregando" || estado === "pronto";
 
   return (
@@ -343,7 +455,7 @@ export function LixeiraCamera({ className }: { className?: string }) {
                 key={id}
                 type="button"
                 onClick={() => ensinar(id)}
-                disabled={analisando}
+                disabled={analisando || esquecendo}
                 aria-label={`Ensinar ${categorias[id].nome} com o quadro atual`}
                 className="aperta min-h-11 cursor-pointer rounded-full px-4 py-3 font-display font-bold disabled:cursor-not-allowed disabled:opacity-60"
                 style={{
@@ -357,7 +469,7 @@ export function LixeiraCamera({ className }: { className?: string }) {
             <button
               type="button"
               onClick={() => ensinar("vazio")}
-              disabled={analisando}
+              disabled={analisando || esquecendo}
               aria-label="Ensinar Vazio com o quadro atual"
               className="aperta min-h-11 cursor-pointer rounded-full border-2 border-ink-soft bg-page px-4 py-3 font-display font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -396,16 +508,27 @@ export function LixeiraCamera({ className }: { className?: string }) {
             {mensagem}
           </p>
 
-          <button
-            type="button"
-            onClick={esquecer}
-            className="aperta tinge mt-4 min-h-11 cursor-pointer px-1 text-sm font-bold text-ink-soft underline"
-          >
-            Esquecer o que aprendi
-          </button>
-          <p className="mt-3 text-sm text-ink-soft">
-            O que eu aprendo aqui some quando cê fecha a página. Guardar vem na próxima etapa.
-          </p>
+          {sessao?.admin ? (
+            <p className="mt-4 text-sm text-ink-soft">
+              Cê é admin: o que ensinar aqui vira a base que todo mundo usa.
+            </p>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={esquecer}
+                disabled={esquecendo}
+                className="aperta tinge mt-4 min-h-11 cursor-pointer px-1 text-sm font-bold text-ink-soft underline disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {esquecendo ? "Esquecendo…" : "Esquecer o que aprendi"}
+              </button>
+              <p className="mt-3 text-sm text-ink-soft">
+                {sessao
+                  ? "O que cê me ensina fica guardado e só vale pra você."
+                  : "Hoje não consigo guardar o que cê me ensina. Vale só enquanto a página estiver aberta."}
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>

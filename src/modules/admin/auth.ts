@@ -18,7 +18,9 @@ export type AdminStatus =
 export async function getAdminStatus(): Promise<AdminStatus> {
   const supabase = await createSessionClient();
   const { data } = await supabase.auth.getUser();
-  if (!data.user) return { estado: "fora" };
+  // Quem usou a Lixeira do Pequi tem uma sessão anônima: para o painel, é
+  // como se não estivesse logado (vai para o login, não para "sem permissão").
+  if (!data.user || data.user.is_anonymous) return { estado: "fora" };
 
   const email = data.user.email ?? "";
   const { data: admin } = await supabase.rpc("sou_admin");

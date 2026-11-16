@@ -17,6 +17,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      lixeira_descartes: {
+        Row: {
+          certeza_claude: number | null
+          classe_final: Database["public"]["Enums"]["lixeira_classe"]
+          classe_local: Database["public"]["Enums"]["lixeira_classe"] | null
+          confianca_local: number | null
+          created_at: string
+          fonte: string
+          foto_path: string | null
+          frase: string | null
+          humor: string | null
+          id: string
+          status: Database["public"]["Enums"]["lixeira_status"]
+          user_id: string
+        }
+        Insert: {
+          certeza_claude?: number | null
+          classe_final: Database["public"]["Enums"]["lixeira_classe"]
+          classe_local?: Database["public"]["Enums"]["lixeira_classe"] | null
+          confianca_local?: number | null
+          created_at?: string
+          fonte?: string
+          foto_path?: string | null
+          frase?: string | null
+          humor?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["lixeira_status"]
+          user_id?: string
+        }
+        Update: {
+          certeza_claude?: number | null
+          classe_final?: Database["public"]["Enums"]["lixeira_classe"]
+          classe_local?: Database["public"]["Enums"]["lixeira_classe"] | null
+          confianca_local?: number | null
+          created_at?: string
+          fonte?: string
+          foto_path?: string | null
+          frase?: string | null
+          humor?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["lixeira_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lixeira_exemplos: {
+        Row: {
+          ativo: boolean
+          classe: Database["public"]["Enums"]["lixeira_classe"]
+          created_at: string
+          embedding: string
+          foto_path: string | null
+          id: string
+          modelo: string
+          origem: Database["public"]["Enums"]["lixeira_origem"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          classe: Database["public"]["Enums"]["lixeira_classe"]
+          created_at?: string
+          embedding: string
+          foto_path?: string | null
+          id?: string
+          modelo?: string
+          origem?: Database["public"]["Enums"]["lixeira_origem"]
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          ativo?: boolean
+          classe?: Database["public"]["Enums"]["lixeira_classe"]
+          created_at?: string
+          embedding?: string
+          foto_path?: string | null
+          id?: string
+          modelo?: string
+          origem?: Database["public"]["Enums"]["lixeira_origem"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       post_tags: {
         Row: {
           post_id: string
@@ -264,6 +348,15 @@ export type Database = {
     }
     Enums: {
       content_status: "draft" | "published"
+      lixeira_classe:
+        | "metal"
+        | "plastico"
+        | "papel"
+        | "vidro"
+        | "rejeito"
+        | "vazio"
+      lixeira_origem: "base" | "claude" | "usuario"
+      lixeira_status: "ok" | "pendente" | "revisar"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -392,6 +485,16 @@ export const Constants = {
   public: {
     Enums: {
       content_status: ["draft", "published"],
+      lixeira_classe: [
+        "metal",
+        "plastico",
+        "papel",
+        "vidro",
+        "rejeito",
+        "vazio",
+      ],
+      lixeira_origem: ["base", "claude", "usuario"],
+      lixeira_status: ["ok", "pendente", "revisar"],
     },
   },
 } as const

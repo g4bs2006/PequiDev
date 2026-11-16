@@ -19,6 +19,7 @@ com equipes e placar ao vivo, tem guia próprio: [lixeira-telao.md](lixeira-tela
 | --- | --- | --- |
 | Onde mora | Rota `/lixeira` no PequiDev, módulo `src/modules/lixeira/` | Reaproveita a hospedagem com HTTPS (exigido pela câmera), o Supabase, o painel e o Pequi. Vira também um projeto do portfólio. |
 | Categorias | As cinco de material (metal, plástico, papel, vidro, rejeito) mais Vazio | Decidido pelo Gabriel em 2026-11-16, antes da etapa 1. |
+| Tabelas | Prefixo `lixeira_` no schema `public` | Decidido pelo Gabriel em 2026-11-16: não exige expor schema novo na API. |
 | Mascote | O próprio Pequi, com chapéu de lixeira | Já tem sprite, falas e personalidade. Dá unidade ao site e resolve o "nome do mascote em aberto" do plano original. |
 | Framework | Next.js, como o resto do site (não Vite) | Um repositório só. A página da lixeira é um componente de cliente. |
 | Visão | TensorFlow.js com MobileNet v2 e KNN, no navegador | Classifica na hora, sem internet, e aprender é só guardar mais um exemplo. |
@@ -31,8 +32,6 @@ com equipes e placar ao vivo, tem guia próprio: [lixeira-telao.md](lixeira-tela
 
 Ainda a confirmar com o Gabriel:
 
-- Tabelas num schema próprio `lixeira` ou com prefixo `lixeira_` no `public`
-  (ver [Banco de dados](#banco-de-dados)).
 - Quais chapéus existem e como cada um é desbloqueado.
 
 ## Categorias
@@ -60,7 +59,7 @@ ideia (classificar pela câmera), depois o acabamento.
 | --- | --- | --- | --- |
 | 0. Preparação | Conta na Anthropic, Supabase CLI, rota `/lixeira` com "Olá" | A página abre no celular pelo link da Vercel | **Rota feita**; conta na Anthropic e Supabase CLI ficam para a etapa 3 |
 | 1. Câmera e classificação local | Câmera traseira, MobileNet + KNN, coleta só na memória, votação entre 5 quadros | Depois de coletar exemplos, o app acerta os objetos de teste na maioria das vezes | **Feita** (rascunho do Sol); falta testar com objetos de verdade no celular |
-| 2. Banco | Tabelas, login anônimo, RLS, bucket `lixeira-fotos`, exemplos salvos e carregados, cache no IndexedDB | Fechar e reabrir o app mantém o que ele aprendeu | A fazer |
+| 2. Banco | Tabelas, login anônimo, RLS, bucket `lixeira-fotos`, exemplos salvos e carregados, cache no IndexedDB | Fechar e reabrir o app mantém o que ele aprendeu | **Código e banco feitos** (rascunho do Sol); falta ligar o login anônimo no Supabase e testar o reabrir |
 | 3. Claude | Edge Function `lixeira-validar`, foto de 384 px, plano B, limite de chamadas | Um objeto ambíguo é resolvido em até 3 segundos | A fazer |
 | 4. Aprendizado contínuo | Regras de decisão, botões Acertou / Errou, limite por classe | Um objeto que o app errou passa a ser acertado depois de uma correção | A fazer |
 | 5. Pequi e voz | Pequi de chapéu com os estados de humor, falas da lixeira, voz, mudo e legenda | Cada tipo de descarte gera reação e fala diferentes | A fazer |
@@ -105,6 +104,32 @@ ideia (classificar pela câmera), depois o acabamento.
   própria. **Falta** testar com objetos de verdade num celular.
 - Para abrir sem internet, o modelo terá de ser servido pelo próprio site.
   Fica para a etapa 6 (PWA).
+
+### Etapa 2: o que já existe
+
+- **Banco** (`supabase/migrations/20261116170912_lixeira_exemplos_e_descartes.sql`):
+  `lixeira_exemplos` (embedding `vector(1280)` com pgvector, sem normalizar,
+  mais `modelo`, `origem`, `ativo`, `foto_path`), `lixeira_descartes` e o bucket
+  privado `lixeira-fotos` (JPEG até 512 KB, pasta por usuário).
+- **Quem vê o quê:** exemplos de origem `base` (o admin ensina) e `claude` valem
+  para todo mundo; os de origem `usuario` só para quem ensinou. Assim um
+  visitante não estraga o Pequi dos outros. O admin enxerga tudo pelo RLS, mas
+  o app baixa só a base e os próprios (filtro em `baixarExemplosDesde`).
+  Visitante não cria `base` nem promove o próprio exemplo; cada um desativa só
+  os seus. Teto de 300 exemplos de usuário por classe e pessoa (gatilho).
+  Testado no banco simulando dois visitantes e o admin.
+- **Login anônimo:** `garantirSessao` usa a sessão que existir (o admin logado
+  no painel ensina a base) ou entra anônimo. O painel trata sessão anônima
+  como "fora". **Precisa estar ligado** em Authentication → Sign In / Providers
+  → "Allow anonymous sign-ins". Desligado, a lixeira segue no modo só memória e
+  avisa.
+- **Cache:** IndexedDB `pequidev-lixeira`, baixando do banco só o que mudou
+  desde o maior `updated_at` já visto. Desativar em vez de apagar faz o
+  "esquecer" chegar como mudança. Sem IndexedDB, baixa tudo.
+- **Recarregar o KNN:** `visao.carregar` normaliza cada embedding e monta um
+  tensor por classe para o `setClassifierDataset`.
+- **Ensinar** grava em fila: foto de 384 px no bucket, exemplo no banco, cópia
+  no cache. **Analisar** registra o descarte (sem foto nesta etapa).
 
 ## Como o código fica organizado
 
