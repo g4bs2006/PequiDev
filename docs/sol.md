@@ -43,6 +43,7 @@ seguinte.
 
 | Tarefa | Resultado |
 | --- | --- |
+| Lixeira, etapa 1 (câmera, MobileNet + KNN, votação) | `visao/modelo.ts`, `visao/votacao.ts`, `LixeiraCamera.tsx` e ajustes no `LixeiraOla` (5 arquivos); entrou com ajustes meus: um erro de tipo (variáveis atribuídas dentro de `.then()` viravam `never`), o tipo `Visao` reaproveitado em vez de copiado, botão Vazio e resultado neutro destacados do cartão, e "cru" no masculino |
 | Comentário do Pequi, banco e painel (brincadeira 7) | Tipos, consultas, cards, formulários e ações (11 arquivos), com a ordem de mudar só o necessário: veio limpo, sem reformatar nem perder comentário. Completei três lugares que a especificação não listava. Está no branch local `pequi-comenta`, esperando a migração. O balão no motor eu escrevi direto |
 | Peixinhos e lenço novo (brincadeira 6) | `peixes.ts` (novo), o peixe em `objetos.ts` e o contador no `DreamHost.tsx` entraram sem ajustes. O `engine.ts` veio compactado, sem 33 dos 34 comentários, e foi recusado: levei as partes novas à mão, e o peixe passou a aparecer também em página sem lugar para a caixa |
 | Caixa de papelão (brincadeira 5) | `objetos.ts` (caixa, plataforma de objeto, desenho em duas camadas) e `engine.ts` (plataformas de objeto, sono na caixa); entrou com quatro correções minhas: o tempo de sono parado no primeiro quadro, a caixa caindo quando o card se mexe, entrar na caixa só com o meio do corpo, e a caixa esperando a página nova |

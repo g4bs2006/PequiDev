@@ -1,10 +1,11 @@
 import { MemeCard } from "@/modules/pequi";
 
 import { type Categoria, categoriaIds, categorias } from "../categorias";
+import { LixeiraCamera } from "./LixeiraCamera";
 
 /**
- * Primeira versão da /lixeira (etapa 0 de docs/lixeira.md): o Pequi se
- * apresenta como fiscal e mostra as lixeiras. A câmera entra na etapa 1.
+ * Primeira versão da /lixeira (etapa 1 de docs/lixeira.md): o Pequi se
+ * apresenta como fiscal, abre a câmera e aprende exemplos só na memória.
  */
 export function LixeiraOla() {
   return (
@@ -23,9 +24,11 @@ export function LixeiraOla() {
           Olá! Eu sou o fiscal da lixeira.
         </h1>
         <p className="mt-4 max-w-xl text-lg text-pretty text-ink-soft">
-          Logo, logo cê aponta a câmera do celular para um lixo e eu falo em qual lixeira ele vai.
-          Por enquanto, decora as cores comigo.
+          Aponte a câmera para um lixo e eu falo em qual lixeira ele vai. Por enquanto eu chego cru:
+          primeiro cê me ensina.
         </p>
+
+        <LixeiraCamera className="mt-8" />
 
         <ul className="mt-8 grid max-w-xl gap-3 sm:grid-cols-2" aria-label="As lixeiras da coleta seletiva">
           {categoriaIds.map((id) => (

@@ -18,6 +18,7 @@ com equipes e placar ao vivo, tem guia próprio: [lixeira-telao.md](lixeira-tela
 | Decisão | Escolha | Por quê |
 | --- | --- | --- |
 | Onde mora | Rota `/lixeira` no PequiDev, módulo `src/modules/lixeira/` | Reaproveita a hospedagem com HTTPS (exigido pela câmera), o Supabase, o painel e o Pequi. Vira também um projeto do portfólio. |
+| Categorias | As cinco de material (metal, plástico, papel, vidro, rejeito) mais Vazio | Decidido pelo Gabriel em 2026-11-16, antes da etapa 1. |
 | Mascote | O próprio Pequi, com chapéu de lixeira | Já tem sprite, falas e personalidade. Dá unidade ao site e resolve o "nome do mascote em aberto" do plano original. |
 | Framework | Next.js, como o resto do site (não Vite) | Um repositório só. A página da lixeira é um componente de cliente. |
 | Visão | TensorFlow.js com MobileNet v2 e KNN, no navegador | Classifica na hora, sem internet, e aprender é só guardar mais um exemplo. |
@@ -30,8 +31,6 @@ com equipes e placar ao vivo, tem guia próprio: [lixeira-telao.md](lixeira-tela
 
 Ainda a confirmar com o Gabriel:
 
-- Começar com as cinco categorias de material ou só com Reciclável, Rejeito e
-  Vazio, separando os materiais depois.
 - Tabelas num schema próprio `lixeira` ou com prefixo `lixeira_` no `public`
   (ver [Banco de dados](#banco-de-dados)).
 - Quais chapéus existem e como cada um é desbloqueado.
@@ -60,7 +59,7 @@ ideia (classificar pela câmera), depois o acabamento.
 | Etapa | Entrega | Pronto quando | Situação |
 | --- | --- | --- | --- |
 | 0. Preparação | Conta na Anthropic, Supabase CLI, rota `/lixeira` com "Olá" | A página abre no celular pelo link da Vercel | **Rota feita**; conta na Anthropic e Supabase CLI ficam para a etapa 3 |
-| 1. Câmera e classificação local | Câmera traseira, MobileNet + KNN, coleta só na memória, votação entre 5 quadros | Depois de coletar exemplos, o app acerta os objetos de teste na maioria das vezes | A fazer |
+| 1. Câmera e classificação local | Câmera traseira, MobileNet + KNN, coleta só na memória, votação entre 5 quadros | Depois de coletar exemplos, o app acerta os objetos de teste na maioria das vezes | **Feita** (rascunho do Sol); falta testar com objetos de verdade no celular |
 | 2. Banco | Tabelas, login anônimo, RLS, bucket `lixeira-fotos`, exemplos salvos e carregados, cache no IndexedDB | Fechar e reabrir o app mantém o que ele aprendeu | A fazer |
 | 3. Claude | Edge Function `lixeira-validar`, foto de 384 px, plano B, limite de chamadas | Um objeto ambíguo é resolvido em até 3 segundos | A fazer |
 | 4. Aprendizado contínuo | Regras de decisão, botões Acertou / Errou, limite por classe | Um objeto que o app errou passa a ser acertado depois de uma correção | A fazer |
@@ -79,7 +78,33 @@ ideia (classificar pela câmera), depois o acabamento.
   tokens `--lixeira-amarelo`, `-vermelho`, `-azul`, `-verde` e `-cinza` (com
   `--on-lixeira-*` para o texto) em `globals.css`, iguais nos dois temas. O
   vermelho e o verde foram escurecidos para o texto branco passar de 4,5:1.
-- Ainda nada de câmera, TensorFlow.js ou banco: isso começa na etapa 1.
+
+### Etapa 1: o que já existe
+
+- **O toque acorda tudo.** O botão "Abrir a câmera" pede a câmera traseira e,
+  ao mesmo tempo, faz o `import()` de `visao/modelo.ts`. Antes disso a página
+  não baixa nada do TensorFlow: ele vai num pedaço separado de uns 880 KB.
+  O MobileNet (uns 14 MB) vem do tfhub.dev, que hoje redireciona para o Kaggle.
+- **Pacotes:** só as partes do TensorFlow.js que a lixeira usa
+  (`tfjs-core`, `tfjs-converter`, `tfjs-backend-webgl`, `tfjs-backend-cpu`,
+  4.22.0) mais `@tensorflow-models/mobilenet` 2.1.1 e `knn-classifier` 1.2.6.
+  O backend é WebGL, com CPU de reserva.
+- **Ensinar:** um botão por classe (as cinco e Vazio). Cada toque guarda o
+  quadro atual como exemplo, só na memória. "Esquecer o que aprendi" zera.
+- **Analisar:** precisa de pelo menos duas classes ensinadas. Lê 5 quadros com
+  120 ms entre eles, e `visao/votacao.ts` escolhe a maioria (empate: maior
+  confiança média). Só aceita com maioria estrita; senão o Pequi diz que ficou
+  na dúvida. k é 10 quando toda classe ensinada tem 10 exemplos, senão 3.
+- **Memória:** os embeddings ficam dentro de `tidy()` e são descartados depois
+  do `addExample` e do `predictClass`. Seis análises seguidas deixaram o número
+  de tensores igual (113 antes e depois).
+- **Testado** no navegador com uma câmera falsa (um canvas com uma lata, uma
+  garrafa, um jornal e o fundo vazio): com 10 exemplos de cada, acertou as
+  quatro cenas com 5 de 5 quadros, em menos de 1 s por análise. Erros de
+  câmera (negada, ausente, sem HTTPS) e de download do modelo têm mensagem
+  própria. **Falta** testar com objetos de verdade num celular.
+- Para abrir sem internet, o modelo terá de ser servido pelo próprio site.
+  Fica para a etapa 6 (PWA).
 
 ## Como o código fica organizado
 
