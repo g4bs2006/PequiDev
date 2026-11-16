@@ -59,7 +59,7 @@ ideia (classificar pela câmera), depois o acabamento.
 | --- | --- | --- | --- |
 | 0. Preparação | Conta na Anthropic, Supabase CLI, rota `/lixeira` com "Olá" | A página abre no celular pelo link da Vercel | **Rota feita**; conta na Anthropic e Supabase CLI ficam para a etapa 3 |
 | 1. Câmera e classificação local | Câmera traseira, MobileNet + KNN, coleta só na memória, votação entre 5 quadros | Depois de coletar exemplos, o app acerta os objetos de teste na maioria das vezes | **Feita** (rascunho do Sol); falta testar com objetos de verdade no celular |
-| 2. Banco | Tabelas, login anônimo, RLS, bucket `lixeira-fotos`, exemplos salvos e carregados, cache no IndexedDB | Fechar e reabrir o app mantém o que ele aprendeu | **Código e banco feitos** (rascunho do Sol); falta ligar o login anônimo no Supabase e testar o reabrir |
+| 2. Banco | Tabelas, login anônimo, RLS, bucket `lixeira-fotos`, exemplos salvos e carregados, cache no IndexedDB | Fechar e reabrir o app mantém o que ele aprendeu | **Feita** (rascunho do Sol) |
 | 3. Claude | Edge Function `lixeira-validar`, foto de 384 px, plano B, limite de chamadas | Um objeto ambíguo é resolvido em até 3 segundos | A fazer |
 | 4. Aprendizado contínuo | Regras de decisão, botões Acertou / Errou, limite por classe | Um objeto que o app errou passa a ser acertado depois de uma correção | A fazer |
 | 5. Pequi e voz | Pequi de chapéu com os estados de humor, falas da lixeira, voz, mudo e legenda | Cada tipo de descarte gera reação e fala diferentes | A fazer |
@@ -120,9 +120,9 @@ ideia (classificar pela câmera), depois o acabamento.
   Testado no banco simulando dois visitantes e o admin.
 - **Login anônimo:** `garantirSessao` usa a sessão que existir (o admin logado
   no painel ensina a base) ou entra anônimo. O painel trata sessão anônima
-  como "fora". **Precisa estar ligado** em Authentication → Sign In / Providers
-  → "Allow anonymous sign-ins". Desligado, a lixeira segue no modo só memória e
-  avisa.
+  como "fora". Ligado em Authentication → Sign In / Providers → "Allow
+  anonymous sign-ins" (e salvo) desde 2026-11-16. Se for desligado, a lixeira
+  segue no modo só memória e avisa.
 - **Cache:** IndexedDB `pequidev-lixeira`, baixando do banco só o que mudou
   desde o maior `updated_at` já visto. Desativar em vez de apagar faz o
   "esquecer" chegar como mudança. Sem IndexedDB, baixa tudo.
@@ -130,6 +130,11 @@ ideia (classificar pela câmera), depois o acabamento.
   tensor por classe para o `setClassifierDataset`.
 - **Ensinar** grava em fila: foto de 384 px no bucket, exemplo no banco, cópia
   no cache. **Analisar** registra o descarte (sem foto nesta etapa).
+- **Testado** com a câmera falsa e o login anônimo ligado: 18 exemplos e 18
+  fotos (de uns 5 KB) gravados; ao recarregar, "Lembrei de 18 exemplos" e as
+  três cenas certas sem ensinar de novo, com os 18 no cache local. "Esquecer"
+  desativou os 18 no banco e esvaziou o cache, e continuou esquecido depois de
+  recarregar. A mesma sessão anônima, no `/admin`, foi para o login.
 
 ## Como o código fica organizado
 
