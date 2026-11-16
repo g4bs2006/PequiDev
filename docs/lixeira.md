@@ -9,8 +9,8 @@ usar também no blog.
 O projeto é só software. A parte física do plano original (esteira, servos,
 ESP32) ficou de fora para cortar custo e complexidade.
 
-Este guia é o plano. O documento original do projeto (feito para um app
-separado, em Vite) foi adaptado aqui para morar no PequiDev. O telão para TV,
+Este guia é o plano. O [documento original do projeto](lixeira-documento-original.md)
+(feito para um app separado, em Vite) foi adaptado aqui para morar no PequiDev. O telão para TV,
 com equipes e placar ao vivo, tem guia próprio: [lixeira-telao.md](lixeira-telao.md).
 
 ## Decisões tomadas
