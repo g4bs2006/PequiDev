@@ -48,7 +48,7 @@ supabase/migrations/   Histórico do banco: tabelas e regras de acesso
 public/pequi/          Recortes do Pequi e a folha de sprites, já prontos para a web
 referencias/           Imagens originais do Pequi e as fontes do sprite (sprite-ia/)
 scripts/               Scripts que geram os recortes, o sprite e a imagem de compartilhamento
-docs/                  Guias e planos: o Pequi, animações, como escrever um post, o painel, o Sol, modo sonho
+docs/                  Guias e planos: o Pequi, animações, como escrever um post, o painel, o Sol, modo sonho, a lixeira
 ```
 
 Regras da casa:
@@ -108,3 +108,9 @@ python scripts/montar-sprite.py
 O mesmo sprite já acompanha a leitura no índice lateral do post: o Pequi pula até a seção que está na tela e dorme se ninguém rolar a página. A prévia fica em `/brincar/leitura`.
 
 O plano, as decisões, o estado de cada etapa e como gerar ou adicionar animações estão em [docs/modo-sonho.md](docs/modo-sonho.md).
+
+## Lixeira do Pequi (planejada)
+
+Um app em `/lixeira`: a câmera do celular diz em qual lixeira vai cada objeto, e o Pequi, de chapéu de lixeira, reage com uma frase falada. A classificação roda no navegador (MobileNet + KNN), os casos duvidosos vão para o Claude numa Edge Function, e o modelo aprende com o uso. Quem usa a lixeira ganha chapéus que o Pequi passa a usar no blog.
+
+O plano, as decisões e as etapas estão em [docs/lixeira.md](docs/lixeira.md). O telão para TV, com equipes e placar ao vivo, está em [docs/lixeira-telao.md](docs/lixeira-telao.md).
