@@ -17,9 +17,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      lixeira_chamadas_api: {
+        Row: {
+          created_at: string
+          id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          user_id?: string
+        }
+        Relationships: []
+      }
       lixeira_descartes: {
         Row: {
-          certeza_claude: number | null
+          certeza_gpt: number | null
           classe_final: Database["public"]["Enums"]["lixeira_classe"]
           classe_local: Database["public"]["Enums"]["lixeira_classe"] | null
           confianca_local: number | null
@@ -33,7 +51,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          certeza_claude?: number | null
+          certeza_gpt?: number | null
           classe_final: Database["public"]["Enums"]["lixeira_classe"]
           classe_local?: Database["public"]["Enums"]["lixeira_classe"] | null
           confianca_local?: number | null
@@ -47,7 +65,7 @@ export type Database = {
           user_id?: string
         }
         Update: {
-          certeza_claude?: number | null
+          certeza_gpt?: number | null
           classe_final?: Database["public"]["Enums"]["lixeira_classe"]
           classe_local?: Database["public"]["Enums"]["lixeira_classe"] | null
           confianca_local?: number | null
@@ -355,7 +373,7 @@ export type Database = {
         | "vidro"
         | "rejeito"
         | "vazio"
-      lixeira_origem: "base" | "claude" | "usuario"
+      lixeira_origem: "base" | "gpt" | "usuario"
       lixeira_status: "ok" | "pendente" | "revisar"
     }
     CompositeTypes: {
@@ -493,7 +511,7 @@ export const Constants = {
         "rejeito",
         "vazio",
       ],
-      lixeira_origem: ["base", "claude", "usuario"],
+      lixeira_origem: ["base", "gpt", "usuario"],
       lixeira_status: ["ok", "pendente", "revisar"],
     },
   },

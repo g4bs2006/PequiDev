@@ -6,9 +6,13 @@ import { guardarNoCache, sincronizarExemplos } from "../cache";
 import { type Classe, categoriaIds, categorias } from "../categorias";
 import {
   desativarMeusExemplos,
+  FalhaNuvem,
   garantirSessao,
+  guardarFotoDoDescarte,
+  perguntarAoPequi,
   registrarDescarte,
   salvarExemplo,
+  type RespostaPequi,
   type Sessao,
 } from "../queries";
 import { capturarFoto } from "../visao/foto";
@@ -23,6 +27,11 @@ type ErroAbertura = {
   texto: string;
   podeTentar: boolean;
 };
+
+type ResultadoMostrado =
+  | { tipo: "local"; veredito: Veredito }
+  | { tipo: "nuvem"; resposta: RespostaPequi }
+  | { tipo: "plano-b"; veredito: Veredito; frase: string };
 
 const contagemInicial: Record<Classe, number> = {
   metal: 0,
@@ -87,8 +96,9 @@ export function LixeiraCamera({ className }: { className?: string }) {
   const [erro, setErro] = useState<ErroAbertura | null>(null);
   const [sessao, setSessao] = useState<Sessao | null>(null);
   const [contagens, setContagens] = useState<Record<Classe, number>>(contagemInicial);
-  const [resultado, setResultado] = useState<Veredito | null>(null);
+  const [resultado, setResultado] = useState<ResultadoMostrado | null>(null);
   const [analisando, setAnalisando] = useState(false);
+  const [pensando, setPensando] = useState(false);
   const [esquecendo, setEsquecendo] = useState(false);
   const [mensagem, setMensagem] = useState("");
 
@@ -126,6 +136,7 @@ export function LixeiraCamera({ className }: { className?: string }) {
     sessaoRef.current = null;
     setSessao(null);
     setResultado(null);
+    setPensando(false);
     setErro(null);
     setMensagem("");
     setContagens(contagemInicial);
@@ -314,27 +325,145 @@ export function LixeiraCamera({ className }: { className?: string }) {
     if (!visao || !video || analisando || esquecendo) return;
 
     setAnalisando(true);
+    setPensando(false);
     setResultado(null);
     setMensagem("Olhando cinco quadros…");
 
     try {
-      const veredito = await visao.analisar(video);
-      if (!montadoRef.current || visaoRef.current !== visao) return;
+      let local: Veredito | null = null;
 
-      setResultado(veredito);
-      setMensagem(
-        veredito ? "" : "Não consegui ver o objeto. Chega mais perto e tenta de novo.",
-      );
+      if (classesEnsinadas >= 2) {
+        local = await visao.analisar(video);
+        if (!montadoRef.current || visaoRef.current !== visao) return;
+      }
 
-      if (veredito && sessaoRef.current) {
-        void registrarDescarte(veredito).catch(() => undefined);
+      const sessaoAtual = sessaoRef.current;
+
+      if (local?.aceito && local.confianca >= 0.85) {
+        setResultado({ tipo: "local", veredito: local });
+        setMensagem("");
+
+        if (sessaoAtual) {
+          void registrarDescarte({
+            classeLocal: local.classe,
+            confiancaLocal: local.confianca,
+            classeFinal: local.classe,
+            fonte: "local",
+            status: "ok",
+          }).catch(() => undefined);
+        }
+        return;
+      }
+
+      if (!sessaoAtual) {
+        setResultado(local ? { tipo: "local", veredito: local } : null);
+        setMensagem(
+          local ? "" : "Não consegui ver o objeto. Chega mais perto e tenta de novo.",
+        );
+        return;
+      }
+
+      const foto = await capturarFoto(video);
+      if (
+        !montadoRef.current ||
+        visaoRef.current !== visao ||
+        sessaoRef.current?.userId !== sessaoAtual.userId
+      ) {
+        return;
+      }
+
+      setPensando(true);
+      setMensagem("");
+      const fotoPathPromise = guardarFotoDoDescarte(sessaoAtual, foto);
+
+      try {
+        const resposta = await perguntarAoPequi(foto);
+        if (
+          !montadoRef.current ||
+          visaoRef.current !== visao ||
+          sessaoRef.current?.userId !== sessaoAtual.userId
+        ) {
+          return;
+        }
+
+        setPensando(false);
+        setResultado({ tipo: "nuvem", resposta });
+
+        const fotoPath = await fotoPathPromise;
+        if (
+          !montadoRef.current ||
+          visaoRef.current !== visao ||
+          sessaoRef.current?.userId !== sessaoAtual.userId
+        ) {
+          return;
+        }
+
+        void registrarDescarte({
+          classeLocal: local?.classe ?? null,
+          confiancaLocal: local?.confianca ?? null,
+          classeFinal: resposta.classe,
+          fonte: "gpt",
+          certezaGpt: resposta.certeza,
+          frase: resposta.frase,
+          humor: resposta.humor,
+          status: "ok",
+          fotoPath,
+        }).catch(() => undefined);
+      } catch (falha) {
+        if (
+          !montadoRef.current ||
+          visaoRef.current !== visao ||
+          sessaoRef.current?.userId !== sessaoAtual.userId
+        ) {
+          return;
+        }
+
+        setPensando(false);
+
+        if (!(falha instanceof FalhaNuvem)) throw falha;
+
+        if (!local) {
+          setMensagem(
+            "Não consegui pensar agora. Me ensina uns exemplos ou tenta daqui a pouco.",
+          );
+          return;
+        }
+
+        const frase = falha.motivo === "limite"
+          ? "Já pensei demais por hoje, sô. Vou no chute!"
+          : "Hmm, tô sem sinal… vou no chute!";
+
+        setResultado({ tipo: "plano-b", veredito: local, frase });
+        setMensagem("");
+
+        const fotoPath = await fotoPathPromise;
+        if (
+          !montadoRef.current ||
+          visaoRef.current !== visao ||
+          sessaoRef.current?.userId !== sessaoAtual.userId
+        ) {
+          return;
+        }
+
+        void registrarDescarte({
+          classeLocal: local.classe,
+          confiancaLocal: local.confianca,
+          classeFinal: local.classe,
+          fonte: "local",
+          frase,
+          status: "pendente",
+          fotoPath,
+        }).catch(() => undefined);
       }
     } catch {
       if (montadoRef.current) {
         setMensagem("Meu olho tropeçou na análise. Tenta mais uma vez, sô.");
       }
     } finally {
-      if (montadoRef.current) setAnalisando(false);
+      if (montadoRef.current) {
+        setAnalisando(false);
+        setPensando(false);
+      }
     }
   }
 
@@ -381,7 +510,7 @@ export function LixeiraCamera({ className }: { className?: string }) {
   }
 
   const classesEnsinadas = Object.values(contagens).filter((quantidade) => quantidade > 0).length;
-  const podeAnalisar = classesEnsinadas >= 2 && !analisando && !esquecendo;
+  const podeAnalisar = (sessao !== null || classesEnsinadas >= 2) && !analisando && !esquecendo;
   const cameraVisivel = estado === "carregando" || estado === "pronto";
 
   return (
@@ -490,18 +619,24 @@ export function LixeiraCamera({ className }: { className?: string }) {
               aria-describedby={classesEnsinadas < 2 ? "lixeira-analisar-dica" : undefined}
               className="aperta min-h-11 w-full cursor-pointer rounded-full bg-accent px-6 py-3 font-display text-lg font-bold text-on-accent shadow-button disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {analisando ? "Olhando cinco quadros…" : "Analisar objeto"}
+              {pensando ? "Pensando…" : analisando ? "Olhando cinco quadros…" : "Analisar objeto"}
             </button>
 
             {classesEnsinadas < 2 && (
               <p id="lixeira-analisar-dica" className="mt-2 text-sm text-ink-soft">
-                Ensine pelo menos duas classes antes de analisar.
+                {sessao
+                  ? "Sem exemplos eu pergunto pra nuvem. Ensinando, eu fico mais rápido."
+                  : "Ensine pelo menos duas classes antes de analisar."}
               </p>
             )}
           </div>
 
           <div aria-live="polite" aria-atomic="true" className="mt-5">
-            {resultado && <Resultado resultado={resultado} />}
+            {pensando ? (
+              <p className="rounded-card bg-page p-5 font-display text-xl font-bold text-ink">
+                Hmm… deixa eu pensar.
+              </p>
+            ) : resultado && <Resultado resultado={resultado} />}
           </div>
 
           <p aria-live="polite" className="mt-3 min-h-6 text-sm text-ink-soft">
@@ -535,40 +670,95 @@ export function LixeiraCamera({ className }: { className?: string }) {
   );
 }
 
-function Resultado({ resultado }: { resultado: Veredito }) {
-  if (!resultado.aceito) {
+function FrasePequi({ frase }: { frase: string }) {
+  return (
+    <p className="mt-3 rounded-card border border-ink-soft bg-surface p-4 font-display text-lg font-bold text-ink">
+      “{frase}”
+    </p>
+  );
+}
+
+function Resultado({ resultado }: { resultado: ResultadoMostrado }) {
+  if (resultado.tipo === "nuvem") {
+    const resposta = resultado.resposta;
+
+    if (resposta.classe === "vazio") {
+      return (
+        <>
+          <div className="rounded-card bg-page p-5 text-ink">
+            <p className="font-display text-xl font-bold">Não vi nada na frente da câmera.</p>
+          </div>
+          <FrasePequi frase={resposta.frase} />
+        </>
+      );
+    }
+
+    const categoria = categorias[resposta.classe];
+    const porcentagem = Math.round(resposta.certeza * 100);
+
     return (
-      <div className="rounded-card bg-page p-5 text-ink">
-        <p className="font-display text-xl font-bold">
-          Fiquei na dúvida. Tenta de novo, mais perto.
-        </p>
-      </div>
+      <>
+        <div
+          className="rounded-card p-5"
+          style={{ backgroundColor: categoria.fundo, color: categoria.texto }}
+        >
+          <p className="font-display text-2xl font-bold">
+            {categoria.cor} · {categoria.nome}
+          </p>
+          <p className="mt-1 font-bold">
+            Lixeira {categoria.lixeira} · {porcentagem}% de certeza · perguntei pra nuvem
+          </p>
+        </div>
+        <FrasePequi frase={resposta.frase} />
+      </>
     );
   }
 
-  if (resultado.classe === "vazio") {
+  const veredito = resultado.veredito;
+  const frase = resultado.tipo === "plano-b" ? resultado.frase : null;
+
+  if (!veredito.aceito) {
     return (
-      <div className="rounded-card bg-page p-5 text-ink">
-        <p className="font-display text-xl font-bold">Não vi nada na frente da câmera.</p>
-      </div>
+      <>
+        <div className="rounded-card bg-page p-5 text-ink">
+          <p className="font-display text-xl font-bold">
+            Fiquei na dúvida. Tenta de novo, mais perto.
+          </p>
+        </div>
+        {frase && <FrasePequi frase={frase} />}
+      </>
     );
   }
 
-  const categoria = categorias[resultado.classe];
-  const porcentagem = Math.round(resultado.confianca * 100);
+  if (veredito.classe === "vazio") {
+    return (
+      <>
+        <div className="rounded-card bg-page p-5 text-ink">
+          <p className="font-display text-xl font-bold">Não vi nada na frente da câmera.</p>
+        </div>
+        {frase && <FrasePequi frase={frase} />}
+      </>
+    );
+  }
+
+  const categoria = categorias[veredito.classe];
+  const porcentagem = Math.round(veredito.confianca * 100);
 
   return (
-    <div
-      className="rounded-card p-5"
-      style={{ backgroundColor: categoria.fundo, color: categoria.texto }}
-    >
-      <p className="font-display text-2xl font-bold">
-        {categoria.cor} · {categoria.nome}
-      </p>
-      <p className="mt-1 font-bold">
-        Lixeira {categoria.lixeira} · {porcentagem}% de certeza ({resultado.votos} de {resultado.total}{" "}
-        quadros)
-      </p>
-    </div>
+    <>
+      <div
+        className="rounded-card p-5"
+        style={{ backgroundColor: categoria.fundo, color: categoria.texto }}
+      >
+        <p className="font-display text-2xl font-bold">
+          {categoria.cor} · {categoria.nome}
+        </p>
+        <p className="mt-1 font-bold">
+          Lixeira {categoria.lixeira} · {porcentagem}% de certeza ({veredito.votos} de {veredito.total}{" "}
+          quadros)
+        </p>
+      </div>
+      {frase && <FrasePequi frase={frase} />}
+    </>
   );
 }

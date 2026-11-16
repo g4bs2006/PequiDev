@@ -1,8 +1,11 @@
+import { FunctionsHttpError } from "@supabase/supabase-js";
+
 import { getBrowserClient } from "@/lib/supabase/browser";
 
 import type { Classe } from "./categorias";
-import type { Veredito } from "./visao/votacao";
 
+export type Humor = "feliz" | "decepcionado" | "pensativo" | "surpreso";
+export type RespostaPequi = { classe: Classe; certeza: number; humor: Humor; frase: string };
 export type Sessao = { userId: string; admin: boolean };
 export type ExemploSalvo = {
   id: string;
@@ -12,8 +15,18 @@ export type ExemploSalvo = {
   updatedAt: string;
 };
 
+/** Erro com o motivo, para o app escolher a frase do plano B. */
+export class FalhaNuvem extends Error {
+  constructor(public motivo: "limite" | "tempo" | "indisponivel") {
+    super(motivo);
+    this.name = "FalhaNuvem";
+  }
+}
+
 const BUCKET = "lixeira-fotos";
 const TAMANHO_PAGINA = 500;
+const CLASSES: readonly Classe[] = ["metal", "plastico", "papel", "vidro", "rejeito", "vazio"];
+const HUMORES: readonly Humor[] = ["feliz", "decepcionado", "pensativo", "surpreso"];
 
 function lerEmbedding(valor: unknown): Float32Array {
   if (valor instanceof Float32Array) return Float32Array.from(valor);
@@ -35,6 +48,72 @@ function lerEmbedding(valor: unknown): Float32Array {
 function limitarConfianca(valor: number) {
   if (!Number.isFinite(valor)) return 0;
   return Math.min(1, Math.max(0, valor));
+}
+
+function blobEmBase64(foto: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+
+    leitor.onload = () => {
+      if (typeof leitor.result !== "string") {
+        reject(new Error("Não consegui preparar a foto."));
+        return;
+      }
+
+      const separador = leitor.result.indexOf(",");
+      if (separador < 0) {
+        reject(new Error("Não consegui preparar a foto."));
+        return;
+      }
+
+      resolve(leitor.result.slice(separador + 1));
+    };
+    leitor.onerror = () => reject(leitor.error ?? new Error("Não consegui preparar a foto."));
+    leitor.onabort = () => reject(new DOMException("Leitura cancelada.", "AbortError"));
+    leitor.readAsDataURL(foto);
+  });
+}
+
+function statusDaFalha(erro: unknown): number | null {
+  if (!(erro instanceof FunctionsHttpError)) return null;
+
+  const contexto: unknown = erro.context;
+  return contexto instanceof Response ? contexto.status : null;
+}
+
+function nomeDoErro(valor: unknown): string | null {
+  if (!valor || typeof valor !== "object" || !("name" in valor)) return null;
+  return typeof valor.name === "string" ? valor.name : null;
+}
+
+function foiAbortado(erro: unknown): boolean {
+  if (nomeDoErro(erro) === "AbortError") return true;
+  if (!erro || typeof erro !== "object" || !("context" in erro)) return false;
+  return nomeDoErro(erro.context) === "AbortError";
+}
+
+function validarResposta(valor: unknown): RespostaPequi | null {
+  if (!valor || typeof valor !== "object") return null;
+
+  const resposta = valor as Record<string, unknown>;
+  const classe = resposta.classe;
+  const certeza = resposta.certeza;
+  const humor = resposta.humor;
+  const frase = resposta.frase;
+
+  if (typeof classe !== "string" || !CLASSES.some((item) => item === classe)) return null;
+  if (typeof humor !== "string" || !HUMORES.some((item) => item === humor)) return null;
+  if (typeof certeza !== "number" || !Number.isFinite(certeza) || certeza < 0 || certeza > 1) {
+    return null;
+  }
+  if (typeof frase !== "string" || !frase.trim()) return null;
+
+  return {
+    classe: classe as Classe,
+    certeza,
+    humor: humor as Humor,
+    frase: frase.trim(),
+  };
 }
 
 /** Usa a sessão que já existir (o admin logado no painel, por exemplo) ou entra anônimo. */
@@ -60,6 +139,50 @@ export async function garantirSessao(): Promise<Sessao> {
     userId: sessao.user.id,
     admin: erroAdmin ? false : admin === true,
   };
+}
+
+/** Manda a foto para a Edge Function lixeira-validar. Desiste em 8 s. */
+export async function perguntarAoPequi(foto: Blob): Promise<RespostaPequi> {
+  try {
+    const imagem = await blobEmBase64(foto);
+    const supabase = getBrowserClient();
+    const { data, error } = await supabase.functions.invoke<unknown>("lixeira-validar", {
+      body: { imagem },
+      timeout: 8000,
+    });
+
+    if (error) throw error;
+
+    const resposta = validarResposta(data);
+    if (!resposta) throw new FalhaNuvem("indisponivel");
+    return resposta;
+  } catch (erro) {
+    if (erro instanceof FalhaNuvem) throw erro;
+
+    const status = statusDaFalha(erro);
+    if (status === 429) throw new FalhaNuvem("limite");
+    if (status === 504 || foiAbortado(erro)) throw new FalhaNuvem("tempo");
+    throw new FalhaNuvem("indisponivel");
+  }
+}
+
+/** Envia a foto do descarte para o bucket (na pasta do usuário) e devolve o caminho, ou null em erro. */
+export async function guardarFotoDoDescarte(
+  sessao: Sessao,
+  foto: Blob,
+): Promise<string | null> {
+  const supabase = getBrowserClient();
+  const fotoPath = `${sessao.userId}/${crypto.randomUUID()}.jpg`;
+
+  try {
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(fotoPath, foto, { contentType: "image/jpeg" });
+
+    return error ? null : fotoPath;
+  } catch {
+    return null;
+  }
 }
 
 /** Envia a foto e grava o exemplo. Origem 'base' se admin, senão 'usuario'. */
@@ -165,15 +288,29 @@ export async function desativarMeusExemplos(sessao: Sessao): Promise<void> {
   if (error) throw new Error("Não consegui esquecer seus exemplos.");
 }
 
-/** Registra uma análise no histórico (sem foto nesta etapa). */
-export async function registrarDescarte(veredito: Veredito): Promise<void> {
+/** Registra uma análise no histórico, com a foto quando ela for guardada. */
+export async function registrarDescarte(d: {
+  classeLocal: Classe | null;
+  confiancaLocal: number | null;
+  classeFinal: Classe;
+  fonte: "local" | "gpt";
+  certezaGpt?: number | null;
+  frase?: string | null;
+  humor?: Humor | null;
+  status: "ok" | "pendente" | "revisar";
+  fotoPath?: string | null;
+}): Promise<void> {
   const supabase = getBrowserClient();
   const { error } = await supabase.from("lixeira_descartes").insert({
-    classe_local: veredito.classe,
-    classe_final: veredito.classe,
-    confianca_local: limitarConfianca(veredito.confianca),
-    fonte: "local",
-    status: veredito.aceito ? "ok" : "revisar",
+    classe_local: d.classeLocal,
+    classe_final: d.classeFinal,
+    confianca_local: d.confiancaLocal === null ? null : limitarConfianca(d.confiancaLocal),
+    certeza_gpt: d.certezaGpt ?? null,
+    fonte: d.fonte,
+    frase: d.frase ?? null,
+    humor: d.humor ?? null,
+    status: d.status,
+    foto_path: d.fotoPath ?? null,
   });
 
   if (error) throw new Error("Não consegui registrar essa análise.");

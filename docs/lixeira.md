@@ -24,7 +24,7 @@ com equipes e placar ao vivo, tem guia próprio: [lixeira-telao.md](lixeira-tela
 | Framework | Next.js, como o resto do site (não Vite) | Um repositório só. A página da lixeira é um componente de cliente. |
 | Visão | TensorFlow.js com MobileNet v2 e KNN, no navegador | Classifica na hora, sem internet, e aprender é só guardar mais um exemplo. |
 | Peso | TensorFlow.js carregado só em `/lixeira`, por import dinâmico | Quem só lê o blog não baixa nada a mais. |
-| Casos duvidosos | Claude Haiku numa Supabase Edge Function | A chave fica só no servidor. Uma chamada devolve classe, certeza e a fala do Pequi. |
+| Casos duvidosos | GPT da OpenAI (`gpt-5.4-mini`) numa Supabase Edge Function | Decidido pelo Gabriel em 2026-11-16, no lugar do Claude Haiku do plano original. A chave fica só no servidor. Uma chamada devolve classe, certeza e a fala do Pequi. |
 | Identificação | Login anônimo do Supabase | Cada celular ganha um usuário sem e-mail nem senha. Seguro no PequiDev porque toda escrita do blog já exige `private.is_admin()`. |
 | Banco | Tabelas novas, sem mexer nas do blog | O blog continua igual. A lixeira só acrescenta. |
 | Voz | Web Speech API (ElevenLabs fica como opcional) | Grátis e já vem no navegador. |
@@ -60,7 +60,7 @@ ideia (classificar pela câmera), depois o acabamento.
 | 0. Preparação | Conta na Anthropic, Supabase CLI, rota `/lixeira` com "Olá" | A página abre no celular pelo link da Vercel | **Rota feita**; conta na Anthropic e Supabase CLI ficam para a etapa 3 |
 | 1. Câmera e classificação local | Câmera traseira, MobileNet + KNN, coleta só na memória, votação entre 5 quadros | Depois de coletar exemplos, o app acerta os objetos de teste na maioria das vezes | **Feita** (rascunho do Sol); falta testar com objetos de verdade no celular |
 | 2. Banco | Tabelas, login anônimo, RLS, bucket `lixeira-fotos`, exemplos salvos e carregados, cache no IndexedDB | Fechar e reabrir o app mantém o que ele aprendeu | **Feita** (rascunho do Sol) |
-| 3. Claude | Edge Function `lixeira-validar`, foto de 384 px, plano B, limite de chamadas | Um objeto ambíguo é resolvido em até 3 segundos | A fazer |
+| 3. GPT | Edge Function `lixeira-validar`, foto de 384 px, plano B, limite de chamadas | Um objeto ambíguo é resolvido em até 3 segundos | **Feita** (app pelo Sol); falta o secret `OPENAI_API_KEY` no Supabase para a nuvem responder |
 | 4. Aprendizado contínuo | Regras de decisão, botões Acertou / Errou, limite por classe | Um objeto que o app errou passa a ser acertado depois de uma correção | A fazer |
 | 5. Pequi e voz | Pequi de chapéu com os estados de humor, falas da lixeira, voz, mudo e legenda | Cada tipo de descarte gera reação e fala diferentes | A fazer |
 | 6. Histórico, revisão e PWA | Histórico, telas de Coleta e Revisão no `/admin`, manifest e service worker de `/lixeira` | O app instala na tela inicial e abre sem internet | A fazer |
@@ -111,7 +111,7 @@ ideia (classificar pela câmera), depois o acabamento.
   `lixeira_exemplos` (embedding `vector(1280)` com pgvector, sem normalizar,
   mais `modelo`, `origem`, `ativo`, `foto_path`), `lixeira_descartes` e o bucket
   privado `lixeira-fotos` (JPEG até 512 KB, pasta por usuário).
-- **Quem vê o quê:** exemplos de origem `base` (o admin ensina) e `claude` valem
+- **Quem vê o quê:** exemplos de origem `base` (o admin ensina) e `gpt` valem
   para todo mundo; os de origem `usuario` só para quem ensinou. Assim um
   visitante não estraga o Pequi dos outros. O admin enxerga tudo pelo RLS, mas
   o app baixa só a base e os próprios (filtro em `baixarExemplosDesde`).
@@ -160,7 +160,7 @@ src/modules/lixeira/
   queries.ts             Leituras e escritas no Supabase
   components/            Câmera, faixa da lixeira, botões Acertou / Errou, balão de fala
 supabase/functions/lixeira-validar/
-  index.ts               Chama o Claude e devolve classe, certeza, humor e frase
+  index.ts               Chama o GPT e devolve classe, certeza, humor e frase
 supabase/migrations/     Uma migration nova para as tabelas da lixeira
 ```
 
@@ -170,13 +170,13 @@ Antes de escrever código, ler o guia correspondente em `node_modules/next/dist/
 ## Arquitetura e fluxo
 
 Tudo o que é rápido roda no celular. Só os casos com confiança abaixo de 0,85
-vão para a nuvem, onde a Edge Function chama o Claude.
+vão para a nuvem, onde a Edge Function chama o GPT.
 
 1. A câmera traseira captura o objeto.
 2. O MobileNet gera o embedding e o KNN devolve a classe e a confiança, sem
    internet.
 3. Com confiança de 0,85 ou mais, o Pequi reage na hora com uma frase do banco.
-4. Abaixo disso, a foto reduzida vai para a Edge Function, que chama o Claude e
+4. Abaixo disso, a foto reduzida vai para a Edge Function, que chama o GPT e
    devolve classe, certeza, humor e frase. Enquanto isso o Pequi fica pensativo.
 5. O descarte é registrado no Supabase. Se foi validado, vira também um exemplo
    novo.
@@ -228,8 +228,8 @@ Só se aprende com o que foi confirmado, para um erro nunca virar conhecimento.
 | Situação | O que o app faz | Aprende? |
 | --- | --- | --- |
 | Confiança local ≥ 0,85 | Aceita na hora | Não: exemplos repetidos só desequilibram |
-| Local < 0,85 e Claude ≥ 0,9 | Usa a classe do Claude | Sim, automaticamente |
-| Local < 0,85 e Claude < 0,9 | Usa a classe do Claude e pede confirmação | Só se o usuário confirmar; senão vai para a revisão |
+| Local < 0,85 e GPT ≥ 0,9 | Usa a classe do GPT | Sim, automaticamente |
+| Local < 0,85 e GPT < 0,9 | Usa a classe do GPT e pede confirmação | Só se o usuário confirmar; senão vai para a revisão |
 | Usuário toca em "Errou" | Mostra as categorias para escolher | Sim, com a classe do usuário |
 | Sem internet | Usa a classe local e marca como pendente | Não; valida quando a conexão voltar |
 
@@ -249,11 +249,13 @@ histórico.
 - **Foto junto:** cada exemplo guarda a foto, para revisar e para gerar os
   embeddings de novo se um dia o MobileNet mudar.
 
-## Validação com Claude
+## Validação com o GPT
 
-O app nunca fala direto com a API. Ele manda a foto (no máximo 384 px no lado
-maior, JPEG com qualidade 0,7) para a Edge Function `lixeira-validar`, que
-guarda a chave e faz a chamada.
+O plano original usava o Claude Haiku. Em 2026-11-16 o Gabriel trocou para o
+GPT da OpenAI. O app nunca fala direto com a API: ele manda a foto (no máximo
+384 px no lado maior, JPEG com qualidade 0,7, em base64) para a Edge Function
+`lixeira-validar` (`supabase/functions/lixeira-validar/index.ts`), que guarda a
+chave e faz a chamada.
 
 Resposta:
 
@@ -266,36 +268,40 @@ Resposta:
 }
 ```
 
-- `classe`: metal, plastico, papel, vidro, rejeito ou vazio. Fora disso, a
-  resposta é inválida.
-- `humor`: um dos estados do Pequi (ver abaixo).
-- `frase`: no máximo 15 palavras, pronta para ser falada.
+- **Modelo:** `gpt-5.4-mini` sem raciocínio extra (`reasoning.effort: none`),
+  pela Responses API, com a imagem em `detail: low` e a resposta presa a um
+  JSON Schema (`strict`), então classe e humor só saem da lista. Escolhido
+  numa medição em 2026-11-16 com uma lata desenhada e uma foto: cerca de
+  1,4 s, contra 1,6 a 2 s do `gpt-4.1-mini` e 2,1 a 2,4 s do `gpt-6.1-terra`.
+  O secret `LIXEIRA_MODELO` troca o modelo sem publicar a função.
+- **O prompt** está no código da função (versionado, em vez do secret
+  `PROMPT_LIXEIRA` do plano original), com as reações especiais: pequi,
+  celular e gato.
+- **Quem chama:** a função lê a sessão do Supabase (anônima ou não) pelo
+  cabeçalho `Authorization` e confere com `auth.getUser`. Por isso foi
+  publicada com `verify_jwt` desligado: a conferência é feita no código.
+- **CORS** só para pequidev.com.br, pequidev.vercel.app, as prévias da Vercel
+  do projeto e localhost:3000/3001.
+- **Timeout** de 8 s na função e no app. A função ainda confere o JSON antes de
+  devolver.
+- **Erros:** 401 sem sessão, 400 imagem inválida, 429 limite, 502 erro ou
+  resposta inválida da OpenAI, 503 sem a chave, 504 tempo esgotado.
 
-Prompt de sistema (ponto de partida, guardado no secret `PROMPT_LIXEIRA`):
+**Quando vai para a nuvem:** se o KNN aceitou com confiança de 0,85 ou mais, a
+resposta é local e ninguém é chamado. Senão (ou sem exemplos), com sessão, o
+Pequi diz "Hmm… deixa eu pensar." e a foto vai para a função. A resposta
+aparece na faixa da lixeira com "perguntei pra nuvem" e a frase num balão. A
+foto também vai para o bucket, e o descarte fica com `fonte: gpt`.
 
-```text
-Você é o Pequi, um gato laranja rajado de Goiás que trabalha de fiscal da
-lixeira: sarcástico, carinhoso e orgulhoso do seu trabalho.
-Olhe a imagem e identifique o objeto principal que a pessoa quer descartar.
-Classifique em: metal, plastico, papel, vidro, rejeito ou vazio.
-Use rejeito para itens sujos, misturados ou que a coleta seletiva comum não
-aceita (guardanapo engordurado, fralda, bituca).
-Use vazio se não houver objeto claro.
-Responda SOMENTE com um JSON válido com as chaves classe, certeza, humor e frase.
-humor é um de: feliz, decepcionado, pensativo, surpreso.
-A frase deve ter no máximo 15 palavras, em português do Brasil, engraçada e sem
-ofender ninguém.
-```
+**Plano B:** em qualquer falha da nuvem, o app usa a classe local, marca o
+descarte como `pendente` e o Pequi diz "Hmm, tô sem sinal… vou no chute!" (no
+limite: "Já pensei demais por hoje, sô. Vou no chute!"). Sem classe local, ele
+pede exemplos ou outra tentativa. Testado com a função sem chave (503): os dois
+caminhos aparecem na tela e o descarte pendente é gravado com a foto.
 
-A função também precisa de: CORS só para o domínio do site, validação do JSON
-antes de devolver, timeout de 8 segundos e o limite de chamadas por usuário.
-
-**Plano B:** em timeout, erro da API, JSON inválido ou classe fora da lista, o
-app usa a classe local, marca o descarte como `pendente` e o Pequi fala uma
-frase genérica ("Hmm, tô sem sinal... vou no chute!").
-
-**Abuso:** no máximo 30 chamadas por usuário por hora, controladas na tabela
-`chamadas_api`, mais um limite mensal de gastos no console da Anthropic.
+**Abuso:** no máximo 30 chamadas por pessoa por hora, contadas na tabela
+`lixeira_chamadas_api` (sem acesso pelo app, só a chave de serviço), mais um
+limite mensal de gastos no painel da OpenAI.
 
 ## O Pequi na lixeira
 
@@ -307,7 +313,7 @@ goianas leves (sô, uai, trem, cê) com moderação. Fica feliz com reciclagem,
 | Estado | Quando aparece | Animação do sprite |
 | --- | --- | --- |
 | Neutro | Esperando um objeto | `parado` |
-| Pensativo | Esperando o Claude | `sentar`, com três pontinhos no balão |
+| Pensativo | Esperando o GPT | `sentar`, com três pontinhos no balão |
 | Feliz | Algo reciclável | `pulo`, brilho na cor da lixeira |
 | Decepcionado | Rejeito | `sentar` com orelhas baixas (quadro a definir) |
 | Surpreso | Mão na frente, objeto inesperado | `patada` |
@@ -321,7 +327,7 @@ A tabela usa as sete animações que já existem na folha. Se faltar expressão
 **Falas:** ficam em `src/modules/lixeira/falas.ts`, no mesmo formato de
 `src/modules/pequi/falas.ts`. São usadas nos casos de confiança alta (sem
 chamar a API) e como plano B. Regras: nunca repetir uma das últimas 5,
-reticências de propósito (a voz pausa nelas) e frases boas do Claude podem ser
+reticências de propósito (a voz pausa nelas) e frases boas do GPT podem ser
 promovidas ao banco fixo pela Revisão. As frases do documento original entram
 adaptadas para o Pequi ("Bom dia! Tô de barriga vazia e pronto pra trabalhar").
 
@@ -378,8 +384,8 @@ Nada nas tabelas do blog muda. A lixeira acrescenta uma migration nova.
 
 | Tabela | Guarda | Campos principais |
 | --- | --- | --- |
-| `exemplos` | O conhecimento do KNN | classe, embedding `vector(1280)`, foto_path, origem (`base`, `claude`, `usuario`), ativo |
-| `descartes` | Histórico de uso | classe_local, confianca_local, classe_final, fonte, certeza_claude, frase, humor, status (`ok`, `pendente`, `revisar`), foto_path |
+| `exemplos` | O conhecimento do KNN | classe, embedding `vector(1280)`, foto_path, origem (`base`, `gpt`, `usuario`), ativo |
+| `descartes` | Histórico de uso | classe_local, confianca_local, classe_final, fonte, certeza_gpt, frase, humor, status (`ok`, `pendente`, `revisar`), foto_path |
 | `chamadas_api` | Limite de uso da API | user_id, created_at |
 | `perfis` | O chapéu escolhido | user_id, chapeu, updated_at |
 
@@ -409,7 +415,7 @@ não exige nada, só deixa os nomes mais longos. Escolher antes da etapa 2.
 **Storage:** bucket **privado** `lixeira-fotos`, separado do bucket público
 `imagens` do blog. Pastas por usuário (`<user_id>/<arquivo>.jpg`). Cada um grava
 e lê só a própria pasta, e o admin lê tudo. Fotos no tamanho de 384 px, as
-mesmas enviadas ao Claude.
+mesmas enviadas ao GPT.
 
 **Realtime:** ligado em `descartes`, para o histórico se atualizar sozinho.
 
@@ -432,7 +438,7 @@ Depois de mudar o esquema, gerar os tipos de novo (ver README).
 | Câmera | `/lixeira` | Todos | Câmera em tela cheia, retângulo guia, Pequi de chapéu num canto, balão de fala, faixa colorida com a lixeira ("Amarelo — Metal"), Acertou / Errou, mudo |
 | Histórico | `/lixeira/historico` | Todos | Descartes com miniatura, contagem por categoria (hoje, semana, mês), gráfico, percentual reciclável, chapéus desbloqueados |
 | Coleta | `/admin/lixeira/coleta` | Admin | Escolha da classe e sequência de fotos, com contador por classe |
-| Revisão | `/admin/lixeira/revisao` | Admin | Casos para revisar, discordâncias entre o modelo local e o Claude, exemplos recentes com botão de desativar, frases para promover |
+| Revisão | `/admin/lixeira/revisao` | Admin | Casos para revisar, discordâncias entre o modelo local e o GPT, exemplos recentes com botão de desativar, frases para promover |
 
 **PWA só da lixeira:** manifest próprio (nome, ícones de 192 e 512 px com o
 Pequi de chapéu, `display: standalone`, `start_url` e `scope` em `/lixeira`) e
@@ -448,19 +454,19 @@ nome da lixeira.
 
 ## Segurança, privacidade e custos
 
-- **Chave da Anthropic** só nos secrets do Supabase
-  (`supabase secrets set ANTHROPIC_API_KEY=...`). Nunca no código, no GitHub
-  ou em variável `NEXT_PUBLIC_*`.
+- **Chave da OpenAI** só nos secrets do Supabase (`OPENAI_API_KEY`, em Edge
+  Functions → Secrets). Nunca no código, no GitHub ou em variável
+  `NEXT_PUBLIC_*`.
 - **Chave de serviço do Supabase** só na Edge Function. O site continua usando
   apenas a chave pública, protegida pelas regras do banco.
 - **Privacidade:** o app fotografa o que está na frente da câmera. Avisar na
   primeira abertura, guardar só a foto reduzida e permitir apagar o próprio
   histórico.
 - **Custos:** hospedagem, Supabase, voz e TensorFlow.js são grátis. O único
-  gasto é a API do Claude, uma fração de centavo por chamada. Como o Claude só
-  é chamado nos casos duvidosos, o custo cai conforme o modelo aprende.
-  Acompanhar o gasto real no console nas primeiras semanas. Preços e limites
-  mudam: conferir em docs.claude.com e no site do Supabase.
+  gasto é a API da OpenAI, uma fração de centavo por chamada (uns 430 tokens
+  de entrada e 50 de saída). Como o GPT só é chamado nos casos duvidosos, o
+  custo cai conforme o modelo aprende. Acompanhar o gasto real no painel da
+  OpenAI nas primeiras semanas. Preços e limites mudam.
 
 ## Riscos e limitações
 
@@ -493,7 +499,7 @@ conta de verdade).
 - **Modo quiz:** a pessoa tenta adivinhar a lixeira antes do Pequi revelar. No
   telão vira a "aula ao vivo".
 - **Pergunta por voz:** "ei Pequi, isopor recicla?", com reconhecimento de voz
-  do navegador e resposta do Claude.
+  do navegador e resposta do GPT.
 - **O Pequi lembra de você:** comenta hábitos, comemora sequências de dias,
   muda de humor se a pessoa some.
 - **Retrospectiva:** "Você reciclou 214 itens este ano, o Pequi te chama de
