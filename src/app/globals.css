@@ -26,6 +26,7 @@
   --band: var(--ceu);
   --on-band: var(--tinta);
   --tag: var(--casca);
+  --on-tag: var(--creme);
   --danger: var(--focinho);
 
   /* Cartão de código: escuro nos dois temas. */
@@ -112,6 +113,7 @@
   --band: #2f6f69;
   --on-band: var(--creme);
   --tag: #9ccb66;
+  --on-tag: var(--tinta);
 
   --code-bg: #2f261c;
 
@@ -185,6 +187,7 @@
   --color-band: var(--band);
   --color-on-band: var(--on-band);
   --color-tag: var(--tag);
+  --color-on-tag: var(--on-tag);
   --color-danger: var(--danger);
 
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;

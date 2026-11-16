@@ -5,7 +5,14 @@ import { getBrowserClient } from "@/lib/supabase/browser";
 import type { Classe } from "./categorias";
 
 export type Humor = "feliz" | "decepcionado" | "pensativo" | "surpreso";
-export type RespostaPequi = { classe: Classe; certeza: number; humor: Humor; frase: string };
+export type RespostaPequi = {
+  classe: Classe;
+  certeza: number;
+  humor: Humor;
+  frase: string;
+  aprendeu: boolean;
+  exemploId: string | null;
+};
 export type Sessao = { userId: string; admin: boolean };
 export type ExemploSalvo = {
   id: string;
@@ -100,6 +107,8 @@ function validarResposta(valor: unknown): RespostaPequi | null {
   const certeza = resposta.certeza;
   const humor = resposta.humor;
   const frase = resposta.frase;
+  const aprendeu = resposta.aprendeu;
+  const exemploId = resposta.exemploId;
 
   if (typeof classe !== "string" || !CLASSES.some((item) => item === classe)) return null;
   if (typeof humor !== "string" || !HUMORES.some((item) => item === humor)) return null;
@@ -107,12 +116,16 @@ function validarResposta(valor: unknown): RespostaPequi | null {
     return null;
   }
   if (typeof frase !== "string" || !frase.trim()) return null;
+  if (aprendeu !== undefined && typeof aprendeu !== "boolean") return null;
+  if (exemploId !== undefined && exemploId !== null && typeof exemploId !== "string") return null;
 
   return {
     classe: classe as Classe,
     certeza,
     humor: humor as Humor,
     frase: frase.trim(),
+    aprendeu: aprendeu ?? false,
+    exemploId: typeof exemploId === "string" ? exemploId : null,
   };
 }
 
@@ -142,12 +155,19 @@ export async function garantirSessao(): Promise<Sessao> {
 }
 
 /** Manda a foto para a Edge Function lixeira-validar. Desiste em 8 s. */
-export async function perguntarAoPequi(foto: Blob): Promise<RespostaPequi> {
+export async function perguntarAoPequi(
+  foto: Blob,
+  extra?: { embedding?: Float32Array | null; fotoPath?: string | null },
+): Promise<RespostaPequi> {
   try {
     const imagem = await blobEmBase64(foto);
     const supabase = getBrowserClient();
     const { data, error } = await supabase.functions.invoke<unknown>("lixeira-validar", {
-      body: { imagem },
+      body: {
+        imagem,
+        embedding: extra?.embedding ? Array.from(extra.embedding) : null,
+        fotoPath: extra?.fotoPath ?? null,
+      },
       timeout: 8000,
     });
 
@@ -166,20 +186,25 @@ export async function perguntarAoPequi(foto: Blob): Promise<RespostaPequi> {
   }
 }
 
+/** Cria um caminho de foto dentro da pasta da sessão. */
+export function novoCaminhoDeFoto(sessao: Sessao): string {
+  return `${sessao.userId}/${crypto.randomUUID()}.jpg`;
+}
+
 /** Envia a foto do descarte para o bucket (na pasta do usuário) e devolve o caminho, ou null em erro. */
 export async function guardarFotoDoDescarte(
   sessao: Sessao,
   foto: Blob,
+  caminho = novoCaminhoDeFoto(sessao),
 ): Promise<string | null> {
   const supabase = getBrowserClient();
-  const fotoPath = `${sessao.userId}/${crypto.randomUUID()}.jpg`;
 
   try {
     const { error } = await supabase.storage
       .from(BUCKET)
-      .upload(fotoPath, foto, { contentType: "image/jpeg" });
+      .upload(caminho, foto, { contentType: "image/jpeg" });
 
-    return error ? null : fotoPath;
+    return error ? null : caminho;
   } catch {
     return null;
   }
@@ -193,7 +218,7 @@ export async function salvarExemplo(
   foto: Blob,
 ): Promise<ExemploSalvo> {
   const supabase = getBrowserClient();
-  const fotoPath = `${sessao.userId}/${crypto.randomUUID()}.jpg`;
+  const fotoPath = novoCaminhoDeFoto(sessao);
   let fotoSalva: string | null = null;
 
   try {
@@ -248,7 +273,7 @@ export async function baixarExemplosDesde(
     let consulta = supabase
       .from("lixeira_exemplos")
       .select("id, classe, embedding, ativo, updated_at")
-      .or(`origem.neq.usuario,user_id.eq.${sessao.userId}`);
+      .or(`origem.eq.base,user_id.eq.${sessao.userId}`);
 
     if (desde) consulta = consulta.gte("updated_at", desde);
 
@@ -275,17 +300,32 @@ export async function baixarExemplosDesde(
   return exemplos;
 }
 
-/** Desativa os exemplos de origem 'usuario' da própria sessão. */
+/**
+ * Desativa tudo o que a sessão ensinou: os exemplos de usuário e os que o GPT
+ * aprendeu com as fotos dela. A base não é dela, então fica.
+ */
 export async function desativarMeusExemplos(sessao: Sessao): Promise<void> {
   const supabase = getBrowserClient();
   const { error } = await supabase
     .from("lixeira_exemplos")
     .update({ ativo: false })
     .eq("user_id", sessao.userId)
-    .eq("origem", "usuario")
+    .neq("origem", "base")
     .eq("ativo", true);
 
   if (error) throw new Error("Não consegui esquecer seus exemplos.");
+}
+
+/** Desativa um exemplo próprio sem apagá-lo. */
+export async function desativarExemplo(id: string): Promise<void> {
+  const supabase = getBrowserClient();
+  const { error } = await supabase
+    .from("lixeira_exemplos")
+    .update({ ativo: false })
+    .eq("id", id)
+    .eq("ativo", true);
+
+  if (error) throw new Error("Não consegui desfazer esse aprendizado.");
 }
 
 /** Registra uma análise no histórico, com a foto quando ela for guardada. */
@@ -299,19 +339,51 @@ export async function registrarDescarte(d: {
   humor?: Humor | null;
   status: "ok" | "pendente" | "revisar";
   fotoPath?: string | null;
-}): Promise<void> {
+}): Promise<string | null> {
   const supabase = getBrowserClient();
-  const { error } = await supabase.from("lixeira_descartes").insert({
-    classe_local: d.classeLocal,
-    classe_final: d.classeFinal,
-    confianca_local: d.confiancaLocal === null ? null : limitarConfianca(d.confiancaLocal),
-    certeza_gpt: d.certezaGpt ?? null,
-    fonte: d.fonte,
-    frase: d.frase ?? null,
-    humor: d.humor ?? null,
-    status: d.status,
-    foto_path: d.fotoPath ?? null,
-  });
+  const { data, error } = await supabase
+    .from("lixeira_descartes")
+    .insert({
+      classe_local: d.classeLocal,
+      classe_final: d.classeFinal,
+      confianca_local: d.confiancaLocal === null ? null : limitarConfianca(d.confiancaLocal),
+      certeza_gpt: d.certezaGpt ?? null,
+      fonte: d.fonte,
+      frase: d.frase ?? null,
+      humor: d.humor ?? null,
+      status: d.status,
+      foto_path: d.fotoPath ?? null,
+    })
+    .select("id")
+    .single();
 
   if (error) throw new Error("Não consegui registrar essa análise.");
+  return typeof data?.id === "string" ? data.id : null;
+}
+
+/** Guarda a confirmação ou a correção de um descarte. */
+export async function responderDescarte(
+  id: string,
+  r: {
+    confirmado: boolean;
+    classeFinal?: Classe;
+    status?: "ok" | "revisar";
+  },
+): Promise<void> {
+  const supabase = getBrowserClient();
+  const atualizacao: {
+    confirmado: boolean;
+    classe_final?: Classe;
+    status?: "ok" | "revisar";
+  } = { confirmado: r.confirmado };
+
+  if (r.classeFinal !== undefined) atualizacao.classe_final = r.classeFinal;
+  if (r.status !== undefined) atualizacao.status = r.status;
+
+  const { error } = await supabase
+    .from("lixeira_descartes")
+    .update(atualizacao)
+    .eq("id", id);
+
+  if (error) throw new Error("Não consegui guardar sua resposta.");
 }

@@ -5,12 +5,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { guardarNoCache, sincronizarExemplos } from "../cache";
 import { type Classe, categoriaIds, categorias } from "../categorias";
 import {
+  desativarExemplo,
   desativarMeusExemplos,
   FalhaNuvem,
   garantirSessao,
   guardarFotoDoDescarte,
+  novoCaminhoDeFoto,
   perguntarAoPequi,
   registrarDescarte,
+  responderDescarte,
   salvarExemplo,
   type RespostaPequi,
   type Sessao,
@@ -19,6 +22,8 @@ import { capturarFoto } from "../visao/foto";
 // Só o tipo: o import() abaixo é que traz o TensorFlow, depois do toque.
 import type { Visao } from "../visao/modelo";
 import type { Veredito } from "../visao/votacao";
+import { CartaoResultado } from "./CartaoResultado";
+import { EscolherClasse } from "./EscolherClasse";
 
 type Estado = "inicial" | "carregando" | "pronto" | "erro";
 
@@ -28,10 +33,18 @@ type ErroAbertura = {
   podeTentar: boolean;
 };
 
+type DadosResultado = {
+  embedding: Float32Array | null;
+  foto: Blob | null;
+  descarteId: string | null;
+};
+
 type ResultadoMostrado =
-  | { tipo: "local"; veredito: Veredito }
-  | { tipo: "nuvem"; resposta: RespostaPequi }
-  | { tipo: "plano-b"; veredito: Veredito; frase: string };
+  | ({ tipo: "local"; veredito: Veredito } & DadosResultado)
+  | ({ tipo: "nuvem"; resposta: RespostaPequi } & DadosResultado)
+  | ({ tipo: "plano-b"; veredito: Veredito; frase: string } & DadosResultado);
+
+type FluxoResposta = "cartao" | "escolher" | "acertou" | "corrigido";
 
 const contagemInicial: Record<Classe, number> = {
   metal: 0,
@@ -83,6 +96,26 @@ function explicarErro(erro: unknown): ErroAbertura {
   };
 }
 
+async function capturarMomento(visao: Visao, video: HTMLVideoElement) {
+  const embedding = visao.embeddingDe(video);
+
+  try {
+    return { embedding, foto: await capturarFoto(video) };
+  } catch {
+    return { embedding, foto: null };
+  }
+}
+
+function classeDoResultado(resultado: ResultadoMostrado): Classe {
+  return resultado.tipo === "nuvem" ? resultado.resposta.classe : resultado.veredito.classe;
+}
+
+function textoDaCorrecao(classe: Classe) {
+  if (classe === "vazio") return "Aprendi: não tinha nada.";
+  const categoria = categorias[classe];
+  return `Aprendi: isso é ${categoria.nome} (${categoria.cor}).`;
+}
+
 export function LixeiraCamera({ className }: { className?: string }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -91,12 +124,15 @@ export function LixeiraCamera({ className }: { className?: string }) {
   const filaRef = useRef<Promise<void>>(Promise.resolve());
   const montadoRef = useRef(true);
   const tentativaRef = useRef(0);
+  const respostaEmCursoRef = useRef(false);
 
   const [estado, setEstado] = useState<Estado>("inicial");
   const [erro, setErro] = useState<ErroAbertura | null>(null);
   const [sessao, setSessao] = useState<Sessao | null>(null);
   const [contagens, setContagens] = useState<Record<Classe, number>>(contagemInicial);
   const [resultado, setResultado] = useState<ResultadoMostrado | null>(null);
+  const [fluxoResposta, setFluxoResposta] = useState<FluxoResposta>("cartao");
+  const [textoResposta, setTextoResposta] = useState("");
   const [analisando, setAnalisando] = useState(false);
   const [pensando, setPensando] = useState(false);
   const [esquecendo, setEsquecendo] = useState(false);
@@ -134,8 +170,11 @@ export function LixeiraCamera({ className }: { className?: string }) {
   async function abrirCamera() {
     liberarAtuais();
     sessaoRef.current = null;
+    respostaEmCursoRef.current = false;
     setSessao(null);
     setResultado(null);
+    setFluxoResposta("cartao");
+    setTextoResposta("");
     setPensando(false);
     setErro(null);
     setMensagem("");
@@ -319,11 +358,24 @@ export function LixeiraCamera({ className }: { className?: string }) {
     }
   }
 
+  async function registrarOuNull(
+    dados: Parameters<typeof registrarDescarte>[0],
+  ): Promise<string | null> {
+    try {
+      return await registrarDescarte(dados);
+    } catch {
+      return null;
+    }
+  }
+
   async function analisarObjeto() {
     const visao = visaoRef.current;
     const video = videoRef.current;
     if (!visao || !video || analisando || esquecendo) return;
 
+    respostaEmCursoRef.current = false;
+    setFluxoResposta("cartao");
+    setTextoResposta("");
     setAnalisando(true);
     setPensando(false);
     setResultado(null);
@@ -340,29 +392,38 @@ export function LixeiraCamera({ className }: { className?: string }) {
       const sessaoAtual = sessaoRef.current;
 
       if (local?.aceito && local.confianca >= 0.85) {
-        setResultado({ tipo: "local", veredito: local });
-        setMensagem("");
+        const momento = await capturarMomento(visao, video);
+        if (!montadoRef.current || visaoRef.current !== visao) return;
 
-        if (sessaoAtual) {
-          void registrarDescarte({
-            classeLocal: local.classe,
-            confiancaLocal: local.confianca,
-            classeFinal: local.classe,
-            fonte: "local",
-            status: "ok",
-          }).catch(() => undefined);
-        }
+        const descarteId = sessaoAtual
+          ? await registrarOuNull({
+              classeLocal: local.classe,
+              confiancaLocal: local.confianca,
+              classeFinal: local.classe,
+              fonte: "local",
+              status: "ok",
+            })
+          : null;
+
+        if (!montadoRef.current || visaoRef.current !== visao) return;
+        setResultado({ tipo: "local", veredito: local, ...momento, descarteId });
+        setMensagem("");
         return;
       }
 
       if (!sessaoAtual) {
-        setResultado(local ? { tipo: "local", veredito: local } : null);
-        setMensagem(
-          local ? "" : "Não consegui ver o objeto. Chega mais perto e tenta de novo.",
-        );
+        if (local) {
+          const momento = await capturarMomento(visao, video);
+          if (!montadoRef.current || visaoRef.current !== visao) return;
+          setResultado({ tipo: "local", veredito: local, ...momento, descarteId: null });
+          setMensagem("");
+        } else {
+          setMensagem("Não consegui ver o objeto. Chega mais perto e tenta de novo.");
+        }
         return;
       }
 
+      const embedding = visao.embeddingDe(video);
       const foto = await capturarFoto(video);
       if (
         !montadoRef.current ||
@@ -374,10 +435,38 @@ export function LixeiraCamera({ className }: { className?: string }) {
 
       setPensando(true);
       setMensagem("");
-      const fotoPathPromise = guardarFotoDoDescarte(sessaoAtual, foto);
+      const fotoPath = novoCaminhoDeFoto(sessaoAtual);
+      const fotoPathPromise = guardarFotoDoDescarte(sessaoAtual, foto, fotoPath);
 
       try {
-        const resposta = await perguntarAoPequi(foto);
+        const resposta = await perguntarAoPequi(foto, { embedding, fotoPath });
+        if (
+          !montadoRef.current ||
+          visaoRef.current !== visao ||
+          sessaoRef.current?.userId !== sessaoAtual.userId
+        ) {
+          return;
+        }
+
+        if (resposta.aprendeu && embedding) {
+          visao.adicionar(resposta.classe, embedding);
+          setContagens(visao.contagem());
+          setMensagem("Aprendi esse com a nuvem.");
+        }
+
+        const caminhoGuardado = await fotoPathPromise;
+        const descarteId = await registrarOuNull({
+          classeLocal: local?.classe ?? null,
+          confiancaLocal: local?.confianca ?? null,
+          classeFinal: resposta.classe,
+          fonte: "gpt",
+          certezaGpt: resposta.certeza,
+          frase: resposta.frase,
+          humor: resposta.humor,
+          status: "ok",
+          fotoPath: caminhoGuardado,
+        });
+
         if (
           !montadoRef.current ||
           visaoRef.current !== visao ||
@@ -387,28 +476,7 @@ export function LixeiraCamera({ className }: { className?: string }) {
         }
 
         setPensando(false);
-        setResultado({ tipo: "nuvem", resposta });
-
-        const fotoPath = await fotoPathPromise;
-        if (
-          !montadoRef.current ||
-          visaoRef.current !== visao ||
-          sessaoRef.current?.userId !== sessaoAtual.userId
-        ) {
-          return;
-        }
-
-        void registrarDescarte({
-          classeLocal: local?.classe ?? null,
-          confiancaLocal: local?.confianca ?? null,
-          classeFinal: resposta.classe,
-          fonte: "gpt",
-          certezaGpt: resposta.certeza,
-          frase: resposta.frase,
-          humor: resposta.humor,
-          status: "ok",
-          fotoPath,
-        }).catch(() => undefined);
+        setResultado({ tipo: "nuvem", resposta, embedding, foto, descarteId });
       } catch (falha) {
         if (
           !montadoRef.current ||
@@ -432,11 +500,17 @@ export function LixeiraCamera({ className }: { className?: string }) {
         const frase = falha.motivo === "limite"
           ? "Já pensei demais por hoje, sô. Vou no chute!"
           : "Hmm, tô sem sinal… vou no chute!";
+        const caminhoGuardado = await fotoPathPromise;
+        const descarteId = await registrarOuNull({
+          classeLocal: local.classe,
+          confiancaLocal: local.confianca,
+          classeFinal: local.classe,
+          fonte: "local",
+          frase,
+          status: "pendente",
+          fotoPath: caminhoGuardado,
+        });
 
-        setResultado({ tipo: "plano-b", veredito: local, frase });
-        setMensagem("");
-
-        const fotoPath = await fotoPathPromise;
         if (
           !montadoRef.current ||
           visaoRef.current !== visao ||
@@ -445,15 +519,8 @@ export function LixeiraCamera({ className }: { className?: string }) {
           return;
         }
 
-        void registrarDescarte({
-          classeLocal: local.classe,
-          confiancaLocal: local.confianca,
-          classeFinal: local.classe,
-          fonte: "local",
-          frase,
-          status: "pendente",
-          fotoPath,
-        }).catch(() => undefined);
+        setResultado({ tipo: "plano-b", veredito: local, frase, embedding, foto, descarteId });
+        setMensagem("");
       }
     } catch {
       if (montadoRef.current) {
@@ -465,6 +532,139 @@ export function LixeiraCamera({ className }: { className?: string }) {
         setPensando(false);
       }
     }
+  }
+
+  function aprenderComResultado(
+    resultadoAtual: ResultadoMostrado,
+    classe: Classe,
+    exemploParaDesativar: string | null = null,
+  ) {
+    const visaoAtual = visaoRef.current;
+    const sessaoAtual = sessaoRef.current;
+    const embedding = resultadoAtual.embedding;
+    const foto = resultadoAtual.foto;
+
+    if (visaoAtual && embedding) {
+      visaoAtual.adicionar(classe, embedding);
+      setContagens(visaoAtual.contagem());
+    }
+
+    if (!sessaoAtual) {
+      if (!embedding) setMensagem("Não consegui guardar esse quadro, sô.");
+      return;
+    }
+
+    filaRef.current = filaRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        let desativou = false;
+        let salvou = false;
+        let falhou = false;
+
+        if (exemploParaDesativar) {
+          try {
+            await desativarExemplo(exemploParaDesativar);
+            desativou = true;
+          } catch {
+            falhou = true;
+          }
+        }
+
+        if (embedding && foto) {
+          try {
+            const exemplo = await salvarExemplo(sessaoAtual, classe, embedding, foto);
+            await guardarNoCache(sessaoAtual, exemplo);
+            salvou = true;
+          } catch {
+            falhou = true;
+          }
+        } else {
+          falhou = true;
+        }
+
+        if (desativou) {
+          try {
+            const exemplos = await sincronizarExemplos(sessaoAtual);
+
+            if (
+              montadoRef.current &&
+              visaoRef.current === visaoAtual &&
+              sessaoRef.current?.userId === sessaoAtual.userId &&
+              visaoAtual
+            ) {
+              visaoAtual.carregar(exemplos);
+              // Sem foto salva, a correção ainda vale nesta página.
+              if (!salvou && embedding) visaoAtual.adicionar(classe, embedding);
+              setContagens(visaoAtual.contagem());
+            }
+          } catch {
+            falhou = true;
+          }
+        }
+
+        if (falhou) throw new Error("Aprendizado incompleto.");
+      })
+      .catch(() => {
+        if (
+          montadoRef.current &&
+          sessaoRef.current?.userId === sessaoAtual.userId
+        ) {
+          setMensagem("Não consegui guardar tudo agora, mas lembro nesta página.");
+        }
+      });
+  }
+
+  function responderNoBanco(
+    descarteId: string | null,
+    resposta: Parameters<typeof responderDescarte>[1],
+  ) {
+    if (!descarteId) return;
+
+    void responderDescarte(descarteId, resposta).catch(() => {
+      if (montadoRef.current) setMensagem("Não consegui anotar sua resposta agora.");
+    });
+  }
+
+  function responderCartao(acertou: boolean) {
+    if (!resultado || respostaEmCursoRef.current) return;
+
+    respostaEmCursoRef.current = true;
+
+    if (!acertou) {
+      setFluxoResposta("escolher");
+      return;
+    }
+
+    const classe = classeDoResultado(resultado);
+    const deveAprender = resultado.tipo === "plano-b"
+      || (resultado.tipo === "nuvem" && !resultado.resposta.aprendeu)
+      || (resultado.tipo === "local" && resultado.veredito.confianca < 0.85);
+
+    if (deveAprender) aprenderComResultado(resultado, classe);
+    responderNoBanco(resultado.descarteId, { confirmado: true });
+    setFluxoResposta("acertou");
+  }
+
+  function corrigirResultado(classe: Classe) {
+    if (!resultado || fluxoResposta !== "escolher") return;
+
+    const exemploParaDesativar = resultado.tipo === "nuvem" && resultado.resposta.aprendeu
+      ? resultado.resposta.exemploId
+      : null;
+
+    aprenderComResultado(resultado, classe, exemploParaDesativar);
+    responderNoBanco(resultado.descarteId, {
+      confirmado: false,
+      classeFinal: classe,
+      status: "revisar",
+    });
+    setTextoResposta(textoDaCorrecao(classe));
+    setFluxoResposta("corrigido");
+  }
+
+  function cancelarCorrecao() {
+    respostaEmCursoRef.current = false;
+    setFluxoResposta("cartao");
   }
 
   async function esquecer() {
@@ -636,7 +836,24 @@ export function LixeiraCamera({ className }: { className?: string }) {
               <p className="rounded-card bg-page p-5 font-display text-xl font-bold text-ink">
                 Hmm… deixa eu pensar.
               </p>
-            ) : resultado && <Resultado resultado={resultado} />}
+            ) : resultado && fluxoResposta === "cartao" ? (
+              <CartaoResultado
+                onResposta={responderCartao}
+                desabilitado={analisando || esquecendo}
+              >
+                <Resultado resultado={resultado} />
+              </CartaoResultado>
+            ) : resultado && fluxoResposta === "escolher" ? (
+              <EscolherClasse onEscolha={corrigirResultado} onCancelar={cancelarCorrecao} />
+            ) : resultado && fluxoResposta === "acertou" ? (
+              <p className="rounded-card bg-page p-4 font-display font-bold text-ink">
+                Valeu! Anotei.
+              </p>
+            ) : resultado && fluxoResposta === "corrigido" ? (
+              <p className="rounded-card bg-page p-4 font-display font-bold text-ink">
+                {textoResposta}
+              </p>
+            ) : null}
           </div>
 
           <p aria-live="polite" className="mt-3 min-h-6 text-sm text-ink-soft">

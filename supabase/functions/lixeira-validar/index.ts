@@ -1,4 +1,4 @@
-// Lixeira do Pequi, etapa 3: os casos em que o KNN fica em dúvida vêm para cá.
+// Lixeira do Pequi, etapas 3 e 4: os casos em que o KNN fica em dúvida vêm para cá.
 // A foto (JPEG de até 384 px, em base64) vai para o GPT da OpenAI, que devolve
 // a classe, a certeza, o humor do Pequi e a frase. Ver docs/lixeira.md.
 //
@@ -13,6 +13,12 @@ type Classe = (typeof CLASSES)[number];
 type Humor = (typeof HUMORES)[number];
 
 const LIMITE_POR_HORA = 30;
+// O limite por pessoa sozinho não basta: o login anônimo é aberto, e uma
+// sessão nova zera a conta. Este teto vale para o site inteiro, por dia.
+const TETO_DIARIO = Number(Deno.env.get("LIXEIRA_TETO_DIARIO") ?? "500");
+// Com esta certeza do GPT, o Pequi aprende sozinho (etapa 4).
+const CERTEZA_PARA_APRENDER = 0.9;
+const DIMENSOES = 1280;
 const TEMPO_MAXIMO_MS = 8000;
 // Base64 de um JPEG de 384 px com qualidade 0,7 fica bem abaixo disso.
 const TAMANHO_MAXIMO = 400_000;
@@ -95,6 +101,12 @@ function validarResposta(bruto: unknown) {
   };
 }
 
+/** 1.280 números finitos, ou null. */
+function embeddingValido(valor: unknown): number[] | null {
+  if (!Array.isArray(valor) || valor.length !== DIMENSOES) return null;
+  return valor.every((n) => typeof n === "number" && Number.isFinite(n)) ? valor : null;
+}
+
 Deno.serve(async (req) => {
   const origem = req.headers.get("Origin");
   if (req.method === "OPTIONS") return new Response("ok", { headers: cabecalhos(origem) });
@@ -115,8 +127,13 @@ Deno.serve(async (req) => {
   const userId = usuario.user.id;
 
   let imagem: unknown;
+  let embedding: unknown;
+  let fotoPath: unknown;
   try {
-    imagem = (await req.json())?.imagem;
+    const corpo = await req.json();
+    imagem = corpo?.imagem;
+    embedding = corpo?.embedding;
+    fotoPath = corpo?.fotoPath;
   } catch {
     return responder(400, { erro: "corpo" }, origem);
   }
@@ -133,6 +150,15 @@ Deno.serve(async (req) => {
     .gte("created_at", umaHoraAtras);
   if (erroContagem) return responder(500, { erro: "banco" }, origem);
   if ((count ?? 0) >= LIMITE_POR_HORA) return responder(429, { erro: "limite" }, origem);
+
+  const umDiaAtras = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count: doDia, error: erroDia } = await admin
+    .from("lixeira_chamadas_api")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", umDiaAtras);
+  if (erroDia) return responder(500, { erro: "banco" }, origem);
+  if ((doDia ?? 0) >= TETO_DIARIO) return responder(429, { erro: "limite" }, origem);
+
   await admin.from("lixeira_chamadas_api").insert({ user_id: userId });
 
   const controle = new AbortController();
@@ -169,7 +195,32 @@ Deno.serve(async (req) => {
       .find((parte: { type: string }) => parte.type === "output_text")?.text;
     const veredito = texto ? validarResposta(JSON.parse(texto)) : null;
     if (!veredito) return responder(502, { erro: "resposta" }, origem);
-    return responder(200, veredito, origem);
+
+    // Aprender sozinho: só com certeza alta e com o embedding do mesmo quadro.
+    // O exemplo fica com quem fotografou (RLS) até o admin aprovar.
+    let exemploId: string | null = null;
+    const numeros = embeddingValido(embedding);
+    if (veredito.certeza >= CERTEZA_PARA_APRENDER && numeros) {
+      const caminho =
+        typeof fotoPath === "string" && fotoPath.startsWith(`${userId}/`) && fotoPath.length < 200
+          ? fotoPath
+          : null;
+      const { data: exemplo, error: erroExemplo } = await admin
+        .from("lixeira_exemplos")
+        .insert({
+          user_id: userId,
+          classe: veredito.classe,
+          embedding: `[${numeros.join(",")}]`,
+          origem: "gpt",
+          foto_path: caminho,
+        })
+        .select("id")
+        .single();
+      if (erroExemplo) console.error("Não gravou o exemplo", erroExemplo.message);
+      else exemploId = exemplo.id;
+    }
+    // exemploId deixa o app desfazer o aprendizado se a pessoa disser "Errou".
+    return responder(200, { ...veredito, aprendeu: exemploId !== null, exemploId }, origem);
   } catch (erro) {
     const tempo = erro instanceof DOMException && erro.name === "AbortError";
     return responder(tempo ? 504 : 502, { erro: tempo ? "tempo" : "openai" }, origem);

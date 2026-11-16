@@ -10,6 +10,10 @@ import { type Veredito, votar } from "./votacao";
 export type Visao = {
   /** Guarda o quadro atual do vídeo como exemplo da classe. */
   ensinar(fonte: HTMLVideoElement, classe: Classe): Float32Array | null;
+  /** Extrai o quadro atual sem guardá-lo no classificador. */
+  embeddingDe(fonte: HTMLVideoElement): Float32Array | null;
+  /** Guarda no classificador um embedding já capturado. */
+  adicionar(classe: Classe, embedding: Float32Array): void;
   /** Substitui o aprendizado atual pelos exemplos guardados. */
   carregar(exemplos: { classe: Classe; embedding: Float32Array }[]): void;
   /** Exemplos guardados por classe (0 para as que não têm). */
@@ -104,6 +108,33 @@ export async function criarVisao(opcoes: { leve?: boolean } = {}): Promise<Visao
       } finally {
         // O KNN guarda uma cópia própria do exemplo.
         embedding.dispose();
+      }
+    },
+
+    embeddingDe(fonte) {
+      if (descartada || !podeLer(fonte)) return null;
+
+      const embedding = tf.tidy(() => rede.infer(fonte, true));
+
+      try {
+        return Float32Array.from(embedding.dataSync());
+      } finally {
+        embedding.dispose();
+      }
+    },
+
+    adicionar(classe, embedding) {
+      if (descartada || embedding.length !== 1280) return;
+
+      // Mesmo formato do que sai do MobileNet ([1, 1280]): o KNN recusa
+      // exemplos de formatos diferentes.
+      const tensor = tf.tensor2d(embedding, [1, embedding.length]);
+
+      try {
+        classificador.addExample(tensor, classe);
+      } finally {
+        // O KNN guarda uma cópia própria do exemplo.
+        tensor.dispose();
       }
     },
 

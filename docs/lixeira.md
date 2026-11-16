@@ -61,7 +61,7 @@ ideia (classificar pela câmera), depois o acabamento.
 | 1. Câmera e classificação local | Câmera traseira, MobileNet + KNN, coleta só na memória, votação entre 5 quadros | Depois de coletar exemplos, o app acerta os objetos de teste na maioria das vezes | **Feita** (rascunho do Sol); falta testar com objetos de verdade no celular |
 | 2. Banco | Tabelas, login anônimo, RLS, bucket `lixeira-fotos`, exemplos salvos e carregados, cache no IndexedDB | Fechar e reabrir o app mantém o que ele aprendeu | **Feita** (rascunho do Sol) |
 | 3. GPT | Edge Function `lixeira-validar`, foto de 384 px, plano B, limite de chamadas | Um objeto ambíguo é resolvido em até 3 segundos | **Feita** (app pelo Sol); falta o secret `OPENAI_API_KEY` no Supabase para a nuvem responder |
-| 4. Aprendizado contínuo | Regras de decisão, botões Acertou / Errou, limite por classe | Um objeto que o app errou passa a ser acertado depois de uma correção | A fazer |
+| 4. Aprendizado contínuo | Regras de decisão, cartão de arrastar (Acertou / Errou), limite por classe | Um objeto que o app errou passa a ser acertado depois de uma correção | **Feita** (app pelo Sol); o aprender sozinho com o GPT espera a chave |
 | 5. Pequi e voz | Pequi de chapéu com os estados de humor, falas da lixeira, voz, mudo e legenda | Cada tipo de descarte gera reação e fala diferentes | A fazer |
 | 6. Histórico, revisão e PWA | Histórico, telas de Coleta e Revisão no `/admin`, manifest e service worker de `/lixeira` | O app instala na tela inicial e abre sem internet | A fazer |
 | 7. Chapéus | Ponto da cabeça em cada quadro do sprite, chapéus em pixel art, escolha na lixeira, chapéu no blog | O chapéu escolhido na lixeira aparece no Pequi do índice dos posts | A fazer |
@@ -236,10 +236,13 @@ Só se aprende com o que foi confirmado, para um erro nunca virar conhecimento.
 Os limiares 0,85 e 0,9 são pontos de partida, ajustados depois de olhar o
 histórico.
 
-- **Acertou / Errou:** dois botões discretos depois de cada classificação.
-  Nunca obrigatórios.
-- **Limite por classe:** 150 exemplos aprendidos. Passando disso, o mais antigo
-  aprendido é desativado. A base fica protegida.
+- **Acertou / Errou:** ideia do Gabriel, um cartão estilo Tinder. Arrastar o
+  resultado para a direita aprova, para a esquerda reprova e abre "Qual era,
+  então?" com as seis classes. Os botões "✗ Errou" e "Acertou ✓" ficam sempre
+  embaixo, e as setas ← → também respondem. Nunca obrigatório.
+- **Limite por classe:** 150 exemplos aprendidos por pessoa e classe. Passando
+  disso, o banco desativa o mais antigo sozinho. A base fica protegida. Também
+  há um teto de 500 exemplos novos por pessoa por dia.
 - **Prioridade:** correções do usuário e casos que o modelo errou valem mais que
   casos fáceis.
 - **Desfazer:** todo exemplo tem `ativo`. Na Revisão, desativar com um toque,
@@ -248,6 +251,48 @@ histórico.
   desde a última abertura.
 - **Foto junto:** cada exemplo guarda a foto, para revisar e para gerar os
   embeddings de novo se um dia o MobileNet mudar.
+
+### Etapa 4: como ficou
+
+O que cada resposta faz:
+
+| Resultado mostrado | Direita (Acertou) | Esquerda (Errou → escolhe a classe) |
+| --- | --- | --- |
+| Local com confiança ≥ 0,85 | Confirma o descarte. Não aprende | Aprende a classe escolhida e corrige o descarte |
+| GPT com certeza ≥ 0,9 (a função já aprendeu) | Confirma | Desativa o exemplo que a função gravou, aprende a escolhida e corrige |
+| GPT abaixo de 0,9 | Aprende a classe mostrada e confirma | Aprende a escolhida e corrige |
+| Plano B (chute local) | Aprende a classe mostrada e confirma | Aprende a escolhida e corrige |
+
+- **O que o GPT ensina fica com quem fotografou.** O embedding é calculado no
+  celular, então nada prova que os números combinam com a foto. Se valesse
+  para todos, um visitante conseguiria envenenar o Pequi de todo mundo. Só a
+  `base` é compartilhada, e o caminho de um exemplo virar base é a Revisão do
+  admin (etapa 6). Quem está logado como admin ensina direto na base.
+- **A função grava o exemplo `gpt`:** o app manda junto da foto o embedding do
+  mesmo quadro e o caminho da foto. Com certeza ≥ 0,9, a função insere o
+  exemplo (só ela pode, com a chave de serviço) e devolve `exemploId`, que o
+  app usa para desativar se a pessoa disser "Errou".
+- **Descarte:** ganhou `confirmado`. A pessoa só pode mudar `confirmado`,
+  `classe_final` e `status` das próprias linhas (permissão por coluna). Uma
+  correção fica com `status: revisar`.
+- **"Esquecer"** desativa tudo o que a pessoa ensinou, inclusive o que o GPT
+  aprendeu com as fotos dela.
+- **Teto do site:** além de 30 chamadas por pessoa por hora, a função para em
+  500 chamadas por dia no site inteiro (secret `LIXEIRA_TETO_DIARIO`). Sem isso,
+  bastava limpar os cookies para ganhar uma sessão anônima nova e um limite
+  novo. Um CAPTCHA no login anônimo ainda falta.
+- **Testado** no navegador, com a câmera falsa e a nuvem desligada (sem a
+  chave): ensinados só Vazio e Metal, o jornal saiu "Metal, 100%". Arrastei
+  para a esquerda (o cartão seguiu o ponteiro, girou e mostrou o selo "Errou")
+  e escolhi Papel. Depois da segunda correção, o jornal saiu "Papel". O
+  Acertou pela seta → ensinou mais um Papel. Recarregando, "Lembrei de 13
+  exemplos" e jornal "Papel, 100%". No banco: correções com `confirmado:
+  false`, `classe_final: papel` e `status: revisar`; o Acertou com
+  `confirmado: true`. As regras do banco foram testadas simulando dois
+  visitantes (150 ativos, frase protegida, um não vê nem mexe no do outro).
+- **Não testado:** o arraste com o dedo num celular de verdade (o painel do
+  navegador estava escondido, então simulei o ponteiro) e o caminho em que a
+  função aprende sozinha, que precisa da chave.
 
 ## Validação com o GPT
 

@@ -41,6 +41,7 @@ export type Database = {
           classe_final: Database["public"]["Enums"]["lixeira_classe"]
           classe_local: Database["public"]["Enums"]["lixeira_classe"] | null
           confianca_local: number | null
+          confirmado: boolean | null
           created_at: string
           fonte: string
           foto_path: string | null
@@ -55,6 +56,7 @@ export type Database = {
           classe_final: Database["public"]["Enums"]["lixeira_classe"]
           classe_local?: Database["public"]["Enums"]["lixeira_classe"] | null
           confianca_local?: number | null
+          confirmado?: boolean | null
           created_at?: string
           fonte?: string
           foto_path?: string | null
@@ -69,6 +71,7 @@ export type Database = {
           classe_final?: Database["public"]["Enums"]["lixeira_classe"]
           classe_local?: Database["public"]["Enums"]["lixeira_classe"] | null
           confianca_local?: number | null
+          confirmado?: boolean | null
           created_at?: string
           fonte?: string
           foto_path?: string | null
