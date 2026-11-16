@@ -201,8 +201,12 @@ Deno.serve(async (req) => {
     let exemploId: string | null = null;
     const numeros = embeddingValido(embedding);
     if (veredito.certeza >= CERTEZA_PARA_APRENDER && numeros) {
+      // Só o formato exato que o app gera (<userId>/<uuid>.jpg): nada de ".."
+      // ou barras a mais apontando para a pasta de outra pessoa.
       const caminho =
-        typeof fotoPath === "string" && fotoPath.startsWith(`${userId}/`) && fotoPath.length < 200
+        typeof fotoPath === "string" &&
+        fotoPath.startsWith(`${userId}/`) &&
+        /^[0-9a-f-]{36}\.jpg$/.test(fotoPath.slice(userId.length + 1))
           ? fotoPath
           : null;
       const { data: exemplo, error: erroExemplo } = await admin
