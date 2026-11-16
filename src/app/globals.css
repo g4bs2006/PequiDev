@@ -87,6 +87,22 @@
   }
 }
 
+/* Lixeira do Pequi (/lixeira): as cores da coleta seletiva, iguais nos dois
+   temas porque são as cores das lixeiras de verdade. Cada uma tem a cor do
+   texto que vai por cima. Na tela, a cor sempre aparece com o nome. */
+:root {
+  --lixeira-amarelo: #f2c200;
+  --lixeira-vermelho: #c8352a;
+  --lixeira-azul: #2862b0;
+  --lixeira-verde: #2a7d38;
+  --lixeira-cinza: #77716b;
+  --on-lixeira-amarelo: var(--tinta);
+  --on-lixeira-vermelho: #ffffff;
+  --on-lixeira-azul: #ffffff;
+  --on-lixeira-verde: #ffffff;
+  --on-lixeira-cinza: #ffffff;
+}
+
 /* Tema escuro: sugestão inicial do brief, ainda a confirmar. */
 [data-theme="dark"] {
   --page: #1e1812;

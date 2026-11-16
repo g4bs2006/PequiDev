@@ -42,6 +42,7 @@ src/
     blog/              Posts: /blog, a página de cada post (Markdown, código colorido, índice com o Pequi) e as consultas
     admin/             O painel em /admin: login, posts e projetos, envio de imagens (guia em docs/painel.md)
     projects/          Projetos e guias: consultas, card, barra lateral de /projetos e a página de cada projeto
+    lixeira/           A Lixeira do Pequi em /lixeira: categorias e telas (plano em docs/lixeira.md)
   lib/                 Fontes, dados do site, datas, tema, avisos do site e clientes do Supabase (público, sessão e navegador)
   proxy.ts             Renova a sessão do painel a cada página do /admin
 supabase/migrations/   Histórico do banco: tabelas e regras de acesso
@@ -109,7 +110,7 @@ O mesmo sprite já acompanha a leitura no índice lateral do post: o Pequi pula 
 
 O plano, as decisões, o estado de cada etapa e como gerar ou adicionar animações estão em [docs/modo-sonho.md](docs/modo-sonho.md).
 
-## Lixeira do Pequi (planejada)
+## Lixeira do Pequi (em construção)
 
 Um app em `/lixeira`: a câmera do celular diz em qual lixeira vai cada objeto, e o Pequi, de chapéu de lixeira, reage com uma frase falada. A classificação roda no navegador (MobileNet + KNN), os casos duvidosos vão para o Claude numa Edge Function, e o modelo aprende com o uso. Quem usa a lixeira ganha chapéus que o Pequi passa a usar no blog.
 

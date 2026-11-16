@@ -59,7 +59,7 @@ ideia (classificar pela câmera), depois o acabamento.
 
 | Etapa | Entrega | Pronto quando | Situação |
 | --- | --- | --- | --- |
-| 0. Preparação | Conta na Anthropic, Supabase CLI, rota `/lixeira` com "Olá" | A página abre no celular pelo link da Vercel | A fazer |
+| 0. Preparação | Conta na Anthropic, Supabase CLI, rota `/lixeira` com "Olá" | A página abre no celular pelo link da Vercel | **Rota feita**; conta na Anthropic e Supabase CLI ficam para a etapa 3 |
 | 1. Câmera e classificação local | Câmera traseira, MobileNet + KNN, coleta só na memória, votação entre 5 quadros | Depois de coletar exemplos, o app acerta os objetos de teste na maioria das vezes | A fazer |
 | 2. Banco | Tabelas, login anônimo, RLS, bucket `lixeira-fotos`, exemplos salvos e carregados, cache no IndexedDB | Fechar e reabrir o app mantém o que ele aprendeu | A fazer |
 | 3. Claude | Edge Function `lixeira-validar`, foto de 384 px, plano B, limite de chamadas | Um objeto ambíguo é resolvido em até 3 segundos | A fazer |
@@ -69,6 +69,17 @@ ideia (classificar pela câmera), depois o acabamento.
 | 7. Chapéus | Ponto da cabeça em cada quadro do sprite, chapéus em pixel art, escolha na lixeira, chapéu no blog | O chapéu escolhido na lixeira aparece no Pequi do índice dos posts | A fazer |
 | 8. Telão | Salas, equipes, placar ao vivo na TV | Ver [lixeira-telao.md](lixeira-telao.md) | A fazer |
 | 9. Testes e apresentação | 10 objetos por categoria fora da base, ajuste dos limiares, roteiro de demonstração | A demonstração roda do início ao fim sem intervenção | A fazer |
+
+### Etapa 0: o que já existe
+
+- `/lixeira` abre com o Pequi de capacete (a pose `soldado`) se apresentando
+  como fiscal e as cinco lixeiras, cada uma com o nome da cor escrito. Fica
+  fora da busca (`noindex`) enquanto está em construção.
+- As classes ficam em `src/modules/lixeira/categorias.ts`, e as cores são os
+  tokens `--lixeira-amarelo`, `-vermelho`, `-azul`, `-verde` e `-cinza` (com
+  `--on-lixeira-*` para o texto) em `globals.css`, iguais nos dois temas. O
+  vermelho e o verde foram escurecidos para o texto branco passar de 4,5:1.
+- Ainda nada de câmera, TensorFlow.js ou banco: isso começa na etapa 1.
 
 ## Como o código fica organizado
 
