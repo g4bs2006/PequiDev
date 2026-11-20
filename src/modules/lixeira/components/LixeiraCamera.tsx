@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { guardarNoCache, sincronizarExemplos } from "../cache";
 import { type Classe, categoriaIds, categorias } from "../categorias";
+import { sortearFala } from "../falas";
 import {
   desativarExemplo,
   desativarMeusExemplos,
@@ -15,15 +16,18 @@ import {
   registrarDescarte,
   responderDescarte,
   salvarExemplo,
+  type Humor,
   type RespostaPequi,
   type Sessao,
 } from "../queries";
+import { definirMudo, desbloquearVoz, estaMudo, falar } from "../voz";
 import { capturarFoto } from "../visao/foto";
 // Só o tipo: o import() abaixo é que traz o TensorFlow, depois do toque.
 import type { Visao } from "../visao/modelo";
 import type { Veredito } from "../visao/votacao";
 import { CartaoResultado } from "./CartaoResultado";
 import { EscolherClasse } from "./EscolherClasse";
+import { type EstadoPequi, PequiFiscal } from "./PequiFiscal";
 
 type Estado = "inicial" | "carregando" | "pronto" | "erro";
 
@@ -116,6 +120,21 @@ function textoDaCorrecao(classe: Classe) {
   return `Aprendi: isso é ${categoria.nome} (${categoria.cor}).`;
 }
 
+function estadoDoVeredito(veredito: Veredito): EstadoPequi {
+  if (!veredito.aceito) return "pensativo";
+  if (veredito.classe === "vazio") return "surpreso";
+  if (veredito.classe === "rejeito") return "decepcionado";
+  return "feliz";
+}
+
+function estadoDoHumor(humor: Humor): EstadoPequi {
+  return humor;
+}
+
+function corDaClasse(classe: Classe): string | null {
+  return classe === "vazio" ? null : categorias[classe].fundo;
+}
+
 export function LixeiraCamera({ className }: { className?: string }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -125,6 +144,8 @@ export function LixeiraCamera({ className }: { className?: string }) {
   const montadoRef = useRef(true);
   const tentativaRef = useRef(0);
   const respostaEmCursoRef = useRef(false);
+  const sonoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dormindoRef = useRef(false);
 
   const [estado, setEstado] = useState<Estado>("inicial");
   const [erro, setErro] = useState<ErroAbertura | null>(null);
@@ -137,6 +158,47 @@ export function LixeiraCamera({ className }: { className?: string }) {
   const [pensando, setPensando] = useState(false);
   const [esquecendo, setEsquecendo] = useState(false);
   const [mensagem, setMensagem] = useState("");
+  const [estadoPequi, setEstadoPequi] = useState<EstadoPequi>("neutro");
+  const [falaPequi, setFalaPequi] = useState<string | null>(null);
+  const [corBrilho, setCorBrilho] = useState<string | null>(null);
+  const [vezPequi, setVezPequi] = useState(0);
+  // O palco (com o botão de voz) só aparece depois de abrir a câmera, então ler
+  // a preferência já na criação do estado não muda o HTML do servidor.
+  const [mudo, setMudo] = useState(estaMudo);
+
+  const reagir = useCallback((
+    novoEstado: EstadoPequi,
+    fala: string | null,
+    opcoes?: { falar?: boolean; cor?: string | null },
+  ) => {
+    dormindoRef.current = false;
+    setEstadoPequi(novoEstado);
+    setFalaPequi(fala);
+    setCorBrilho(opcoes?.cor ?? null);
+    setVezPequi((vez) => vez + 1);
+
+    if (fala && opcoes?.falar !== false) falar(fala);
+  }, []);
+
+  const reiniciarSono = useCallback(() => {
+    if (sonoRef.current) clearTimeout(sonoRef.current);
+
+    if (dormindoRef.current) {
+      dormindoRef.current = false;
+      setEstadoPequi("neutro");
+      setFalaPequi(null);
+      setCorBrilho(null);
+      setVezPequi((vez) => vez + 1);
+    }
+
+    sonoRef.current = setTimeout(() => {
+      dormindoRef.current = true;
+      setEstadoPequi("dormindo");
+      setFalaPequi(null);
+      setCorBrilho(null);
+      setVezPequi((vez) => vez + 1);
+    }, 60_000);
+  }, []);
 
   const liberarAtuais = useCallback(() => {
     pararCamera(streamRef.current);
@@ -158,6 +220,13 @@ export function LixeiraCamera({ className }: { className?: string }) {
   }, []);
 
   useEffect(() => {
+    reiniciarSono();
+    return () => {
+      if (sonoRef.current) clearTimeout(sonoRef.current);
+    };
+  }, [reiniciarSono]);
+
+  useEffect(() => {
     montadoRef.current = true;
 
     return () => {
@@ -168,6 +237,10 @@ export function LixeiraCamera({ className }: { className?: string }) {
   }, [liberarAtuais]);
 
   async function abrirCamera() {
+    const oi = sortearFala("boasVindas");
+    desbloquearVoz(oi);
+    reagir("neutro", oi, { falar: false });
+
     liberarAtuais();
     sessaoRef.current = null;
     respostaEmCursoRef.current = false;
@@ -380,6 +453,7 @@ export function LixeiraCamera({ className }: { className?: string }) {
     setPensando(false);
     setResultado(null);
     setMensagem("Olhando cinco quadros…");
+    reagir("pensativo", null, { falar: false });
 
     try {
       let local: Veredito | null = null;
@@ -406,6 +480,10 @@ export function LixeiraCamera({ className }: { className?: string }) {
           : null;
 
         if (!montadoRef.current || visaoRef.current !== visao) return;
+        const fala = sortearFala(local.classe);
+        reagir(estadoDoVeredito(local), fala, {
+          cor: estadoDoVeredito(local) === "feliz" ? corDaClasse(local.classe) : null,
+        });
         setResultado({ tipo: "local", veredito: local, ...momento, descarteId });
         setMensagem("");
         return;
@@ -415,10 +493,16 @@ export function LixeiraCamera({ className }: { className?: string }) {
         if (local) {
           const momento = await capturarMomento(visao, video);
           if (!montadoRef.current || visaoRef.current !== visao) return;
+          const fala = local.aceito ? sortearFala(local.classe) : sortearFala("duvida");
+          reagir(estadoDoVeredito(local), fala, {
+            cor: estadoDoVeredito(local) === "feliz" ? corDaClasse(local.classe) : null,
+          });
           setResultado({ tipo: "local", veredito: local, ...momento, descarteId: null });
           setMensagem("");
         } else {
-          setMensagem("Não consegui ver o objeto. Chega mais perto e tenta de novo.");
+          const texto = "Não consegui ver o objeto. Chega mais perto e tenta de novo.";
+          setMensagem(texto);
+          reagir("pensativo", texto, { falar: false });
         }
         return;
       }
@@ -447,6 +531,10 @@ export function LixeiraCamera({ className }: { className?: string }) {
         ) {
           return;
         }
+
+        reagir(estadoDoHumor(resposta.humor), resposta.frase, {
+          cor: resposta.humor === "feliz" ? corDaClasse(resposta.classe) : null,
+        });
 
         if (resposta.aprendeu && embedding) {
           visao.adicionar(resposta.classe, embedding);
@@ -491,9 +579,9 @@ export function LixeiraCamera({ className }: { className?: string }) {
         if (!(falha instanceof FalhaNuvem)) throw falha;
 
         if (!local) {
-          setMensagem(
-            "Não consegui pensar agora. Me ensina uns exemplos ou tenta daqui a pouco.",
-          );
+          const texto = "Não consegui pensar agora. Me ensina uns exemplos ou tenta daqui a pouco.";
+          setMensagem(texto);
+          reagir("pensativo", texto, { falar: false });
           return;
         }
 
@@ -519,12 +607,15 @@ export function LixeiraCamera({ className }: { className?: string }) {
           return;
         }
 
+        reagir("pensativo", frase);
         setResultado({ tipo: "plano-b", veredito: local, frase, embedding, foto, descarteId });
         setMensagem("");
       }
     } catch {
       if (montadoRef.current) {
-        setMensagem("Meu olho tropeçou na análise. Tenta mais uma vez, sô.");
+        const texto = "Meu olho tropeçou na análise. Tenta mais uma vez, sô.";
+        setMensagem(texto);
+        reagir("pensativo", texto, { falar: false });
       }
     } finally {
       if (montadoRef.current) {
@@ -642,6 +733,7 @@ export function LixeiraCamera({ className }: { className?: string }) {
 
     if (deveAprender) aprenderComResultado(resultado, classe);
     responderNoBanco(resultado.descarteId, { confirmado: true });
+    reagir("feliz", sortearFala("acertou"), { cor: corDaClasse(classe) });
     setFluxoResposta("acertou");
   }
 
@@ -659,6 +751,7 @@ export function LixeiraCamera({ className }: { className?: string }) {
       status: "revisar",
     });
     setTextoResposta(textoDaCorrecao(classe));
+    reagir("aprendendo", sortearFala("corrigido"));
     setFluxoResposta("corrigido");
   }
 
@@ -709,12 +802,29 @@ export function LixeiraCamera({ className }: { className?: string }) {
     }
   }
 
+  function alternarMudo() {
+    const novoMudo = !mudo;
+    setMudo(novoMudo);
+    definirMudo(novoMudo);
+
+    if (novoMudo) {
+      try {
+        window.speechSynthesis?.cancel();
+      } catch {
+        // A legenda continua disponível sem a síntese.
+      }
+    }
+  }
+
   const classesEnsinadas = Object.values(contagens).filter((quantidade) => quantidade > 0).length;
   const podeAnalisar = (sessao !== null || classesEnsinadas >= 2) && !analisando && !esquecendo;
   const cameraVisivel = estado === "carregando" || estado === "pronto";
 
   return (
-    <div className={`rounded-card bg-surface p-5 shadow-soft sm:p-6 ${className ?? ""}`}>
+    <div
+      onClickCapture={reiniciarSono}
+      className={`rounded-card bg-surface p-5 shadow-soft sm:p-6 ${className ?? ""}`}
+    >
       {estado === "inicial" && (
         <div>
           <h2 className="font-display text-2xl font-bold">Bora treinar meu olho?</h2>
@@ -771,6 +881,17 @@ export function LixeiraCamera({ className }: { className?: string }) {
             <p className="pointer-events-none absolute right-4 bottom-4 left-4 rounded-full bg-tinta/70 px-4 py-2 text-center text-sm font-bold text-creme">
               Um objeto por vez, dentro do quadrado
             </p>
+          </div>
+
+          <div className="mt-4">
+            <PequiFiscal
+              estado={estadoPequi}
+              fala={falaPequi}
+              corBrilho={corBrilho}
+              vez={vezPequi}
+              mudo={mudo}
+              onAlternarMudo={alternarMudo}
+            />
           </div>
         </>
       )}
@@ -887,26 +1008,15 @@ export function LixeiraCamera({ className }: { className?: string }) {
   );
 }
 
-function FrasePequi({ frase }: { frase: string }) {
-  return (
-    <p className="mt-3 rounded-card border border-ink-soft bg-surface p-4 font-display text-lg font-bold text-ink">
-      “{frase}”
-    </p>
-  );
-}
-
 function Resultado({ resultado }: { resultado: ResultadoMostrado }) {
   if (resultado.tipo === "nuvem") {
     const resposta = resultado.resposta;
 
     if (resposta.classe === "vazio") {
       return (
-        <>
-          <div className="rounded-card bg-page p-5 text-ink">
-            <p className="font-display text-xl font-bold">Não vi nada na frente da câmera.</p>
-          </div>
-          <FrasePequi frase={resposta.frase} />
-        </>
+        <div className="rounded-card bg-page p-5 text-ink">
+          <p className="font-display text-xl font-bold">Não vi nada na frente da câmera.</p>
+        </div>
       );
     }
 
@@ -914,55 +1024,6 @@ function Resultado({ resultado }: { resultado: ResultadoMostrado }) {
     const porcentagem = Math.round(resposta.certeza * 100);
 
     return (
-      <>
-        <div
-          className="rounded-card p-5"
-          style={{ backgroundColor: categoria.fundo, color: categoria.texto }}
-        >
-          <p className="font-display text-2xl font-bold">
-            {categoria.cor} · {categoria.nome}
-          </p>
-          <p className="mt-1 font-bold">
-            Lixeira {categoria.lixeira} · {porcentagem}% de certeza · perguntei pra nuvem
-          </p>
-        </div>
-        <FrasePequi frase={resposta.frase} />
-      </>
-    );
-  }
-
-  const veredito = resultado.veredito;
-  const frase = resultado.tipo === "plano-b" ? resultado.frase : null;
-
-  if (!veredito.aceito) {
-    return (
-      <>
-        <div className="rounded-card bg-page p-5 text-ink">
-          <p className="font-display text-xl font-bold">
-            Fiquei na dúvida. Tenta de novo, mais perto.
-          </p>
-        </div>
-        {frase && <FrasePequi frase={frase} />}
-      </>
-    );
-  }
-
-  if (veredito.classe === "vazio") {
-    return (
-      <>
-        <div className="rounded-card bg-page p-5 text-ink">
-          <p className="font-display text-xl font-bold">Não vi nada na frente da câmera.</p>
-        </div>
-        {frase && <FrasePequi frase={frase} />}
-      </>
-    );
-  }
-
-  const categoria = categorias[veredito.classe];
-  const porcentagem = Math.round(veredito.confianca * 100);
-
-  return (
-    <>
       <div
         className="rounded-card p-5"
         style={{ backgroundColor: categoria.fundo, color: categoria.texto }}
@@ -971,11 +1032,47 @@ function Resultado({ resultado }: { resultado: ResultadoMostrado }) {
           {categoria.cor} · {categoria.nome}
         </p>
         <p className="mt-1 font-bold">
-          Lixeira {categoria.lixeira} · {porcentagem}% de certeza ({veredito.votos} de {veredito.total}{" "}
-          quadros)
+          Lixeira {categoria.lixeira} · {porcentagem}% de certeza · perguntei pra nuvem
         </p>
       </div>
-      {frase && <FrasePequi frase={frase} />}
-    </>
+    );
+  }
+
+  const veredito = resultado.veredito;
+
+  if (!veredito.aceito) {
+    return (
+      <div className="rounded-card bg-page p-5 text-ink">
+        <p className="font-display text-xl font-bold">
+          Fiquei na dúvida. Tenta de novo, mais perto.
+        </p>
+      </div>
+    );
+  }
+
+  if (veredito.classe === "vazio") {
+    return (
+      <div className="rounded-card bg-page p-5 text-ink">
+        <p className="font-display text-xl font-bold">Não vi nada na frente da câmera.</p>
+      </div>
+    );
+  }
+
+  const categoria = categorias[veredito.classe];
+  const porcentagem = Math.round(veredito.confianca * 100);
+
+  return (
+    <div
+      className="rounded-card p-5"
+      style={{ backgroundColor: categoria.fundo, color: categoria.texto }}
+    >
+      <p className="font-display text-2xl font-bold">
+        {categoria.cor} · {categoria.nome}
+      </p>
+      <p className="mt-1 font-bold">
+        Lixeira {categoria.lixeira} · {porcentagem}% de certeza ({veredito.votos} de {veredito.total}{" "}
+        quadros)
+      </p>
+    </div>
   );
 }

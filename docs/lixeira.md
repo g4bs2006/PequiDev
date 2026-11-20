@@ -62,7 +62,7 @@ ideia (classificar pela câmera), depois o acabamento.
 | 2. Banco | Tabelas, login anônimo, RLS, bucket `lixeira-fotos`, exemplos salvos e carregados, cache no IndexedDB | Fechar e reabrir o app mantém o que ele aprendeu | **Feita** (rascunho do Sol) |
 | 3. GPT | Edge Function `lixeira-validar`, foto de 384 px, plano B, limite de chamadas | Um objeto ambíguo é resolvido em até 3 segundos | **Feita** (app pelo Sol); falta o secret `OPENAI_API_KEY` no Supabase para a nuvem responder |
 | 4. Aprendizado contínuo | Regras de decisão, cartão de arrastar (Acertou / Errou), limite por classe | Um objeto que o app errou passa a ser acertado depois de uma correção | **Feita** (app pelo Sol); o aprender sozinho com o GPT espera a chave |
-| 5. Pequi e voz | Pequi de chapéu com os estados de humor, falas da lixeira, voz, mudo e legenda | Cada tipo de descarte gera reação e fala diferentes | A fazer |
+| 5. Pequi e voz | Pequi de chapéu com os estados de humor, falas da lixeira, voz, mudo e legenda | Cada tipo de descarte gera reação e fala diferentes | **Feita** (falas, voz e palco pelo Sol; chapéu e marcas da cabeça por mim) |
 | 6. Histórico, revisão e PWA | Histórico, telas de Coleta e Revisão no `/admin`, manifest e service worker de `/lixeira` | O app instala na tela inicial e abre sem internet | A fazer |
 | 7. Chapéus | Ponto da cabeça em cada quadro do sprite, chapéus em pixel art, escolha na lixeira, chapéu no blog | O chapéu escolhido na lixeira aparece no Pequi do índice dos posts | A fazer |
 | 8. Telão | Salas, equipes, placar ao vivo na TV | Ver [lixeira-telao.md](lixeira-telao.md) | A fazer |
@@ -293,6 +293,41 @@ O que cada resposta faz:
 - **Não testado:** o arraste com o dedo num celular de verdade (o painel do
   navegador estava escondido, então simulei o ponteiro) e o caminho em que a
   função aprende sozinha, que precisa da chave.
+
+### Etapa 5: como ficou
+
+- **O chapéu acompanha a cabeça.** `scripts/marcar-cabeca.py` acha, em cada um
+  dos 42 quadros, a ponta das orelhas e o meio entre elas (só da coluna 40 em
+  diante, porque a cauda sobe alto do lado esquerdo; no gato enrolado do
+  `dormir`, da coluna 62) e grava `src/modules/pequi/data/cabeca.json`. O
+  chapéu (`public/pequi/chapeus/lixeira.png`, 12×10 px, nas cores do sprite)
+  assenta 5 px abaixo da ponta das orelhas. Conferido numa prévia de todos os
+  quadros. É o "primeiro chute por script" da etapa 7, já pronto.
+- **`PequiDeChapeu`** (`modules/pequi`) toca uma animação com o chapéu por
+  cima. O player do sprite ganhou um aviso por troca de quadro (`onFrame`),
+  que move o chapéu. Ampliado com `transform: scale`, o gato e o chapéu
+  crescem juntos e sem suavizar.
+- **Estados:** neutro (`parado`), pensativo (`sentar`, "…" no balão),
+  feliz (`pulo` e brilho na cor da lixeira), decepcionado (`sentar`),
+  surpreso (`patada`), aprendendo (`lamber`, 💡) e dormindo (`dormir`, "zzz",
+  depois de 60 s sem interação; qualquer toque acorda). Pelo GPT, vale o
+  `humor` da resposta; no local, reciclável é feliz, rejeito decepcionado,
+  vazio surpreso e dúvida pensativo.
+- **Falas** em `src/modules/lixeira/falas.ts`: 6 por situação, sem repetir
+  nenhuma das últimas 5. A frase do GPT, quando há, substitui a do banco.
+- **Voz** (`voz.ts`): Web Speech API em pt-BR, `rate` 1,05 e `pitch` 1,2. A
+  primeira fala (a saudação) sai no próprio toque em "Abrir a câmera", porque o
+  celular só libera a voz a partir de um gesto. Botão de voz no palco; o mudo
+  fica no `localStorage` e também na memória (janela anônima). A legenda no
+  balão vale sempre.
+- **Testado** no navegador com a câmera falsa: saudação falada em pt-BR no
+  toque; lata → pulo e fala de metal; jornal ensinado como rejeito → sentar e
+  fala de rejeito; vazio → patada e fala de vazio; Acertou → pulo e fala;
+  Errou → lamber, 💡 e fala; no mudo, nenhuma fala sai e a legenda continua;
+  depois de 60 s, dormir e "zzz", e um clique acorda. Console limpo. **Não
+  testado:** a voz de verdade no alto-falante de um celular (o teste registra
+  o que seria falado) e o desenho do decepcionado com orelhas baixas, que não
+  existe na folha (ele só senta).
 
 ## Validação com o GPT
 

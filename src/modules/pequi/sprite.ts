@@ -1,3 +1,4 @@
+import cabecaPorQuadro from "./data/cabeca.json";
 import sprite from "./data/sprite.json";
 
 /**
@@ -11,6 +12,15 @@ export type AnimationName = keyof typeof sprite.animacoes;
 export const SPRITE_URL = sprite.imagem;
 export const CELL_W = sprite.celula.largura;
 export const CELL_H = sprite.celula.altura;
+
+/**
+ * Topo da cabeça em cada quadro, [x, y] em pixels da célula: x no meio das
+ * orelhas, y na ponta delas. Gerado por scripts/marcar-cabeca.py.
+ */
+export function cabeca(name: AnimationName, frame: number): readonly [number, number] {
+  const [x, y] = cabecaPorQuadro[name][frame];
+  return [x, y];
+}
 
 export function animation(name: AnimationName) {
   return sprite.animacoes[name];
@@ -38,8 +48,17 @@ type PlayOptions = {
  * que estava tocando. Fica fora do React porque troca de quadro várias vezes
  * por segundo e não precisa renderizar nada para isso.
  */
-export function createSpritePlayer(cat: HTMLElement) {
+export function createSpritePlayer(
+  cat: HTMLElement,
+  /** Avisado a cada troca de quadro (o chapéu usa para seguir a cabeça). */
+  onFrame?: (name: AnimationName, frame: number) => void,
+) {
   let timer = 0;
+
+  function mostrar(name: AnimationName, frame: number) {
+    showFrame(cat, name, frame);
+    onFrame?.(name, frame);
+  }
 
   function stop() {
     window.clearTimeout(timer);
@@ -53,7 +72,7 @@ export function createSpritePlayer(cat: HTMLElement) {
     const loop = options.loop ?? anim.repete;
 
     const step = (index: number) => {
-      showFrame(cat, name, frames[index]);
+      mostrar(name, frames[index]);
       const next = index + 1;
 
       if (next < frames.length) {
@@ -71,7 +90,7 @@ export function createSpritePlayer(cat: HTMLElement) {
   /** Um quadro parado, sem animação. */
   function still(name: AnimationName, frame: number) {
     stop();
-    showFrame(cat, name, frame);
+    mostrar(name, frame);
   }
 
   return { play, still, stop };

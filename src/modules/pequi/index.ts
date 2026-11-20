@@ -6,6 +6,7 @@ export { MemeCard } from "./components/MemeCard";
 export { PequiDock } from "./components/PequiDock";
 export { PequiNap } from "./components/PequiNap";
 export { SleepingPequi } from "./components/SleepingPequi";
+export { type Chapeu, PequiDeChapeu } from "./components/PequiDeChapeu";
 export { SpritePreview } from "./components/SpritePreview";
 export { TocCompanion } from "./components/TocCompanion";
 export {
