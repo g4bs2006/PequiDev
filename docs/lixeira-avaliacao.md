@@ -154,6 +154,53 @@ Acerto geral: **77.5%**. Tempo: mediana 1549 ms, 90% abaixo de 1855 ms. Tokens: 
 
 Com certeza ≥ 0,9 (quando o Pequi aprende sozinho): 86.5% das fotos, acerto 83.8%.
 
+## O que foi aplicado (2026-11-22)
+
+O Gabriel aprovou as quatro recomendações:
+
+1. **Base inicial do site.** 50 fotos por lixeira do TrashNet, já em
+   embeddings, em `public/lixeira/base/` (`trashnet.f32`, 1,25 MB, e
+   `trashnet.json`), geradas por `scripts/avaliar-lixeira/base.mjs`. O app as
+   carrega junto com os exemplos do banco (`visao/modelo.ts`); o "Esquecer"
+   apaga o que a pessoa ensinou e mantém a base. O service worker guarda para
+   o modo offline. Pela curva acima, 50 por lixeira dá cerca de 73% de acerto
+   nas fotos de estúdio.
+2. **Corte local de 0,85 para 0,7** (`CORTE_LOCAL` em `LixeiraCamera.tsx`):
+   cerca de 3 vezes mais análises resolvidas no celular, com 91% de acerto.
+3. **Aprendizado automático pelo GPT desligado.** O Pequi só aprende quando a
+   pessoa confirma ou corrige. Para religar, criar o secret
+   `LIXEIRA_GPT_APRENDE=sim` na Edge Function.
+4. **Regra de rejeito no prompt**, com os casos do TrashNet: embalagem
+   metalizada, sachê, tubo de pasta de dente, escova, papel ou guardanapo sujo,
+   e "embalagem metalizada não é metal". Reteste com as mesmas 200 fotos:
+
+### GPT (gpt-5.4-mini) em 200 fotos (0 erros)
+
+Acerto geral: **85.0%**. Tempo: mediana 1444 ms, 90% abaixo de 1713 ms. Tokens: 138000 de entrada e 10046 de saída.
+
+| Lixeira | Acerto | Certeza média quando acerta | Quando erra |
+| --- | --- | --- | --- |
+| metal | 95.0% | 95.7% | 97.0% |
+| plastico | 87.5% | 94.9% | 95.2% |
+| papel | 95.0% | 93.6% | 87.5% |
+| vidro | 92.5% | 97.9% | 87.3% |
+| rejeito | 55.0% | 97.0% | 87.3% |
+
+| real \ GPT | metal | plastico | papel | vidro | rejeito | vazio |
+| --- | --- | --- | --- | --- | --- | --- |
+| metal | 38 | 0 | 0 | 0 | 2 | 0 |
+| plastico | 2 | 35 | 0 | 2 | 1 | 0 |
+| papel | 0 | 1 | 38 | 0 | 1 | 0 |
+| vidro | 1 | 2 | 0 | 37 | 0 | 0 |
+| rejeito | 1 | 13 | 4 | 0 | 22 | 0 |
+
+Com certeza ≥ 0,9 (quando o Pequi aprende sozinho): 87.0% das fotos, acerto 91.4%.
+
+Rejeito subiu de 5% para 55% e o geral de 77,5% para 85%; as recicláveis
+caíram de 96% para 92,5%. Boa parte dos 13 rejeitos que ainda saem como
+plástico são saquinhos plásticos limpos, que pela coleta comum daqui são
+plástico mesmo: divergência entre a etiqueta do TrashNet e a regra local.
+
 ## Como rodar
 
 1. Numa pasta fora do projeto: `npm init -y && npm i @tensorflow/tfjs-node@4.22.0

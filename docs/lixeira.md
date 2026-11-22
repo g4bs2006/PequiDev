@@ -24,6 +24,7 @@ com equipes e placar ao vivo, tem guia próprio: [lixeira-telao.md](lixeira-tela
 | Framework | Next.js, como o resto do site (não Vite) | Um repositório só. A página da lixeira é um componente de cliente. |
 | Visão | TensorFlow.js com MobileNet v2 e KNN, no navegador | Classifica na hora, sem internet, e aprender é só guardar mais um exemplo. |
 | Peso | TensorFlow.js carregado só em `/lixeira`, por import dinâmico | Quem só lê o blog não baixa nada a mais. |
+| Avaliação e ajustes | Base inicial do TrashNet (50 por lixeira), corte local 0,7, GPT sem aprendizado automático, regra de rejeito no prompt | Decidido pelo Gabriel em 2026-11-22 a partir de [lixeira-avaliacao.md](lixeira-avaliacao.md). |
 | Casos duvidosos | GPT da OpenAI (`gpt-5.4-mini`) numa Supabase Edge Function | Decidido pelo Gabriel em 2026-11-16, no lugar do Claude Haiku do plano original. A chave fica só no servidor. Uma chamada devolve classe, certeza e a fala do Pequi. |
 | Identificação | Login anônimo do Supabase | Cada celular ganha um usuário sem e-mail nem senha. Seguro no PequiDev porque toda escrita do blog já exige `private.is_admin()`. |
 | Banco | Tabelas novas, sem mexer nas do blog | O blog continua igual. A lixeira só acrescenta. |

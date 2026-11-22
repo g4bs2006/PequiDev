@@ -67,6 +67,25 @@ function descartarRede(rede: MobileNet) {
   descartavel.model?.dispose();
 }
 
+/**
+ * Base inicial servida pelo site: 50 fotos por lixeira do TrashNet, já em
+ * embeddings (scripts/avaliar-lixeira/base.mjs, docs/lixeira-avaliacao.md).
+ * Sem ela (offline sem cache, por exemplo), o Pequi começa só com o banco.
+ */
+async function baixarBaseDoSite(): Promise<{ classe: Classe; embedding: Float32Array }[]> {
+  try {
+    const [classes, numeros] = await Promise.all([
+      fetch("/lixeira/base/trashnet.json").then((r) => r.json() as Promise<Classe[]>),
+      fetch("/lixeira/base/trashnet.f32").then((r) => r.arrayBuffer()),
+    ]);
+    const tudo = new Float32Array(numeros);
+    if (tudo.length !== classes.length * 1280) return [];
+    return classes.map((classe, i) => ({ classe, embedding: tudo.subarray(i * 1280, (i + 1) * 1280) }));
+  } catch {
+    return [];
+  }
+}
+
 export async function criarVisao(opcoes: { leve?: boolean } = {}): Promise<Visao> {
   await prepararBackend();
 
@@ -79,6 +98,7 @@ export async function criarVisao(opcoes: { leve?: boolean } = {}): Promise<Visao
       : { version: 2, alpha: 1.0, modelUrl: "/lixeira/modelo/model.json", inputRange: [0, 1] },
   );
   const classificador = create();
+  const base = await baixarBaseDoSite();
   let descartada = false;
 
   function contagem(): Record<Classe, number> {
@@ -99,7 +119,7 @@ export async function criarVisao(opcoes: { leve?: boolean } = {}): Promise<Visao
     return resultado;
   }
 
-  return {
+  const visao: Visao = {
     ensinar(fonte, classe) {
       if (descartada || !podeLer(fonte)) return null;
 
@@ -147,7 +167,8 @@ export async function criarVisao(opcoes: { leve?: boolean } = {}): Promise<Visao
 
       const agrupados = new Map<Classe, number[][]>();
 
-      for (const exemplo of exemplos) {
+      // A base do site (TrashNet) entra sempre, junto com o que veio do banco.
+      for (const exemplo of [...base, ...exemplos]) {
         if (exemplo.embedding.length !== 1280) continue;
 
         let somaQuadrados = 0;
@@ -213,7 +234,8 @@ export async function criarVisao(opcoes: { leve?: boolean } = {}): Promise<Visao
 
     esquecer() {
       if (descartada) return;
-      classificador.clearAllClasses();
+      // Esquece o que a pessoa ensinou; a base do site continua.
+      visao.carregar([]);
     },
 
     descartar() {
@@ -223,4 +245,7 @@ export async function criarVisao(opcoes: { leve?: boolean } = {}): Promise<Visao
       descartarRede(rede);
     },
   };
+  // Começa já sabendo a base do site.
+  visao.carregar([]);
+  return visao;
 }

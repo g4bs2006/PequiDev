@@ -33,6 +33,13 @@ import { EscolherClasse } from "./EscolherClasse";
 import { type EstadoPequi, PequiFiscal } from "./PequiFiscal";
 import { PequiDeChapeu } from "@/modules/pequi";
 
+/**
+ * Confiança do KNN a partir da qual o Pequi responde sem perguntar à nuvem.
+ * Era 0,85; a avaliação de 2026-11-22 (docs/lixeira-avaliacao.md) mostrou que
+ * 0,7 resolve 3 vezes mais no celular com 91% de acerto.
+ */
+const CORTE_LOCAL = 0.7;
+
 type Estado = "inicial" | "carregando" | "pronto" | "erro";
 
 type ErroAbertura = {
@@ -473,7 +480,7 @@ export function LixeiraCamera() {
 
       const sessaoAtual = sessaoRef.current;
 
-      if (local?.aceito && local.confianca >= 0.85) {
+      if (local?.aceito && local.confianca >= CORTE_LOCAL) {
         const momento = await capturarMomento(visao, video);
         if (!montadoRef.current || visaoRef.current !== visao) return;
 
@@ -737,7 +744,7 @@ export function LixeiraCamera() {
     const classe = classeDoResultado(resultado);
     const deveAprender = resultado.tipo === "plano-b"
       || (resultado.tipo === "nuvem" && !resultado.resposta.aprendeu)
-      || (resultado.tipo === "local" && resultado.veredito.confianca < 0.85);
+      || (resultado.tipo === "local" && resultado.veredito.confianca < CORTE_LOCAL);
 
     if (deveAprender) aprenderComResultado(resultado, classe);
     responderNoBanco(resultado.descarteId, { confirmado: true });

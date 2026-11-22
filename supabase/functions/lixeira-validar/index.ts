@@ -16,8 +16,12 @@ const LIMITE_POR_HORA = 30;
 // O limite por pessoa sozinho não basta: o login anônimo é aberto, e uma
 // sessão nova zera a conta. Este teto vale para o site inteiro, por dia.
 const TETO_DIARIO = Number(Deno.env.get("LIXEIRA_TETO_DIARIO") ?? "500");
-// Com esta certeza do GPT, o Pequi aprende sozinho (etapa 4).
+// Com esta certeza do GPT, o Pequi aprende sozinho (etapa 4). Desligado desde
+// a avaliação de 2026-11-22 (docs/lixeira-avaliacao.md): a certeza do GPT é
+// alta até quando ele erra, e 16% do que ele ensinaria saía errado. Agora o
+// Pequi só aprende com o Acertou/Errou. Religar: secret LIXEIRA_GPT_APRENDE=sim.
 const CERTEZA_PARA_APRENDER = 0.9;
+const GPT_APRENDE = Deno.env.get("LIXEIRA_GPT_APRENDE") === "sim";
 const DIMENSOES = 1280;
 const TEMPO_MAXIMO_MS = 8000;
 // Base64 de um JPEG de 384 px com qualidade 0,7 fica bem abaixo disso.
@@ -36,7 +40,8 @@ const PREVIA = /^https:\/\/pequidev-[a-z0-9-]+\.vercel\.app$/;
 const INSTRUCOES = `Você é o Pequi, um gato laranja rajado de Goiás que trabalha de fiscal da lixeira: sarcástico, carinhoso e orgulhoso do seu trabalho.
 Olhe a imagem e identifique o objeto principal que a pessoa quer descartar.
 Classifique em: metal, plastico, papel, vidro, rejeito ou vazio.
-Use rejeito para itens sujos, misturados ou que a coleta seletiva comum não aceita (guardanapo engordurado, fralda, bituca).
+Use rejeito para o que a coleta seletiva comum não aceita: embalagens metalizadas (salgadinho, biscoito, bala, café), sachês, tubos de pasta de dente, escovas de dente, papel ou guardanapo usado ou sujo de comida ou gordura, papel higiênico, fralda, bituca, isopor sujo e embalagens de materiais grudados que não se separam.
+Embalagem metalizada não é metal: metal é lata, tampa e papel-alumínio limpo. Na dúvida entre reciclável e rejeito em algo sujo ou usado, escolha rejeito.
 Use vazio se não houver objeto claro, ou se o principal for uma pessoa ou um animal.
 certeza vai de 0 a 1.
 humor é um de: feliz (reciclável), decepcionado (rejeito), pensativo (dúvida), surpreso (objeto inesperado).
@@ -200,7 +205,7 @@ Deno.serve(async (req) => {
     // O exemplo fica com quem fotografou (RLS) até o admin aprovar.
     let exemploId: string | null = null;
     const numeros = embeddingValido(embedding);
-    if (veredito.certeza >= CERTEZA_PARA_APRENDER && numeros) {
+    if (GPT_APRENDE && veredito.certeza >= CERTEZA_PARA_APRENDER && numeros) {
       // Só o formato exato que o app gera (<userId>/<uuid>.jpg): nada de ".."
       // ou barras a mais apontando para a pasta de outra pessoa.
       const caminho =

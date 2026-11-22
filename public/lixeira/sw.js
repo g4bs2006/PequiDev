@@ -2,7 +2,7 @@
 // para o app instalado abrir e classificar sem internet. Ver docs/lixeira.md,
 // etapa 6. Trocar VERSAO apaga os caches antigos.
 
-const VERSAO = "lixeira-v1";
+const VERSAO = "lixeira-v2";
 
 const ESSENCIAIS = [
   "/lixeira",
@@ -13,12 +13,14 @@ const ESSENCIAIS = [
   "/lixeira/modelo/group1-shard2of4.bin",
   "/lixeira/modelo/group1-shard3of4.bin",
   "/lixeira/modelo/group1-shard4of4.bin",
+  "/lixeira/base/trashnet.json",
+  "/lixeira/base/trashnet.f32",
   "/pequi/sprite/pequi.png",
   "/pequi/chapeus/lixeira.png",
 ];
 
 // Arquivos que não mudam sem mudar de nome: primeiro o cache.
-const IMUTAVEIS = ["/_next/static/", "/_next/image", "/lixeira/modelo/", "/pequi/"];
+const IMUTAVEIS = ["/_next/static/", "/_next/image", "/lixeira/modelo/", "/lixeira/base/", "/pequi/"];
 
 self.addEventListener("install", (evento) => {
   evento.waitUntil(caches.open(VERSAO).then((cache) => cache.addAll(ESSENCIAIS)));
