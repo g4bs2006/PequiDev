@@ -222,10 +222,14 @@ export function LixeiraHistorico() {
 function Moldura({ children }: { children: React.ReactNode }) {
   return (
     <section
+      data-app-lixeira
       aria-labelledby="historico-titulo"
-      className="mx-auto w-full max-w-xl px-5 py-10 md:py-16"
+      className="mx-auto w-full max-w-md px-5 pt-4 pb-10"
     >
-      <Link href="/lixeira" className="text-sm font-bold text-ink-soft underline">
+      <Link
+        href="/lixeira"
+        className="inline-flex min-h-11 items-center text-sm font-bold text-ink-soft underline"
+      >
         ← Voltar para a lixeira
       </Link>
       <h1 id="historico-titulo" className="mt-3 mb-6 font-display text-3xl font-bold">

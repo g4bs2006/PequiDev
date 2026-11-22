@@ -65,7 +65,7 @@ ideia (classificar pela câmera), depois o acabamento.
 | 5. Pequi e voz | Pequi de chapéu com os estados de humor, falas da lixeira, voz, mudo e legenda | Cada tipo de descarte gera reação e fala diferentes | **Feita** (falas, voz e palco pelo Sol; chapéu e marcas da cabeça por mim) |
 | 6. Histórico, revisão e PWA | Histórico, tela de Revisão no `/admin`, manifest e service worker de `/lixeira` | O app instala na tela inicial e abre sem internet | **Feita** (a tela de Coleta saiu: o admin logado já ensina a base pela própria lixeira) |
 | 7. Chapéus | Ponto da cabeça em cada quadro do sprite, chapéus em pixel art, escolha na lixeira, chapéu no blog | O chapéu escolhido na lixeira aparece no Pequi do índice dos posts | **Arquivada** em 2026-11-22: sem o Sol, ficou complexa demais agora; volta depois. Já prontos: `cabeca.json` e `PequiDeChapeu` |
-| 8. Revisão visual mobile | Revisar toda a UX e a UI da lixeira para o celular, que é onde ela é usada: o que hoje faz sentido no desktop e não no celular sai ou muda | A lixeira é confortável de usar com uma mão, num celular de verdade | A fazer. O telão (que era a etapa 8) foi **arquivado** em 2026-11-22: [lixeira-telao.md](lixeira-telao.md) |
+| 8. Revisão visual mobile | Revisar toda a UX e a UI da lixeira para o celular, que é onde ela é usada: o que hoje faz sentido no desktop e não no celular sai ou muda | A lixeira é confortável de usar com uma mão, num celular de verdade | **Primeira passada feita** em 2026-11-22. O telão (que era a etapa 8) foi **arquivado**: [lixeira-telao.md](lixeira-telao.md) |
 | 9. Testes e apresentação | 10 objetos por categoria fora da base, ajuste dos limiares, roteiro de demonstração | A demonstração roda do início ao fim sem intervenção | A fazer |
 
 ### Etapa 0: o que já existe
@@ -364,6 +364,39 @@ O que cada resposta faz:
   classificou a lata como Metal. O histórico mostrou o descarte. **Não
   testado:** a tela de Revisão (precisa do login do Gabriel) e a instalação
   num celular de verdade.
+
+### Etapa 8: revisão visual mobile (primeira passada)
+
+Auditoria num celular emulado (375×812) mostrou a lixeira montada como página
+de site: o "Analisar" ficava a 1.304 px e o resultado a 1.404 px, com a câmera
+entre 320 e 808 px. Para analisar era preciso rolar, e a câmera saía do
+objeto. A página inteira tinha 2.780 px, com menu e rodapé do site, legenda,
+meme e dois Pequis (o do canto cobria botões).
+
+O que mudou (aprovado pelo Gabriel):
+
+- **App de tela cheia.** As telas da lixeira marcam `data-app-lixeira`, e o
+  `globals.css` esconde o menu e o rodapé do site. O Pequi do canto e o modo
+  sonho não aparecem em `/lixeira` (`PequiDock` e `DreamDock` checam o
+  caminho). No desktop, a mesma tela fica centralizada (`max-w-md`).
+- **Tela inicial:** Pequi de chapéu, título, uma frase, as lixeiras em chips e
+  o botão "Abrir a câmera" largo, embaixo. Cabe numa tela.
+- **Câmera:** vídeo na tela toda; barra fina no topo (sair, voz, histórico);
+  quadrado guia mais acima; o Pequi e o balão com a largura toda embaixo; na
+  zona do polegar, "Ensinar" à esquerda e o botão redondo de analisar no meio,
+  como um obturador.
+- **Gavetas** que sobem por cima da câmera: a do resultado (o cartão de
+  arrastar, a escolha da classe certa e o "Próximo") e a de ensinar (os seis
+  botões em grade 3×2 com contadores, o aviso de guardar e o "Esquecer").
+- **Balão** passou para cima do gato, com a largura toda: ao lado dele, ficava
+  estreito e quebrava a frase em quatro linhas.
+- **Histórico** sem o menu do site, mesma largura do app.
+
+Medido no celular emulado: tudo numa tela de 812 px. Analisar em 700–780 px,
+botões Errou e Acertou em 730–780 px, gaveta de ensinar em 588–708 px.
+
+**Ainda falta** abrir num celular de verdade (as medidas vêm do emulador) e
+ajustar o que aparecer lá: área segura do iPhone, teclado, brilho da tela.
 
 ## Validação com o GPT
 

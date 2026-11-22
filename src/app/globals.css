@@ -88,6 +88,13 @@
   }
 }
 
+/* A lixeira é um app de celular: sem o menu e o rodapé do site nas telas dela
+   (elas marcam a raiz com data-app-lixeira). */
+body:has([data-app-lixeira]) > header,
+body:has([data-app-lixeira]) > footer {
+  display: none;
+}
+
 /* Lixeira do Pequi (/lixeira): as cores da coleta seletiva, iguais nos dois
    temas porque são as cores das lixeiras de verdade. Cada uma tem a cor do
    texto que vai por cima. Na tela, a cor sempre aparece com o nome. */

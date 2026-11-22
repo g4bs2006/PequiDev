@@ -31,6 +31,7 @@ import type { Veredito } from "../visao/votacao";
 import { CartaoResultado } from "./CartaoResultado";
 import { EscolherClasse } from "./EscolherClasse";
 import { type EstadoPequi, PequiFiscal } from "./PequiFiscal";
+import { PequiDeChapeu } from "@/modules/pequi";
 
 type Estado = "inicial" | "carregando" | "pronto" | "erro";
 
@@ -138,7 +139,7 @@ function corDaClasse(classe: Classe): string | null {
   return classe === "vazio" ? null : categorias[classe].fundo;
 }
 
-export function LixeiraCamera({ className }: { className?: string }) {
+export function LixeiraCamera() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const visaoRef = useRef<Visao | null>(null);
@@ -155,6 +156,7 @@ export function LixeiraCamera({ className }: { className?: string }) {
   const [sessao, setSessao] = useState<Sessao | null>(null);
   const [contagens, setContagens] = useState<Record<Classe, number>>(contagemInicial);
   const [resultado, setResultado] = useState<ResultadoMostrado | null>(null);
+  const [ensinoAberto, setEnsinoAberto] = useState(false);
   const [fluxoResposta, setFluxoResposta] = useState<FluxoResposta>("cartao");
   const [textoResposta, setTextoResposta] = useState("");
   const [analisando, setAnalisando] = useState(false);
@@ -825,200 +827,237 @@ export function LixeiraCamera({ className }: { className?: string }) {
   const classesEnsinadas = Object.values(contagens).filter((quantidade) => quantidade > 0).length;
   const podeAnalisar = (sessao !== null || classesEnsinadas >= 2) && !analisando && !esquecendo;
   const cameraVisivel = estado === "carregando" || estado === "pronto";
+  const gavetaDoResultado = pensando || resultado !== null;
 
-  return (
-    <div
-      onClickCapture={reiniciarSono}
-      className={`rounded-card bg-surface p-5 shadow-soft sm:p-6 ${className ?? ""}`}
-    >
-      {estado === "inicial" && (
-        <div>
-          <h2 className="font-display text-2xl font-bold">Bora treinar meu olho?</h2>
-          <p className="mt-2 text-ink-soft">
-            A câmera e o modelo só acordam depois do seu toque.
-          </p>
+  // Tela inicial e erro: Pequi, uma frase e o botão grande na zona do polegar.
+  if (!cameraVisivel) {
+    return (
+      <div onClickCapture={reiniciarSono} className="flex min-h-dvh flex-col px-5 pt-4 pb-6">
+        <BarraDoTopo />
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+          <PequiDeChapeu animacao="parado" escala={3} />
+          {estado === "erro" && erro ? (
+            <div role="alert">
+              <h1 className="font-display text-2xl font-bold">{erro.titulo}</h1>
+              <p className="mt-2 text-ink-soft">{erro.texto}</p>
+            </div>
+          ) : (
+            <div>
+              <h1 className="font-display text-3xl font-bold">Lixeira do Pequi</h1>
+              <p className="mt-2 text-pretty text-ink-soft">
+                Aponta a câmera para um lixo e eu falo em qual lixeira ele vai.
+              </p>
+            </div>
+          )}
+          <ul className="flex flex-wrap justify-center gap-2" aria-label="As lixeiras">
+            {categoriaIds.map((id) => (
+              <li
+                key={id}
+                className="rounded-full px-3 py-1 text-sm font-bold"
+                style={{ backgroundColor: categorias[id].fundo, color: categorias[id].texto }}
+              >
+                {categorias[id].nome} · {categorias[id].cor}
+              </li>
+            ))}
+          </ul>
+        </div>
+        {estado === "inicial" || erro?.podeTentar ? (
           <button
             type="button"
             onClick={abrirCamera}
-            className="aperta mt-5 min-h-11 cursor-pointer rounded-full bg-accent px-6 py-3 font-display font-bold text-on-accent shadow-button"
+            className="aperta min-h-14 w-full cursor-pointer rounded-full bg-accent px-6 font-display text-lg font-bold text-on-accent shadow-button"
           >
-            Abrir a câmera
+            {estado === "erro" ? "Tentar de novo" : "Abrir a câmera"}
           </button>
-        </div>
-      )}
+        ) : null}
+        <p className="mt-3 text-center text-xs text-ink-soft">
+          A câmera só liga depois do seu toque. Cada cidade tem suas regras de coleta.
+        </p>
+      </div>
+    );
+  }
 
-      {estado === "erro" && erro && (
-        <div role="alert">
-          <h2 className="font-display text-2xl font-bold">{erro.titulo}</h2>
-          <p className="mt-2 text-ink-soft">{erro.texto}</p>
-          {erro.podeTentar && (
-            <button
-              type="button"
-              onClick={abrirCamera}
-              className="aperta mt-5 min-h-11 cursor-pointer rounded-full bg-accent px-6 py-3 font-display font-bold text-on-accent shadow-button"
-            >
-              Tentar de novo
-            </button>
-          )}
-        </div>
-      )}
+  // Câmera em tela cheia; tudo o que se toca fica embaixo, ao alcance do polegar.
+  return (
+    <div
+      onClickCapture={reiniciarSono}
+      className="fixed inset-0 mx-auto max-w-md overflow-hidden bg-tinta text-ink"
+    >
+      <video
+        ref={definirVideo}
+        playsInline
+        muted
+        autoPlay
+        aria-label="Imagem ao vivo da câmera traseira"
+        className="absolute inset-0 size-full object-cover"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute top-[28%] left-1/2 aspect-square w-1/2 -translate-x-1/2 -translate-y-1/2 rounded-card border-2 border-dashed border-creme"
+      >
+        <p className="absolute -top-8 left-1/2 -translate-x-1/2 rounded-full bg-tinta/60 px-3 py-1 text-xs font-bold whitespace-nowrap text-creme">
+          Um objeto por vez, aqui dentro
+        </p>
+      </div>
 
-      {cameraVisivel && (
-        <>
-          {estado === "carregando" && (
-            <p aria-live="polite" className="mb-4 font-display font-bold text-ink-soft">
-              Acordando o olho do Pequi…
-            </p>
-          )}
-
-          <div className="relative w-full overflow-hidden rounded-card bg-page">
-            <video
-              ref={definirVideo}
-              playsInline
-              muted
-              autoPlay
-              aria-label="Imagem ao vivo da câmera traseira"
-              className="aspect-[3/4] w-full rounded-card object-cover md:aspect-[4/3]"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 left-1/2 aspect-square w-3/5 -translate-x-1/2 -translate-y-1/2 rounded-card border-2 border-dashed border-creme"
-            />
-            <p className="pointer-events-none absolute right-4 bottom-4 left-4 rounded-full bg-tinta/70 px-4 py-2 text-center text-sm font-bold text-creme">
-              Um objeto por vez, dentro do quadrado
-            </p>
-          </div>
-
-          <div className="mt-4">
-            <PequiFiscal
-              estado={estadoPequi}
-              fala={falaPequi}
-              corBrilho={corBrilho}
-              vez={vezPequi}
-              mudo={mudo}
-              onAlternarMudo={alternarMudo}
-            />
-          </div>
-        </>
-      )}
-
-      {estado === "pronto" && (
-        <div className="mt-6">
-          <h2 className="font-display text-2xl font-bold">Primeiro, me ensina</h2>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {categoriaIds.map((id) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => ensinar(id)}
-                disabled={analisando || esquecendo}
-                aria-label={`Ensinar ${categorias[id].nome} com o quadro atual`}
-                className="aperta min-h-11 cursor-pointer rounded-full px-4 py-3 font-display font-bold disabled:cursor-not-allowed disabled:opacity-60"
-                style={{
-                  backgroundColor: categorias[id].fundo,
-                  color: categorias[id].texto,
-                }}
-              >
-                {categorias[id].nome} · {contagens[id]}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => ensinar("vazio")}
-              disabled={analisando || esquecendo}
-              aria-label="Ensinar Vazio com o quadro atual"
-              className="aperta min-h-11 cursor-pointer rounded-full border-2 border-ink-soft bg-page px-4 py-3 font-display font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Vazio · {contagens.vazio}
-            </button>
-          </div>
-
-          <p className="mt-3 text-sm text-ink-soft">
-            Ensine uns 10 de cada, mudando o objeto e o ângulo. Para Vazio, aponte para o fundo sem
-            nada.
-          </p>
-
-          <div className="mt-6 border-t border-ink-soft pt-6">
-            <button
-              type="button"
-              onClick={analisarObjeto}
-              disabled={!podeAnalisar}
-              aria-describedby={classesEnsinadas < 2 ? "lixeira-analisar-dica" : undefined}
-              className="aperta min-h-11 w-full cursor-pointer rounded-full bg-accent px-6 py-3 font-display text-lg font-bold text-on-accent shadow-button disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {pensando ? "Pensando…" : analisando ? "Olhando cinco quadros…" : "Analisar objeto"}
-            </button>
-
-            {classesEnsinadas < 2 && (
-              <p id="lixeira-analisar-dica" className="mt-2 text-sm text-ink-soft">
-                {sessao
-                  ? "Sem exemplos eu pergunto pra nuvem. Ensinando, eu fico mais rápido."
-                  : "Ensine pelo menos duas classes antes de analisar."}
-              </p>
-            )}
-          </div>
-
-          <div aria-live="polite" aria-atomic="true" className="mt-5">
-            {pensando ? (
-              <p className="rounded-card bg-page p-5 font-display text-xl font-bold text-ink">
-                Hmm… deixa eu pensar.
-              </p>
-            ) : resultado && fluxoResposta === "cartao" ? (
-              <CartaoResultado
-                onResposta={responderCartao}
-                desabilitado={analisando || esquecendo}
-              >
-                <Resultado resultado={resultado} />
-              </CartaoResultado>
-            ) : resultado && fluxoResposta === "escolher" ? (
-              <EscolherClasse onEscolha={corrigirResultado} onCancelar={cancelarCorrecao} />
-            ) : resultado && fluxoResposta === "acertou" ? (
-              <p className="rounded-card bg-page p-4 font-display font-bold text-ink">
-                Valeu! Anotei.
-              </p>
-            ) : resultado && fluxoResposta === "corrigido" ? (
-              <p className="rounded-card bg-page p-4 font-display font-bold text-ink">
-                {textoResposta}
-              </p>
-            ) : null}
-          </div>
-
-          <p aria-live="polite" className="mt-3 min-h-6 text-sm text-ink-soft">
-            {mensagem}
-          </p>
-
+      <div className="absolute inset-x-0 top-0 px-4 pt-3">
+        <BarraDoTopo>
+          <button
+            type="button"
+            aria-label="Voz do Pequi"
+            aria-pressed={!mudo}
+            onClick={alternarMudo}
+            className={botaoRedondo}
+          >
+            <span aria-hidden="true">{mudo ? "🔇" : "🔊"}</span>
+          </button>
           {sessao ? (
-            <Link
-              href="/lixeira/historico"
-              className="mt-2 inline-flex min-h-11 items-center px-1 text-sm font-bold text-ink underline"
-            >
-              Meu histórico
+            <Link href="/lixeira/historico" aria-label="Meu histórico" className={botaoRedondo}>
+              <span aria-hidden="true">🕘</span>
             </Link>
           ) : null}
+        </BarraDoTopo>
+        <p aria-live="polite" className="mt-2 text-center">
+          {estado === "carregando" ? (
+            <span className={pilula}>Acordando o olho do Pequi…</span>
+          ) : mensagem ? (
+            <span className={pilula}>{mensagem}</span>
+          ) : null}
+        </p>
+      </div>
 
-          {sessao?.admin ? (
-            <p className="mt-4 text-sm text-ink-soft">
-              Cê é admin: o que ensinar aqui vira a base que todo mundo usa.
+      <div className="absolute inset-x-0 bottom-0 flex flex-col">
+        <div className="px-3 pb-2">
+          <PequiFiscal estado={estadoPequi} fala={falaPequi} corBrilho={corBrilho} vez={vezPequi} />
+        </div>
+
+        {gavetaDoResultado ? (
+          <Gaveta>
+            <div aria-live="polite" aria-atomic="true">
+              {pensando ? (
+                <p className="font-display text-xl font-bold">Hmm… deixa eu pensar.</p>
+              ) : resultado && fluxoResposta === "cartao" ? (
+                <CartaoResultado onResposta={responderCartao} desabilitado={analisando || esquecendo}>
+                  <Resultado resultado={resultado} />
+                </CartaoResultado>
+              ) : resultado && fluxoResposta === "escolher" ? (
+                <EscolherClasse onEscolha={corrigirResultado} onCancelar={cancelarCorrecao} />
+              ) : resultado ? (
+                <div className="grid gap-3">
+                  <p className="font-display text-lg font-bold">
+                    {fluxoResposta === "acertou" ? "Valeu! Anotei." : textoResposta}
+                  </p>
+                  <button type="button" onClick={() => setResultado(null)} className={botaoLargo}>
+                    Próximo
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </Gaveta>
+        ) : ensinoAberto && estado === "pronto" ? (
+          <Gaveta>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-xl font-bold">Ensinar o Pequi</h2>
+              <button
+                type="button"
+                aria-label="Fechar"
+                onClick={() => setEnsinoAberto(false)}
+                className="aperta flex size-11 cursor-pointer items-center justify-center rounded-full bg-page text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="mt-1 text-sm text-ink-soft">
+              Aponta e toca na lixeira certa. Uns 10 de cada, mudando o ângulo.
             </p>
-          ) : (
-            <>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {[...categoriaIds, "vazio" as const].map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => ensinar(id)}
+                  disabled={analisando || esquecendo}
+                  aria-label={`Ensinar ${id === "vazio" ? "Vazio" : categorias[id].nome} com o quadro atual`}
+                  className={`aperta grid min-h-14 cursor-pointer place-items-center rounded-2xl px-2 font-display text-sm leading-tight font-bold disabled:opacity-60 ${
+                    id === "vazio" ? "border-2 border-ink-soft bg-page text-ink" : ""
+                  }`}
+                  style={
+                    id === "vazio"
+                      ? undefined
+                      : { backgroundColor: categorias[id].fundo, color: categorias[id].texto }
+                  }
+                >
+                  {id === "vazio" ? "Vazio" : categorias[id].nome}
+                  <span className="text-xs">{contagens[id]}</span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-ink-soft">
+              {sessao?.admin
+                ? "Cê é admin: o que ensinar aqui vira a base que todo mundo usa."
+                : sessao
+                  ? "O que cê me ensina fica guardado e só vale pra você."
+                  : "Sem internet, vale só enquanto a página estiver aberta."}
+            </p>
+            {!sessao?.admin ? (
               <button
                 type="button"
                 onClick={esquecer}
                 disabled={esquecendo}
-                className="aperta tinge mt-4 min-h-11 cursor-pointer px-1 text-sm font-bold text-ink-soft underline disabled:cursor-not-allowed disabled:opacity-60"
+                className="aperta tinge min-h-11 cursor-pointer px-1 text-sm font-bold text-ink-soft underline disabled:opacity-60"
               >
                 {esquecendo ? "Esquecendo…" : "Esquecer o que aprendi"}
               </button>
-              <p className="mt-3 text-sm text-ink-soft">
-                {sessao
-                  ? "O que cê me ensina fica guardado e só vale pra você."
-                  : "Hoje não consigo guardar o que cê me ensina. Vale só enquanto a página estiver aberta."}
-              </p>
-            </>
-          )}
-        </div>
-      )}
+            ) : null}
+          </Gaveta>
+        ) : (
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-6 pt-2 pb-8">
+            <button
+              type="button"
+              onClick={() => setEnsinoAberto(true)}
+              disabled={estado !== "pronto"}
+              className="aperta min-h-11 cursor-pointer justify-self-start rounded-full bg-tinta/60 px-4 font-display font-bold text-creme disabled:opacity-50"
+            >
+              Ensinar
+            </button>
+            <button
+              type="button"
+              onClick={analisarObjeto}
+              disabled={estado !== "pronto" || !podeAnalisar}
+              aria-label={analisando ? "Olhando…" : "Analisar o objeto"}
+              className="aperta size-20 cursor-pointer rounded-full border-4 border-creme bg-accent shadow-button disabled:opacity-50"
+            />
+            <span aria-hidden="true" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const botaoRedondo =
+  "aperta flex size-11 cursor-pointer items-center justify-center rounded-full bg-tinta/60 text-lg text-creme";
+const pilula = "inline-block rounded-full bg-tinta/70 px-4 py-1.5 text-sm font-bold text-creme";
+const botaoLargo =
+  "aperta min-h-12 w-full cursor-pointer rounded-full bg-accent px-6 font-display font-bold text-on-accent";
+
+/** Barra fina do topo: sair da lixeira à esquerda, os botões passados à direita. */
+function BarraDoTopo({ children }: { children?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <Link href="/" aria-label="Sair da lixeira" className={botaoRedondo}>
+        <span aria-hidden="true">←</span>
+      </Link>
+      <div className="flex gap-2">{children}</div>
+    </div>
+  );
+}
+
+/** Gaveta que sobe de baixo, por cima da câmera. */
+function Gaveta({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="max-h-[60dvh] overflow-y-auto rounded-t-card bg-surface px-5 pt-5 pb-8 shadow-soft">
+      {children}
     </div>
   );
 }

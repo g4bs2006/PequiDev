@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 
 /**
  * Lugar do Pequi do canto no layout. O código dele só é baixado no navegador,
@@ -12,5 +13,7 @@ const PequiCompanion = dynamic(
 );
 
 export function PequiDock() {
+  // Na lixeira (app de celular) o Pequi já está na tela, de fiscal.
+  if (usePathname().startsWith("/lixeira")) return null;
   return <PequiCompanion />;
 }

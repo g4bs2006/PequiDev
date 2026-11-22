@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 
 /** O anfitrião só baixa no navegador, sem pesar na renderização inicial. */
 const DreamHost = dynamic(
@@ -9,5 +10,6 @@ const DreamHost = dynamic(
 );
 
 export function DreamDock() {
+  if (usePathname().startsWith("/lixeira")) return null;
   return <DreamHost />;
 }

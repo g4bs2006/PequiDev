@@ -21,8 +21,6 @@ type Props = {
   corBrilho?: string | null;
   /** Muda a cada nova reação, para tocar a animação de novo mesmo se o estado repetir. */
   vez: number;
-  mudo: boolean;
-  onAlternarMudo: () => void;
 };
 
 type AnimacaoFiscal = "parado" | "pulo" | "patada" | "sentar" | "lamber" | "dormir";
@@ -49,8 +47,6 @@ export function PequiFiscal({
   fala,
   corBrilho = null,
   vez,
-  mudo,
-  onAlternarMudo,
 }: Props) {
   const brilhoRef = useRef<HTMLDivElement | null>(null);
   // Em qual reação (vez) a animação de uma vez só terminou: aí ele volta ao
@@ -89,8 +85,23 @@ export function PequiFiscal({
   const voltaAoParado = animacao === "pulo" || animacao === "patada" || animacao === "lamber";
   const animacaoVisivel = movimentoReduzido ? "parado" : animacao;
 
+  // No celular, o balão vai em cima, com a largura toda: ao lado do gato ele
+  // ficava estreito e quebrava a frase em quatro linhas.
   return (
-    <div className="relative flex items-end gap-3 pr-12">
+    <div className="flex flex-col items-start gap-2">
+      {texto !== null ? (
+        <div className="relative w-full rounded-card border-2 border-ink bg-surface px-4 py-3 font-display font-bold text-ink">
+          <span
+            aria-hidden="true"
+            className="absolute -bottom-2 left-16 size-4 rotate-45 border-r-2 border-b-2 border-ink bg-surface"
+          />
+          <p aria-live="polite" aria-atomic="true" className="relative break-words">
+            {estado === "aprendendo" ? "💡 " : null}
+            {texto}
+          </p>
+        </div>
+      ) : null}
+
       <div className="relative shrink-0">
         {estado === "feliz" && corBrilho ? (
           <div
@@ -111,30 +122,6 @@ export function PequiFiscal({
           className="relative"
         />
       </div>
-
-      {texto !== null ? (
-        <div className="relative min-w-0 max-w-[22rem] flex-1 rounded-card border-2 border-ink bg-surface px-4 py-3 font-display font-bold text-ink">
-          <span
-            aria-hidden="true"
-            className="absolute top-1/2 -left-2 size-4 -translate-y-1/2 rotate-45 border-b-2 border-l-2 border-ink bg-surface"
-          />
-          <p aria-live="polite" aria-atomic="true" className="relative break-words">
-            {estado === "aprendendo" ? "💡 " : null}
-            {texto}
-          </p>
-        </div>
-      ) : null}
-
-      <button
-        type="button"
-        aria-label="Voz do Pequi"
-        aria-pressed={!mudo}
-        title="Voz do Pequi"
-        onClick={onAlternarMudo}
-        className="aperta absolute top-0 right-0 flex size-11 cursor-pointer items-center justify-center rounded-full bg-accent text-xl text-on-accent shadow-button"
-      >
-        <span aria-hidden="true">{mudo ? "🔇" : "🔊"}</span>
-      </button>
     </div>
   );
 }
