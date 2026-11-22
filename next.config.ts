@@ -22,6 +22,16 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    // O Tesserato é outro projeto na Vercel e mora em /tesserato (multi-zones).
+    // Sem TESSERATO_URL (ex.: rodando local), o caminho só não existe.
+    const tesserato = process.env.TESSERATO_URL;
+    if (!tesserato) return [];
+    return [
+      { source: "/tesserato", destination: `${tesserato}/tesserato` },
+      { source: "/tesserato/:caminho+", destination: `${tesserato}/tesserato/:caminho+` },
+    ];
+  },
   turbopack: {
     rules: {
       // O Tailwind processa o CSS global. Os CSS Modules ficam de fora: passar
