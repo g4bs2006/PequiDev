@@ -1,5 +1,9 @@
 # Telão da Lixeira
 
+> **Arquivado em 2026-11-22.** Era a etapa 8 da [Lixeira do Pequi](lixeira.md);
+> no lugar dela entrou a revisão visual para o celular. O plano fica aqui para
+> quando voltar.
+
 Uma TV na sala mostra o Pequi grande, ao vivo, narrando os descartes de todo
 mundo. Cada pessoa joga pelo próprio celular, na [Lixeira do Pequi](lixeira.md),
 e as equipes disputam um placar que se atualiza na hora.

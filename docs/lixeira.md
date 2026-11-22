@@ -64,8 +64,8 @@ ideia (classificar pela câmera), depois o acabamento.
 | 4. Aprendizado contínuo | Regras de decisão, cartão de arrastar (Acertou / Errou), limite por classe | Um objeto que o app errou passa a ser acertado depois de uma correção | **Feita** (app pelo Sol); o aprender sozinho com o GPT espera a chave |
 | 5. Pequi e voz | Pequi de chapéu com os estados de humor, falas da lixeira, voz, mudo e legenda | Cada tipo de descarte gera reação e fala diferentes | **Feita** (falas, voz e palco pelo Sol; chapéu e marcas da cabeça por mim) |
 | 6. Histórico, revisão e PWA | Histórico, telas de Coleta e Revisão no `/admin`, manifest e service worker de `/lixeira` | O app instala na tela inicial e abre sem internet | A fazer |
-| 7. Chapéus | Ponto da cabeça em cada quadro do sprite, chapéus em pixel art, escolha na lixeira, chapéu no blog | O chapéu escolhido na lixeira aparece no Pequi do índice dos posts | A fazer |
-| 8. Telão | Salas, equipes, placar ao vivo na TV | Ver [lixeira-telao.md](lixeira-telao.md) | A fazer |
+| 7. Chapéus | Ponto da cabeça em cada quadro do sprite, chapéus em pixel art, escolha na lixeira, chapéu no blog | O chapéu escolhido na lixeira aparece no Pequi do índice dos posts | **Arquivada** em 2026-11-22: sem o Sol, ficou complexa demais agora; volta depois. Já prontos: `cabeca.json` e `PequiDeChapeu` |
+| 8. Revisão visual mobile | Revisar toda a UX e a UI da lixeira para o celular, que é onde ela é usada: o que hoje faz sentido no desktop e não no celular sai ou muda | A lixeira é confortável de usar com uma mão, num celular de verdade | A fazer. O telão (que era a etapa 8) foi **arquivado** em 2026-11-22: [lixeira-telao.md](lixeira-telao.md) |
 | 9. Testes e apresentação | 10 objetos por categoria fora da base, ajuste dos limiares, roteiro de demonstração | A demonstração roda do início ao fim sem intervenção | A fazer |
 
 ### Etapa 0: o que já existe
@@ -570,7 +570,8 @@ conta de verdade).
 ## Ideias para depois
 
 - **Telão para TV**, com equipes, placar e o Pequi narrando:
-  [lixeira-telao.md](lixeira-telao.md).
+  [lixeira-telao.md](lixeira-telao.md). Era a etapa 8; arquivado em
+  2026-11-22.
 - **Como descartar, não só onde:** "tira a tampa", "lava antes". Itens
   especiais (pilhas, eletrônicos, óleo, remédios) com tela própria apontando
   pontos de coleta.
