@@ -162,10 +162,10 @@ Com certeza ≥ 0,9 (quando o Pequi aprende sozinho): 86.5% das fotos, acerto 83
    copie `node_modules/@tensorflow/tfjs-node/deps/lib/tensorflow.dll` para
    `node_modules/@tensorflow/tfjs-node/lib/napi-v8/`.
 2. Baixe e extraia `data/dataset-resized.zip` do TrashNet.
-3. `DEPS=<pasta> node scripts/avaliar-lixeira/embeddings.cjs <dataset-resized> <saida>`
+3. `DEPS=<pasta> node scripts/avaliar-lixeira/embeddings.mjs <dataset-resized> <saida>`
    (uns 2 min para 2.527 fotos).
-4. `node scripts/avaliar-lixeira/analisar.cjs <saida>` (uns 2 min, sem rede).
-5. Opcional, custa chamadas: `OPENAI_API_KEY=... node scripts/avaliar-lixeira/gpt.cjs <dataset-resized> 40`.
+4. `node scripts/avaliar-lixeira/analisar.mjs <saida>` (uns 2 min, sem rede).
+5. Opcional, custa chamadas: `OPENAI_API_KEY=... node scripts/avaliar-lixeira/gpt.mjs <dataset-resized> 40`.
 
 Não testado: as fotos reais dos testes do Gabriel no celular (ficam no bucket
 privado e não entraram aqui).

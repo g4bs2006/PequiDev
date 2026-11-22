@@ -3,18 +3,18 @@
  * simula o KNN do app (mesmas regras de visao/modelo.ts) em muitas divisões
  * aleatórias entre "ensinado" e "testado". Sem TensorFlow: só contas.
  *
- * Uso: node scripts/avaliar-lixeira/analisar.cjs <saida-do-passo-1>
+ * Uso: node scripts/avaliar-lixeira/analisar.mjs <saida-do-passo-1>
  * Mede: acerto por número de exemplos ensinados, por lixeira, confusões e o
  * acerto em cada faixa de confiança (para o corte de 0,85 que manda à nuvem).
  */
-const fs = require("node:fs");
+import fs from "node:fs";
 
 const CLASSES = ["metal", "plastico", "papel", "vidro", "rejeito"];
 const DIM = 1280;
 const REPETICOES = 30;
 
 const base = process.argv[2];
-if (!base) throw new Error("Uso: analisar.cjs <saida-do-passo-1>");
+if (!base) throw new Error("Uso: analisar.mjs <saida-do-passo-1>");
 const rotulos = JSON.parse(fs.readFileSync(`${base}.json`, "utf8"));
 const bruto = new Float32Array(fs.readFileSync(`${base}.f32`).buffer.slice(0));
 

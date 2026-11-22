@@ -3,18 +3,18 @@
  * etiquetado ao GPT, com o mesmo modelo, prompt e formato da Edge Function
  * lixeira-validar (o prompt é lido do próprio arquivo dela), e mede o acerto.
  *
- * Uso: OPENAI_API_KEY=... node scripts/avaliar-lixeira/gpt.cjs <dataset> <por-classe>
+ * Uso: OPENAI_API_KEY=... node scripts/avaliar-lixeira/gpt.mjs <dataset> <por-classe>
  * Custa: uma chamada por foto (uns 430 tokens de entrada e 50 de saída).
  */
-const fs = require("node:fs");
-const path = require("node:path");
+import fs from "node:fs";
+import path from "node:path";
 
 const MAPA = { cardboard: "papel", paper: "papel", glass: "vidro", metal: "metal", plastic: "plastico", trash: "rejeito" };
 const CLASSES = ["metal", "plastico", "papel", "vidro", "rejeito"];
 const MODELO = process.env.LIXEIRA_MODELO ?? "gpt-5.4-mini";
 
 const funcao = fs.readFileSync(
-  path.resolve(__dirname, "../../supabase/functions/lixeira-validar/index.ts"),
+  path.resolve(import.meta.dirname, "../../supabase/functions/lixeira-validar/index.ts"),
   "utf8",
 );
 const INSTRUCOES = funcao.match(/const INSTRUCOES = `([\s\S]*?)`;/)[1];
@@ -61,7 +61,7 @@ async function perguntar(arquivo) {
 
 async function main() {
   const [dataset, porClasseTxt] = process.argv.slice(2);
-  if (!dataset || !process.env.OPENAI_API_KEY) throw new Error("Uso: OPENAI_API_KEY=... gpt.cjs <dataset> <por-classe>");
+  if (!dataset || !process.env.OPENAI_API_KEY) throw new Error("Uso: OPENAI_API_KEY=... gpt.mjs <dataset> <por-classe>");
   const porClasse = Number(porClasseTxt ?? 40);
 
   // Amostra fixa: as primeiras de cada lixeira em ordem alfabética (papel divide entre papelão e papel).

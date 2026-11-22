@@ -5,15 +5,15 @@
  *
  * Precisa do @tensorflow/tfjs-node e do @tensorflow-models/mobilenet numa pasta
  * à parte (não são dependências do site). Uso:
- *   DEPS=<pasta> node scripts/avaliar-lixeira/embeddings.cjs <dataset> <saida>
+ *   DEPS=<pasta> node scripts/avaliar-lixeira/embeddings.mjs <dataset> <saida>
  *
  * <dataset>: uma subpasta por classe do TrashNet (cardboard, glass, ...).
  * <saida>: grava <saida>.f32 (N × 1280 float32) e <saida>.json (rótulos).
  */
-const fs = require("node:fs");
-const { createRequire } = require("node:module");
-const path = require("node:path");
-const util = require("node:util");
+import fs from "node:fs";
+import { createRequire } from "node:module";
+import path from "node:path";
+import util from "node:util";
 
 // shortcut: o tfjs-node 4.22 ainda usa util.isNullOrUndefined, que o Node 23+ removeu; tirar quando ele atualizar.
 util.isNullOrUndefined ??= (valor) => valor === null || valor === undefined;
@@ -36,9 +36,9 @@ const MAPA = {
 
 async function main() {
   const [dataset, saida] = process.argv.slice(2);
-  if (!dataset || !saida) throw new Error("Uso: embeddings.cjs <dataset> <saida>");
+  if (!dataset || !saida) throw new Error("Uso: embeddings.mjs <dataset> <saida>");
 
-  const modelo = path.resolve(__dirname, "../../public/lixeira/modelo/model.json");
+  const modelo = path.resolve(import.meta.dirname, "../../public/lixeira/modelo/model.json");
   const net = await mobilenet.load({
     version: 2,
     alpha: 1.0,
