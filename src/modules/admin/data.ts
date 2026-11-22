@@ -303,3 +303,77 @@ export async function listarRevisaoDaLixeira() {
     ),
   };
 }
+
+// --- Lixeira do Pequi: painel do modelo ------------------------------------
+
+export type UsoDoModelo = {
+  /** Exemplos no banco por lixeira: base (todos usam) e aprendidos (ativos, de quem ensinou). */
+  exemplos: Record<string, { base: number; aprendidos: number }>;
+  analises: number;
+  /** Análises com Acertou/Errou, por fonte. */
+  respondidas: Record<"local" | "gpt", { certas: number; erradas: number }>;
+  /** Só fonte local: [o que o Pequi disse][o que era], nas respondidas. */
+  confusao: Record<string, Record<string, number>>;
+  /** Respondidas da fonte local por faixa de confiança (0,1 em 0,1). */
+  porConfianca: { faixa: number; certas: number; total: number }[];
+  foiANuvem: number;
+  chamadas30Dias: number;
+};
+
+/** Números do uso real da lixeira, para o painel do modelo. Sem embeddings. */
+export async function lerUsoDoModelo(): Promise<UsoDoModelo> {
+  const supabase = await createSessionClient();
+  const umMes = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const [exemplos, descartes, chamadas] = await Promise.all([
+    supabase.from("lixeira_exemplos").select("classe, origem, ativo").eq("ativo", true).limit(10000),
+    supabase
+      .from("lixeira_descartes")
+      .select("classe_local, classe_final, fonte, confirmado, confianca_local")
+      .limit(10000),
+    supabase
+      .from("lixeira_chamadas_api")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", umMes),
+  ]);
+
+  const porLixeira: UsoDoModelo["exemplos"] = {};
+  for (const e of exemplos.data ?? []) {
+    const linha = (porLixeira[e.classe] ??= { base: 0, aprendidos: 0 });
+    if (e.origem === "base") linha.base++;
+    else linha.aprendidos++;
+  }
+
+  const respondidas: UsoDoModelo["respondidas"] = {
+    local: { certas: 0, erradas: 0 },
+    gpt: { certas: 0, erradas: 0 },
+  };
+  const confusao: UsoDoModelo["confusao"] = {};
+  const faixas = Array.from({ length: 11 }, (_, i) => ({ faixa: i / 10, certas: 0, total: 0 }));
+  let foiANuvem = 0;
+  const lista = descartes.data ?? [];
+  for (const d of lista) {
+    const fonte = d.fonte === "gpt" ? "gpt" : "local";
+    if (fonte === "gpt") foiANuvem++;
+    if (d.confirmado === null) continue;
+    respondidas[fonte][d.confirmado ? "certas" : "erradas"]++;
+    if (fonte === "local" && d.classe_local) {
+      const disse = (confusao[d.classe_local] ??= {});
+      disse[d.classe_final] = (disse[d.classe_final] ?? 0) + 1;
+      if (d.confianca_local !== null) {
+        const f = faixas[Math.min(10, Math.floor(d.confianca_local * 10 + 1e-9))];
+        f.total++;
+        if (d.confirmado) f.certas++;
+      }
+    }
+  }
+
+  return {
+    exemplos: porLixeira,
+    analises: lista.length,
+    respondidas,
+    confusao,
+    porConfianca: faixas.filter((f) => f.total > 0),
+    foiANuvem,
+    chamadas30Dias: chamadas.count ?? 0,
+  };
+}

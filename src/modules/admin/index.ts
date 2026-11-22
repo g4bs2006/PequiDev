@@ -1,3 +1,4 @@
+export { LixeiraModeloView } from "./components/ModeloLixeira";
 export { LixeiraRevisaoView } from "./components/RevisaoLixeira";
 export {
   AboutEditView,

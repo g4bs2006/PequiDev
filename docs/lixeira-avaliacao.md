@@ -201,6 +201,23 @@ caíram de 96% para 92,5%. Boa parte dos 13 rejeitos que ainda saem como
 plástico são saquinhos plásticos limpos, que pela coleta comum daqui são
 plástico mesmo: divergência entre a etiqueta do TrashNet e a regra local.
 
+## Painel do modelo
+
+`/admin/lixeira/modelo` (aba "Modelo" da lixeira no painel) mostra:
+
+- **Agora, ao vivo do banco:** quantos exemplos o Pequi sabe, análises, acerto
+  confirmado (Acertou/Errou), quanto foi à nuvem; exemplos por lixeira (base
+  do site, base do banco e aprendidos); acerto por fonte (celular ou GPT); a
+  confusão real do modelo local e o acerto por faixa de confiança.
+- **Avaliação de referência:** a curva de aprendizado com a base atual
+  marcada, o acerto por lixeira, a matriz de confusão, as faixas de confiança
+  com o corte atual e o GPT antes e depois da regra de rejeito. Os números vêm
+  de `src/modules/admin/data/avaliacao-lixeira.json`; ao refazer a avaliação,
+  regerar esse arquivo.
+
+O GPT guarda só a classe final no descarte; por isso a confusão real é só do
+modelo local.
+
 ## Como rodar
 
 1. Numa pasta fora do projeto: `npm init -y && npm i @tensorflow/tfjs-node@4.22.0

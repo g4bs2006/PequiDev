@@ -1,0 +1,297 @@
+{
+ "baseDoSitePorLixeira": 50,
+ "data": "2026-11-22",
+ "conjunto": "TrashNet (MIT), 2.527 fotos de estúdio",
+ "repeticoes": 30,
+ "curva": [
+  {
+   "n": 3,
+   "geral": 0.4319,
+   "media": 0.4081
+  },
+  {
+   "n": 5,
+   "geral": 0.5056,
+   "media": 0.4815
+  },
+  {
+   "n": 10,
+   "geral": 0.5785,
+   "media": 0.5376
+  },
+  {
+   "n": 20,
+   "geral": 0.6608,
+   "media": 0.6332
+  },
+  {
+   "n": 30,
+   "geral": 0.6955,
+   "media": 0.6731
+  },
+  {
+   "n": 50,
+   "geral": 0.7307,
+   "media": 0.711
+  },
+  {
+   "n": 100,
+   "geral": 0.7807,
+   "media": 0.7633
+  }
+ ],
+ "porClasse": {
+  "30": {
+   "metal": 0.6878,
+   "plastico": 0.7169,
+   "papel": 0.7844,
+   "vidro": 0.5042,
+   "rejeito": 0.672
+  },
+  "100": {
+   "metal": 0.7957,
+   "plastico": 0.774,
+   "papel": 0.8375,
+   "vidro": 0.6507,
+   "rejeito": 0.7586
+  }
+ },
+ "confusao": {
+  "30": {
+   "metal": {
+    "metal": 7841,
+    "plastico": 940,
+    "papel": 152,
+    "vidro": 935,
+    "rejeito": 1532
+   },
+   "plastico": {
+    "metal": 1140,
+    "plastico": 9721,
+    "papel": 275,
+    "vidro": 1599,
+    "rejeito": 825
+   },
+   "papel": {
+    "metal": 1009,
+    "plastico": 1452,
+    "papel": 22755,
+    "vidro": 187,
+    "rejeito": 3607
+   },
+   "vidro": {
+    "metal": 2578,
+    "plastico": 4060,
+    "papel": 107,
+    "vidro": 7125,
+    "rejeito": 260
+   },
+   "rejeito": {
+    "metal": 319,
+    "plastico": 401,
+    "papel": 234,
+    "vidro": 99,
+    "rejeito": 2157
+   }
+  },
+  "100": {
+   "metal": {
+    "metal": 7400,
+    "plastico": 499,
+    "papel": 79,
+    "vidro": 682,
+    "rejeito": 640
+   },
+   "plastico": {
+    "metal": 725,
+    "plastico": 8870,
+    "papel": 138,
+    "vidro": 1064,
+    "rejeito": 663
+   },
+   "papel": {
+    "metal": 572,
+    "plastico": 772,
+    "papel": 22537,
+    "vidro": 130,
+    "rejeito": 2899
+   },
+   "vidro": {
+    "metal": 1456,
+    "plastico": 2499,
+    "papel": 68,
+    "vidro": 7828,
+    "rejeito": 179
+   },
+   "rejeito": {
+    "metal": 98,
+    "plastico": 77,
+    "papel": 63,
+    "vidro": 30,
+    "rejeito": 842
+   }
+  }
+ },
+ "faixas": [
+  {
+   "n": 30,
+   "faixas": [
+    {
+     "nome": "abaixo de 50%",
+     "parte": 0.2487,
+     "acerto": 0.4636
+    },
+    {
+     "nome": "50 a 69%",
+     "parte": 0.4279,
+     "acerto": 0.6674
+    },
+    {
+     "nome": "70 a 84%",
+     "parte": 0.2349,
+     "acerto": 0.8851
+    },
+    {
+     "nome": "85 a 99%",
+     "parte": 0.057,
+     "acerto": 0.9754
+    },
+    {
+     "nome": "100%",
+     "parte": 0.0314,
+     "acerto": 0.9911
+    }
+   ]
+  },
+  {
+   "n": 100,
+   "faixas": [
+    {
+     "nome": "abaixo de 50%",
+     "parte": 0.1202,
+     "acerto": 0.4638
+    },
+    {
+     "nome": "50 a 69%",
+     "parte": 0.3211,
+     "acerto": 0.6491
+    },
+    {
+     "nome": "70 a 84%",
+     "parte": 0.2781,
+     "acerto": 0.8688
+    },
+    {
+     "nome": "85 a 99%",
+     "parte": 0.1297,
+     "acerto": 0.9674
+    },
+    {
+     "nome": "100%",
+     "parte": 0.1509,
+     "acerto": 0.9905
+    }
+   ]
+  }
+ ],
+ "cortes": [
+  {
+   "n": 30,
+   "corte": 0.6,
+   "resolveLocal": 0.5146,
+   "acertoLocal": 0.8474
+  },
+  {
+   "n": 30,
+   "corte": 0.7,
+   "resolveLocal": 0.3233,
+   "acertoLocal": 0.9113
+  },
+  {
+   "n": 30,
+   "corte": 0.8,
+   "resolveLocal": 0.1825,
+   "acertoLocal": 0.9525
+  },
+  {
+   "n": 30,
+   "corte": 0.85,
+   "resolveLocal": 0.0884,
+   "acertoLocal": 0.981
+  },
+  {
+   "n": 30,
+   "corte": 0.9,
+   "resolveLocal": 0.0884,
+   "acertoLocal": 0.981
+  },
+  {
+   "n": 30,
+   "corte": 1,
+   "resolveLocal": 0.0314,
+   "acertoLocal": 0.9911
+  },
+  {
+   "n": 100,
+   "corte": 0.6,
+   "resolveLocal": 0.7197,
+   "acertoLocal": 0.8783
+  },
+  {
+   "n": 100,
+   "corte": 0.7,
+   "resolveLocal": 0.5587,
+   "acertoLocal": 0.9246
+  },
+  {
+   "n": 100,
+   "corte": 0.8,
+   "resolveLocal": 0.4145,
+   "acertoLocal": 0.9593
+  },
+  {
+   "n": 100,
+   "corte": 0.85,
+   "resolveLocal": 0.2806,
+   "acertoLocal": 0.9798
+  },
+  {
+   "n": 100,
+   "corte": 0.9,
+   "resolveLocal": 0.2806,
+   "acertoLocal": 0.9798
+  },
+  {
+   "n": 100,
+   "corte": 1,
+   "resolveLocal": 0.1509,
+   "acertoLocal": 0.9905
+  }
+ ],
+ "gpt": {
+  "antes": {
+   "fotos": 200,
+   "geral": 0.775,
+   "porClasse": {
+    "metal": 1.0,
+    "plastico": 0.9,
+    "papel": 0.975,
+    "vidro": 0.95,
+    "rejeito": 0.05
+   },
+   "medianaMs": 1549
+  },
+  "depois": {
+   "fotos": 200,
+   "geral": 0.85,
+   "porClasse": {
+    "metal": 0.95,
+    "plastico": 0.875,
+    "papel": 0.95,
+    "vidro": 0.925,
+    "rejeito": 0.55
+   },
+   "medianaMs": 1444
+  }
+ }
+}

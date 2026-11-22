@@ -9,6 +9,7 @@ import {
 import { requireAdmin } from "../auth";
 import { listarRevisaoDaLixeira } from "../data";
 import { AdminShell } from "./AdminShell";
+import { Abas } from "./ModeloLixeira";
 
 const nome = (classe: string | null) =>
   !classe ? "—" : classe === "vazio" ? "Vazio" : (categorias[classe as Exclude<Classe, "vazio">]?.nome ?? classe);
@@ -23,6 +24,7 @@ export async function LixeiraRevisaoView() {
 
   return (
     <AdminShell email={email} current="lixeira">
+      <Abas atual="revisao" />
       <section aria-labelledby="exemplos-titulo" className="grid gap-4">
         <h1 id="exemplos-titulo" className="font-display text-3xl font-bold">
           Exemplos aprendidos
