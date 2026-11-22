@@ -128,7 +128,13 @@ export async function sincronizarExemplos(sessao: Sessao): Promise<ExemploSalvo[
       };
     }
 
-    const mudancas = await baixarExemplosDesde(sessao, estado.ultimaSync);
+    let mudancas: ExemploSalvo[];
+    try {
+      mudancas = await baixarExemplosDesde(sessao, estado.ultimaSync);
+    } catch {
+      // Sem internet: fica com o que o aparelho já sabia.
+      return exemplos.filter((exemplo) => exemplo.ativo);
+    }
     const porId = new Map(exemplos.map((exemplo) => [exemplo.id, exemplo]));
     let ultimaSync = estado.ultimaSync;
 
@@ -195,6 +201,21 @@ export async function guardarNoCache(
     await terminou;
   } catch {
     // O banco continua sendo a fonte de verdade se o cache local falhar.
+  } finally {
+    banco?.close();
+  }
+}
+
+/** Sem sessão (sem internet, por exemplo): o que o aparelho guardou da última vez. */
+export async function exemplosDoAparelho(): Promise<ExemploSalvo[]> {
+  let banco: IDBDatabase | null = null;
+
+  try {
+    banco = await abrirBanco();
+    const { exemplos } = await lerCache(banco);
+    return exemplos.filter((exemplo) => exemplo.ativo);
+  } catch {
+    return [];
   } finally {
     banco?.close();
   }

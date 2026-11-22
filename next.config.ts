@@ -9,6 +9,19 @@ const nextConfig: NextConfig = {
     // Capas de posts e projetos: só as que estão no Storage público do Supabase.
     remotePatterns: supabaseUrl ? [new URL("/storage/v1/object/public/**", supabaseUrl)] : [],
   },
+  async headers() {
+    return [
+      {
+        // O service worker da lixeira mora em /lixeira/sw.js e controla /lixeira
+        // (sem a barra), o que exige este cabeçalho. Sem cache, para atualizar.
+        source: "/lixeira/sw.js",
+        headers: [
+          { key: "Service-Worker-Allowed", value: "/lixeira" },
+          { key: "Cache-Control", value: "no-cache" },
+        ],
+      },
+    ];
+  },
   turbopack: {
     rules: {
       // O Tailwind processa o CSS global. Os CSS Modules ficam de fora: passar

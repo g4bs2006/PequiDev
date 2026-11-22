@@ -387,3 +387,80 @@ export async function responderDescarte(
 
   if (error) throw new Error("Não consegui guardar sua resposta.");
 }
+
+// --- Histórico (etapa 6) ---------------------------------------------------
+
+export type DescarteDoHistorico = {
+  id: string;
+  classeFinal: Classe;
+  fonte: string;
+  confirmado: boolean | null;
+  fotoPath: string | null;
+  criadoEm: string;
+};
+
+/** A sessão que já existe, sem criar uma anônima (o histórico só lê). */
+export async function sessaoExistente(): Promise<Sessao | null> {
+  const supabase = getBrowserClient();
+  const { data } = await supabase.auth.getSession();
+  return data.session ? { userId: data.session.user.id, admin: false } : null;
+}
+
+/** Os descartes da própria pessoa nos últimos 30 dias, do mais novo ao mais antigo. */
+export async function listarMeusDescartes(sessao: Sessao): Promise<DescarteDoHistorico[]> {
+  const supabase = getBrowserClient();
+  const desde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("lixeira_descartes")
+    .select("id, classe_final, fonte, confirmado, foto_path, created_at")
+    .eq("user_id", sessao.userId)
+    .gte("created_at", desde)
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (error) throw new Error("Não consegui abrir seu histórico.");
+  return (data ?? []).map((d) => ({
+    id: d.id,
+    classeFinal: d.classe_final,
+    fonte: d.fonte,
+    confirmado: d.confirmado,
+    fotoPath: d.foto_path,
+    criadoEm: d.created_at,
+  }));
+}
+
+/** Endereços temporários (1 h) das fotos do bucket privado, por caminho. */
+export async function enderecosDasFotos(caminhos: string[]): Promise<Map<string, string>> {
+  const mapa = new Map<string, string>();
+  if (caminhos.length === 0) return mapa;
+  const { data } = await getBrowserClient().storage.from(BUCKET).createSignedUrls(caminhos, 3600);
+  for (const item of data ?? []) {
+    if (item.path && item.signedUrl) mapa.set(item.path, item.signedUrl);
+  }
+  return mapa;
+}
+
+/**
+ * Apaga o histórico da própria pessoa: as fotos dos descartes e as linhas. O
+ * que ela ensinou ao Pequi (exemplos) fica; para isso existe o "Esquecer".
+ */
+export async function apagarMeuHistorico(sessao: Sessao): Promise<void> {
+  const supabase = getBrowserClient();
+  const { data, error } = await supabase
+    .from("lixeira_descartes")
+    .select("foto_path")
+    .eq("user_id", sessao.userId)
+    .not("foto_path", "is", null);
+  if (error) throw new Error("Não consegui apagar seu histórico.");
+
+  const caminhos = (data ?? []).map((d) => d.foto_path).filter((c): c is string => !!c);
+  for (let i = 0; i < caminhos.length; i += 100) {
+    await supabase.storage.from(BUCKET).remove(caminhos.slice(i, i + 100));
+  }
+
+  const { error: erroApagar } = await supabase
+    .from("lixeira_descartes")
+    .delete()
+    .eq("user_id", sessao.userId);
+  if (erroApagar) throw new Error("Não consegui apagar seu histórico.");
+}

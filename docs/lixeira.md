@@ -63,7 +63,7 @@ ideia (classificar pela câmera), depois o acabamento.
 | 3. GPT | Edge Function `lixeira-validar`, foto de 384 px, plano B, limite de chamadas | Um objeto ambíguo é resolvido em até 3 segundos | **Feita** (app pelo Sol); falta o secret `OPENAI_API_KEY` no Supabase para a nuvem responder |
 | 4. Aprendizado contínuo | Regras de decisão, cartão de arrastar (Acertou / Errou), limite por classe | Um objeto que o app errou passa a ser acertado depois de uma correção | **Feita** (app pelo Sol); o aprender sozinho com o GPT espera a chave |
 | 5. Pequi e voz | Pequi de chapéu com os estados de humor, falas da lixeira, voz, mudo e legenda | Cada tipo de descarte gera reação e fala diferentes | **Feita** (falas, voz e palco pelo Sol; chapéu e marcas da cabeça por mim) |
-| 6. Histórico, revisão e PWA | Histórico, telas de Coleta e Revisão no `/admin`, manifest e service worker de `/lixeira` | O app instala na tela inicial e abre sem internet | A fazer |
+| 6. Histórico, revisão e PWA | Histórico, tela de Revisão no `/admin`, manifest e service worker de `/lixeira` | O app instala na tela inicial e abre sem internet | **Feita** (a tela de Coleta saiu: o admin logado já ensina a base pela própria lixeira) |
 | 7. Chapéus | Ponto da cabeça em cada quadro do sprite, chapéus em pixel art, escolha na lixeira, chapéu no blog | O chapéu escolhido na lixeira aparece no Pequi do índice dos posts | **Arquivada** em 2026-11-22: sem o Sol, ficou complexa demais agora; volta depois. Já prontos: `cabeca.json` e `PequiDeChapeu` |
 | 8. Revisão visual mobile | Revisar toda a UX e a UI da lixeira para o celular, que é onde ela é usada: o que hoje faz sentido no desktop e não no celular sai ou muda | A lixeira é confortável de usar com uma mão, num celular de verdade | A fazer. O telão (que era a etapa 8) foi **arquivado** em 2026-11-22: [lixeira-telao.md](lixeira-telao.md) |
 | 9. Testes e apresentação | 10 objetos por categoria fora da base, ajuste dos limiares, roteiro de demonstração | A demonstração roda do início ao fim sem intervenção | A fazer |
@@ -328,6 +328,42 @@ O que cada resposta faz:
   testado:** a voz de verdade no alto-falante de um celular (o teste registra
   o que seria falado) e o desenho do decepcionado com orelhas baixas, que não
   existe na folha (ele só senta).
+
+### Etapa 6: como ficou
+
+- **Modelo do próprio site.** Os pesos do MobileNet v2 (14 MB, 4 partes) ficam
+  em `public/lixeira/modelo/`, baixados do mesmo endereço do tfhub que o
+  pacote usava. A lixeira não depende mais do tfhub nem do Kaggle.
+- **App instalável:** `public/lixeira/manifest.webmanifest` (início e escopo
+  em `/lixeira`, tela cheia, ícones de 192 e 512 px gerados do sprite com o
+  chapéu), ligado pelo `src/app/lixeira/layout.tsx`, que também registra o
+  service worker (só em produção).
+- **Service worker** `public/lixeira/sw.js`, escopo `/lixeira` (o cabeçalho
+  `Service-Worker-Allowed` vem do `next.config.ts`). Guarda na instalação a
+  página, o modelo, o sprite e o chapéu; páginas da lixeira vão pela rede
+  primeiro e caem no cache sem internet; arquivos com nome fixo
+  (`/_next/static`, modelo, imagens do Pequi) vão pelo cache primeiro. Quando
+  a câmera fica pronta, a página manda ao service worker a lista dos arquivos
+  que usou, porque o código da câmera e do TensorFlow só chega depois do toque.
+  Trocar `VERSAO` no `sw.js` apaga os caches antigos.
+- **Sem internet,** o app carrega o que o aparelho guardou (IndexedDB), mesmo
+  sem conseguir renovar a sessão; nada é gravado no banco nesse modo.
+- **Histórico** em `/lixeira/historico` (link "Meu histórico" na lixeira):
+  hoje, 7 dias ou 30 dias, total e porcentagem reciclável, barras por lixeira
+  e os últimos 30 com miniatura. "Apagar meu histórico" apaga os descartes e
+  as fotos deles, com confirmação; o que a pessoa ensinou fica (para isso, o
+  "Esquecer"). Sem gráfico ao vivo (Realtime ficou de fora).
+- **Revisão** em `/admin/lixeira` (aba "Lixeira" do painel): exemplos
+  aprendidos por visitantes e pelo GPT, com "Promover a base" e "Desativar", e
+  descartes com status `revisar` ou `pendente`, com "Revisado". Nova regra no
+  banco deixa o admin marcar descartes de qualquer pessoa.
+- **Testado** num build de produção com a câmera falsa: service worker
+  registrado e controlando `/lixeira`, manifest e ícone ligados, modelo vindo
+  de `/lixeira/modelo/`, 41 arquivos no cache. Com o servidor **desligado**, a
+  lixeira abriu, carregou o modelo, lembrou dos 8 exemplos do aparelho e
+  classificou a lata como Metal. O histórico mostrou o descarte. **Não
+  testado:** a tela de Revisão (precisa do login do Gabriel) e a instalação
+  num celular de verdade.
 
 ## Validação com o GPT
 

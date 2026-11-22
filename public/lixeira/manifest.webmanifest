@@ -1,0 +1,16 @@
+{
+  "name": "Lixeira do Pequi",
+  "short_name": "Lixeira",
+  "description": "Aponte a câmera para um lixo e o Pequi diz em qual lixeira ele vai.",
+  "lang": "pt-BR",
+  "start_url": "/lixeira",
+  "scope": "/lixeira",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff4dc",
+  "theme_color": "#f2a413",
+  "icons": [
+    { "src": "/lixeira/icone-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/lixeira/icone-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

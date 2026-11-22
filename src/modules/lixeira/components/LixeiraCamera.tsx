@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { guardarNoCache, sincronizarExemplos } from "../cache";
+import { exemplosDoAparelho, guardarNoCache, sincronizarExemplos } from "../cache";
+import { guardarParaOffline } from "../offline";
 import { type Classe, categoriaIds, categorias } from "../categorias";
 import { sortearFala } from "../falas";
 import {
@@ -18,6 +20,7 @@ import {
   salvarExemplo,
   type Humor,
   type RespostaPequi,
+  type ExemploSalvo,
   type Sessao,
 } from "../queries";
 import { definirMudo, desbloquearVoz, estaMudo, falar } from "../voz";
@@ -318,11 +321,13 @@ export function LixeiraCamera({ className }: { className?: string }) {
       });
 
     const exemplosPromise = garantirSessao()
-      .then(async (novaSessao) => ({
+      .then(async (novaSessao): Promise<{ sessao: Sessao | null; exemplos: ExemploSalvo[] }> => ({
         sessao: novaSessao,
         exemplos: await sincronizarExemplos(novaSessao),
       }))
-      .catch(() => null);
+      // Sem sessão (sem internet, por exemplo): segue só na memória, mas com o
+      // que o aparelho já tinha aprendido.
+      .catch(async () => ({ sessao: null, exemplos: await exemplosDoAparelho() }));
 
     try {
       const [stream, visao, persistencia] = await Promise.all([
@@ -345,7 +350,7 @@ export function LixeiraCamera({ className }: { className?: string }) {
         void videoRef.current.play().catch(() => undefined);
       }
 
-      let dadosAtivos = persistencia;
+      let dadosAtivos: typeof persistencia | null = persistencia;
 
       if (dadosAtivos) {
         try {
@@ -365,6 +370,7 @@ export function LixeiraCamera({ className }: { className?: string }) {
       if (total > 0) setMensagem(`Lembrei de ${total} exemplos.`);
 
       setEstado("pronto");
+      guardarParaOffline();
     } catch (falha) {
       pararCamera(criados.camera);
       criados.visao?.descartar();
@@ -980,6 +986,15 @@ export function LixeiraCamera({ className }: { className?: string }) {
           <p aria-live="polite" className="mt-3 min-h-6 text-sm text-ink-soft">
             {mensagem}
           </p>
+
+          {sessao ? (
+            <Link
+              href="/lixeira/historico"
+              className="mt-2 inline-flex min-h-11 items-center px-1 text-sm font-bold text-ink underline"
+            >
+              Meu histórico
+            </Link>
+          ) : null}
 
           {sessao?.admin ? (
             <p className="mt-4 text-sm text-ink-soft">

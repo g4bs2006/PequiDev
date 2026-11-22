@@ -219,3 +219,87 @@ export async function getAboutForEdit(): Promise<AboutRow> {
     updatedAt: data.updated_at,
   };
 }
+
+// --- Lixeira do Pequi: Revisão ---------------------------------------------
+
+export type ExemploParaRevisar = {
+  id: string;
+  classe: string;
+  origem: "gpt" | "usuario";
+  foto: string | null;
+  criadoEm: string;
+};
+
+export type DescarteParaRevisar = {
+  id: string;
+  classeLocal: string | null;
+  classeFinal: string;
+  fonte: string;
+  certezaGpt: number | null;
+  frase: string | null;
+  status: string;
+  confirmado: boolean | null;
+  foto: string | null;
+  criadoEm: string;
+};
+
+/**
+ * O que espera o admin na lixeira: exemplos aprendidos (de visitantes e do
+ * GPT), que só valem para quem ensinou até virarem base, e descartes marcados
+ * para revisar (correções e chutes sem internet). Fotos por endereço de 1 h.
+ */
+export async function listarRevisaoDaLixeira() {
+  const supabase = await createSessionClient();
+  const [exemplos, descartes] = await Promise.all([
+    supabase
+      .from("lixeira_exemplos")
+      .select("id, classe, origem, foto_path, created_at")
+      .neq("origem", "base")
+      .eq("ativo", true)
+      .order("created_at", { ascending: false })
+      .limit(60),
+    supabase
+      .from("lixeira_descartes")
+      .select("id, classe_local, classe_final, fonte, certeza_gpt, frase, status, confirmado, foto_path, created_at")
+      .in("status", ["revisar", "pendente"])
+      .order("created_at", { ascending: false })
+      .limit(40),
+  ]);
+
+  const caminhos = [
+    ...(exemplos.data ?? []).map((e) => e.foto_path),
+    ...(descartes.data ?? []).map((d) => d.foto_path),
+  ].filter((c): c is string => !!c);
+  const fotos = new Map<string, string>();
+  if (caminhos.length) {
+    const { data } = await supabase.storage.from("lixeira-fotos").createSignedUrls(caminhos, 3600);
+    for (const item of data ?? []) if (item.path && item.signedUrl) fotos.set(item.path, item.signedUrl);
+  }
+  const foto = (caminho: string | null) => (caminho ? (fotos.get(caminho) ?? null) : null);
+
+  return {
+    exemplos: (exemplos.data ?? []).map(
+      (e): ExemploParaRevisar => ({
+        id: e.id,
+        classe: e.classe,
+        origem: e.origem === "gpt" ? "gpt" : "usuario",
+        foto: foto(e.foto_path),
+        criadoEm: e.created_at,
+      }),
+    ),
+    descartes: (descartes.data ?? []).map(
+      (d): DescarteParaRevisar => ({
+        id: d.id,
+        classeLocal: d.classe_local,
+        classeFinal: d.classe_final,
+        fonte: d.fonte,
+        certezaGpt: d.certeza_gpt,
+        frase: d.frase,
+        status: d.status,
+        confirmado: d.confirmado,
+        foto: foto(d.foto_path),
+        criadoEm: d.created_at,
+      }),
+    ),
+  };
+}

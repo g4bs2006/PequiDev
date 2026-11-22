@@ -6,7 +6,7 @@ import { sair } from "../actions";
 type AdminShellProps = {
   email: string;
   /** Seção aberta, para marcar no menu. */
-  current: "posts" | "projetos" | "sobre";
+  current: "posts" | "projetos" | "sobre" | "lixeira";
   children: ReactNode;
 };
 
@@ -14,6 +14,7 @@ const sections = [
   { key: "posts", href: "/admin/posts", label: "Posts" },
   { key: "projetos", href: "/admin/projetos", label: "Projetos" },
   { key: "sobre", href: "/admin/sobre", label: "Sobre" },
+  { key: "lixeira", href: "/admin/lixeira", label: "Lixeira" },
 ] as const;
 
 /** Coluna das telas do painel, abaixo do menu do site. */

@@ -1,6 +1,6 @@
 "use server";
 
-import { updateTag } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { isSlug, slugify } from "@/lib/slug";
@@ -266,4 +266,32 @@ export async function salvarSobre(_prev: FormState, form: FormData): Promise<For
 
   updateTag(ABOUT_CACHE_TAG);
   return { ok: "Salvo." };
+}
+
+// --- Lixeira do Pequi: Revisão ---------------------------------------------
+
+/** O exemplo passa a valer para todo mundo (origem base). */
+export async function promoverExemploDaLixeira(id: string) {
+  await assertAdmin();
+  const supabase = await createSessionClient();
+  const { error } = await supabase.from("lixeira_exemplos").update({ origem: "base" }).eq("id", id);
+  if (error) throw new Error(dbMessage(error, "um exemplo"));
+  revalidatePath("/admin/lixeira");
+}
+
+/** Tira o exemplo do Pequi de quem ensinou, sem apagar (dá para ver no banco). */
+export async function desativarExemploDaLixeira(id: string) {
+  await assertAdmin();
+  const supabase = await createSessionClient();
+  const { error } = await supabase.from("lixeira_exemplos").update({ ativo: false }).eq("id", id);
+  if (error) throw new Error(dbMessage(error, "um exemplo"));
+  revalidatePath("/admin/lixeira");
+}
+
+export async function marcarDescarteRevisado(id: string) {
+  await assertAdmin();
+  const supabase = await createSessionClient();
+  const { error } = await supabase.from("lixeira_descartes").update({ status: "ok" }).eq("id", id);
+  if (error) throw new Error(dbMessage(error, "um descarte"));
+  revalidatePath("/admin/lixeira");
 }

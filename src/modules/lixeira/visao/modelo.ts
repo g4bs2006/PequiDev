@@ -70,10 +70,14 @@ function descartarRede(rede: MobileNet) {
 export async function criarVisao(opcoes: { leve?: boolean } = {}): Promise<Visao> {
   await prepararBackend();
 
-  const rede = await load({
-    version: 2,
-    alpha: opcoes.leve ? 0.5 : 1.0,
-  });
+  // O modelo completo vem do próprio site (public/lixeira/modelo/, baixado do
+  // tfhub): não depende de terceiros e o service worker guarda para offline.
+  // shortcut: a versão leve (alpha 0,5) ainda vem do tfhub; copiar para cá se ela for usada.
+  const rede = await load(
+    opcoes.leve
+      ? { version: 2, alpha: 0.5 }
+      : { version: 2, alpha: 1.0, modelUrl: "/lixeira/modelo/model.json", inputRange: [0, 1] },
+  );
   const classificador = create();
   let descartada = false;
 
