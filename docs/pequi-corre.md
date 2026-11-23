@@ -192,6 +192,98 @@ Fontes:
 - [Radeon Limitations and recommended settings](https://rocm.docs.amd.com/projects/radeon-ryzen/en/docs-7.1.1/docs/limitations/limitationsrad.html)
 - [The Road to ROCm on Radeon for Windows and Linux](https://www.amd.com/en/blogs/2025/the-road-to-rocm-on-radeon-for-windows-and-linux.html)
 
+## Mostrar a evolução para quem visita
+
+Quem visita tem o jogo, mas o interessante é ver **como** os Pequis aprenderam.
+Conversado em 2026-11-23: um artigo com gravações das etapas evolutivas.
+
+### Gravar dados, não vídeo
+
+O jogo é determinístico: mesma pista (semente) e mesma rede dão a mesma
+corrida. Então uma "gravação" é:
+
+- a semente da pista;
+- os pesos da rede (uns 150 números);
+- as ações quadro a quadro (pular, abaixar, nada), um byte cada.
+
+Poucos KB por Pequi; uma amostra de 200 Pequis de uma geração fica em uns
+100 KB. O site **reproduz** isso no próprio jogo, de forma interativa: pausar,
+voltar, trocar de geração, ver a rede pensando. Vídeo só deixaria assistir.
+
+**Por que gravar as ações também:** a placa calcula em float32 e o navegador
+pode arredondar diferente. Reproduzindo só pelos pesos, um Pequi pode pular um
+quadro depois e morrer onde não morreu no treino. Com as ações, a reprodução é
+fiel; os pesos servem para mostrar os neurônios acendendo.
+
+### O que o treino salva
+
+A cada execução do `treino/`:
+
+- **Histórico por geração:** nota do melhor, média, mediana, fase do currículo,
+  quantos sobreviveram, tempo.
+- **Pontos de parada:** nas gerações-chave (a primeira, cada troca de fase,
+  cada recorde, a final), o campeão e uma amostra da população.
+- **Eventos:** fase nova, recorde, queda de nota numa fase antiga (o
+  esquecimento acontecendo).
+- **A configuração usada**, para comparar experimentos.
+
+Tudo num bucket do Supabase, como as imagens do blog.
+
+### Peças para mostrar
+
+1. **A população inteira correndo:** os 200 da geração 1 morrendo no primeiro
+   cacto; os da geração 30 passando juntos.
+2. **Fantasmas das gerações:** os campeões das gerações 1, 5, 20 e 100 na mesma
+   pista, semitransparentes.
+3. **Barra de gerações:** arrastar da 1 à 500, com o gráfico de nota embaixo e
+   marcas nas trocas de fase.
+4. **A rede por dentro:** as entradas acendendo com o pássaro chegando e o
+   neurônio de "abaixar" disparando.
+5. **Comparação de experimentos:** por exemplo, misturando as fases antigas ×
+   sem misturar, curvas e Pequis lado a lado.
+
+### Dentro do post do blog
+
+O `PostBody.tsx` já descobre a linguagem de cada bloco de código
+(`languageOf`). Um bloco com a linguagem `pequi-corre` vira o componente
+interativo:
+
+````markdown
+Na geração 1, quase ninguém passa do primeiro cacto:
+
+```pequi-corre
+execucao: 2026-12-01-fase1
+mostrar: populacao
+geracao: 1
+```
+````
+
+O post continua sendo escrito no `/admin`, em Markdown, com as gravações onde
+fizer sentido. O componente só carrega o jogo quando entra na tela.
+
+### Formato: posts curtos e um artigo grande
+
+Decidido pelo Gabriel em 2026-11-23: **os dois**.
+
+- **Posts curtos ao longo do caminho**, como diário de aprendizado, um por
+  descoberta. Ideias:
+  1. "Ensinando 10 mil Pequis a pular": a fase 1.
+  2. "O dia em que os Pequis esqueceram dos cactos": o esquecimento
+     catastrófico com dados reais, e a mistura das fases resolvendo.
+  3. "Pular ou abaixar?": os pássaros e a rede diferenciando pela altura.
+  4. "10 mil Pequis numa placa de vídeo": o salto para a GPU.
+  5. "E se ele enxergasse a tela?": os pixels.
+- **Um artigo grande no fim**, juntando a história inteira, da geração 1 ao
+  campeão, reaproveitando as gravações dos posts curtos e linkando para eles.
+
+No jogo (`/pequi-corre`), um botão "Como ele aprendeu?" leva ao artigo.
+
+### Vídeo para redes sociais (extra)
+
+Como tudo é reprodução de dados, um script pode abrir a reprodução num
+navegador sem tela (Playwright) e gravar MP4 ou GIF para Instagram e LinkedIn.
+Secundário: o principal é o artigo interativo.
+
 ## Etapas
 
 Cada etapa termina com algo funcionando. As etapas 1 a 3 podem nascer no
@@ -204,10 +296,14 @@ treinar na placa, o treino de verdade passa para o `treino/` em Python.
 | 1. O jogo | Jogo com o Pequi, só cactos, jogável no teclado ou no toque, regras separadas da tela | A fazer |
 | 2. Rede e evolução | População aprende a fase 1, com painel ao vivo | A fazer |
 | 3. Currículo | Pássaros, troca de fase automática, mistura das fases antigas | A fazer |
-| 4. GPU | `treino/` em PyTorch vetorizado, população de milhares, teste de paridade com o jogo do site | A fazer |
-| 5. Campeão no site | Exportar e carregar o campeão, gráficos do treino, modo "você contra a IA" | A fazer |
-| 6. NEAT | Comparar com a rede fixa | A fazer |
-| 7. Pixels | O Pequi vendo a tela, rede convolucional na GPU | A fazer |
+| 4. GPU | `treino/` em PyTorch vetorizado, população de milhares, teste de paridade com o jogo do site; salva histórico, pontos de parada, ações e eventos | A fazer |
+| 5. Laboratório no blog | Reprodutor de gravações, bloco `pequi-corre` no post, fantasmas, barra de gerações, gráficos, rede por dentro | A fazer |
+| 6. Campeão no site | O jogo usa o mesmo reprodutor; modo "você contra a IA"; botão "Como ele aprendeu?" | A fazer |
+| 7. NEAT | Comparar com a rede fixa | A fazer |
+| 8. Pixels | O Pequi vendo a tela, rede convolucional na GPU | A fazer |
+| 9. Artigo grande | A história inteira, juntando as gravações dos posts curtos | A fazer |
+
+Os posts curtos saem ao longo das etapas, conforme cada descoberta.
 
 ## Decisões em aberto
 
