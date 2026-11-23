@@ -1,4 +1,4 @@
-import { FunctionsHttpError } from "@supabase/supabase-js";
+import { FunctionRegion, FunctionsHttpError } from "@supabase/supabase-js";
 
 import { getBrowserClient } from "@/lib/supabase/browser";
 
@@ -169,6 +169,9 @@ export async function perguntarAoPequi(
         fotoPath: extra?.fotoPath ?? null,
       },
       timeout: 8000,
+      // A função roda perto do banco (us-east-1), não do celular: as consultas
+      // de sessão e limite cruzavam o continente e somavam ~1 s (2026-11-23).
+      region: FunctionRegion.UsEast1,
     });
 
     if (error) throw error;

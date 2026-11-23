@@ -201,6 +201,42 @@ caíram de 96% para 92,5%. Boa parte dos 13 rejeitos que ainda saem como
 plástico são saquinhos plásticos limpos, que pela coleta comum daqui são
 plástico mesmo: divergência entre a etiqueta do TrashNet e a regra local.
 
+### Ajuste de 2026-11-23: o GPT diz o que vê antes de escolher
+
+No primeiro teste da nuvem com o secret posto, um sachê saiu como plástico: o
+GPT chamou de sachê na frase, mas escolheu a lixeira antes. O esquema agora
+pede `objeto` (até 6 palavras) antes de `classe`, e o prompt ganhou "Sachê é
+rejeito mesmo sendo de plástico". Reteste com as mesmas 200 fotos:
+
+Acerto geral: **87.0%**. Tempo: mediana 2235 ms, 90% abaixo de 3368 ms. Tokens: 152200 de entrada e 11838 de saída.
+
+| Lixeira | Acerto | Certeza média quando acerta | Quando erra |
+| --- | --- | --- | --- |
+| metal | 95.0% | 95.5% | 93.5% |
+| plastico | 82.5% | 95.4% | 92.4% |
+| papel | 95.0% | 93.7% | 97.5% |
+| vidro | 90.0% | 97.5% | 91.3% |
+| rejeito | 72.5% | 96.6% | 86.0% |
+
+| real \ GPT | metal | plastico | papel | vidro | rejeito | vazio |
+| --- | --- | --- | --- | --- | --- | --- |
+| metal | 38 | 0 | 1 | 0 | 1 | 0 |
+| plastico | 1 | 33 | 0 | 3 | 3 | 0 |
+| papel | 0 | 0 | 38 | 0 | 2 | 0 |
+| vidro | 2 | 1 | 0 | 36 | 1 | 0 |
+| rejeito | 0 | 9 | 2 | 0 | 29 | 0 |
+
+Rejeito subiu de 55% para 72,5% e o geral de 85% para 87%; plástico perdeu
+2 fotos (duas foram para o rejeito). O tempo maior não é do campo novo: num
+A/B logo depois, com 40 fotos cada, o prompt antigo deu mediana de 3,5 s e o
+novo de 2,5 s; a OpenAI estava mais lenta nesse horário.
+
+**Região da função.** O Supabase roda a função perto de quem chama
+(`sa-east-1` para o Brasil), mas o banco fica em `us-east-1`. A sessão e as
+duas contagens de limite cruzavam o continente a cada chamada. Forçando
+`us-east-1` (`region: FunctionRegion.UsEast1` no app, `x-region` liberado no
+CORS), a mesma chamada caiu de ~3 s para ~1,8 s.
+
 ## Painel do modelo
 
 `/admin/lixeira/modelo` (aba "Modelo" da lixeira no painel) mostra:

@@ -39,9 +39,10 @@ const PREVIA = /^https:\/\/pequidev-[a-z0-9-]+\.vercel\.app$/;
 
 const INSTRUCOES = `Você é o Pequi, um gato laranja rajado de Goiás que trabalha de fiscal da lixeira: sarcástico, carinhoso e orgulhoso do seu trabalho.
 Olhe a imagem e identifique o objeto principal que a pessoa quer descartar.
+objeto diz o que você vê, em até 6 palavras (ex.: "sachê de ketchup", "lata de refrigerante"). Escolha a classe a partir do objeto, seguindo as regras abaixo, mesmo que o material pareça reciclável.
 Classifique em: metal, plastico, papel, vidro, rejeito ou vazio.
 Use rejeito para o que a coleta seletiva comum não aceita: embalagens metalizadas (salgadinho, biscoito, bala, café), sachês, tubos de pasta de dente, escovas de dente, papel ou guardanapo usado ou sujo de comida ou gordura, papel higiênico, fralda, bituca, isopor sujo e embalagens de materiais grudados que não se separam.
-Embalagem metalizada não é metal: metal é lata, tampa e papel-alumínio limpo. Na dúvida entre reciclável e rejeito em algo sujo ou usado, escolha rejeito.
+Embalagem metalizada não é metal: metal é lata, tampa e papel-alumínio limpo. Sachê é rejeito mesmo sendo de plástico. Na dúvida entre reciclável e rejeito em algo sujo ou usado, escolha rejeito.
 Use vazio se não houver objeto claro, ou se o principal for uma pessoa ou um animal.
 certeza vai de 0 a 1.
 humor é um de: feliz (reciclável), decepcionado (rejeito), pensativo (dúvida), surpreso (objeto inesperado).
@@ -51,8 +52,12 @@ Reações especiais: um pequi ("Ô trem bom! Mas cuidado com o espinho, sô"), u
 const ESQUEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["classe", "certeza", "humor", "frase"],
+  // objeto vem antes de classe: o modelo escreve na ordem do esquema, e dizer o
+  // que vê antes de escolher a lixeira fez ele seguir melhor a regra do rejeito
+  // (rejeito de 55% para 72,5% na avaliação de 2026-11-23).
+  required: ["objeto", "classe", "certeza", "humor", "frase"],
   properties: {
+    objeto: { type: "string" },
     classe: { type: "string", enum: CLASSES },
     certeza: { type: "number" },
     humor: { type: "string", enum: HUMORES },
@@ -63,7 +68,7 @@ const ESQUEMA = {
 function cabecalhos(origem: string | null): Record<string, string> {
   const base: Record<string, string> = {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-region",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     Vary: "Origin",
   };

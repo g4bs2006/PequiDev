@@ -21,8 +21,9 @@ const INSTRUCOES = funcao.match(/const INSTRUCOES = `([\s\S]*?)`;/)[1];
 const ESQUEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["classe", "certeza", "humor", "frase"],
+  required: ["objeto", "classe", "certeza", "humor", "frase"],
   properties: {
+    objeto: { type: "string" },
     classe: { type: "string", enum: [...CLASSES, "vazio"] },
     certeza: { type: "number" },
     humor: { type: "string", enum: ["feliz", "decepcionado", "pensativo", "surpreso"] },
